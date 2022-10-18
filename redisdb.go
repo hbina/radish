@@ -154,7 +154,7 @@ func (db *RedisDb) delete(keys ...*string) int {
 		}
 		i := db.get(k)
 		if i == nil {
-			return false
+			return true
 		}
 		i.OnDelete(k, db)
 		delete(db.keys, *k)
