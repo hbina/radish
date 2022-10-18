@@ -136,8 +136,7 @@ func (db *RedisDb) Get(key *string) Item {
 }
 
 func (db *RedisDb) get(key *string) Item {
-	i, _ := db.keys[*key]
-	return i
+	return db.keys[*key]
 }
 
 // Deletes a key, returns number of deleted keys.

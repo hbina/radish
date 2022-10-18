@@ -1,9 +1,10 @@
 package redis
 
 import (
-	"github.com/redis-go/redcon"
 	"strings"
 	"sync"
+
+	"github.com/redis-go/redcon"
 )
 
 const (

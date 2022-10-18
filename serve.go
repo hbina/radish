@@ -2,8 +2,9 @@ package redis
 
 import (
 	"crypto/tls"
-	"github.com/redis-go/redcon"
 	"time"
+
+	"github.com/redis-go/redcon"
 )
 
 // Run runs the default redis server.

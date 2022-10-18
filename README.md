@@ -21,13 +21,11 @@ We are searching contributors!
 
 godoc: https://godoc.org/github.com/redis-go/redis
 
-### Getting Started
+### Running the test
 
-You can already test out the API.
-
-To install, run:
 ```bash
-go get -u github.com/redis-go/redis
+$ go run cmd/main.go <PORT>
+$ PORT=<PORT> go test
 ```
 
 
