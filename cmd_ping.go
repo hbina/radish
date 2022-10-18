@@ -1,21 +1,32 @@
 package redis
 
 import (
-	"bytes"
+	"strings"
+
 	"github.com/redis-go/redcon"
 )
 
+const (
+	PingTooManyArguments = "ERR wrong number of arguments for 'ping' command"
+	ZeroArgument         = "ERR zero argument provided. This is a bug with the implementation"
+)
+
+// TODO: Since "PING" is already routed here, perhaps we
+// should remove the first argument entirely so that
+// it's not representable in the first place (zero arguments).
 func PingCommand(c *Client, cmd redcon.Command) {
-	if len(cmd.Args) > 1 {
-		var buf bytes.Buffer
-		for i := 1; i < len(cmd.Args); i++ {
-			buf.Write(cmd.Args[i])
-			buf.WriteString(" ")
-		}
+	if len(cmd.Args) == 0 {
+		c.Conn().WriteError(ZeroArgument)
+	} else if len(cmd.Args) == 1 {
+		c.Conn().WriteString("PONG")
+	} else if len(cmd.Args) == 2 {
+		var buf strings.Builder
+		buf.WriteString("\"")
+		buf.Write(cmd.Args[1])
+		buf.WriteString("\"")
 		s := buf.String()
-		s = s[:len(s)-1]
 		c.Conn().WriteString(s)
-		return
+	} else {
+		c.Conn().WriteError(PingTooManyArguments)
 	}
-	c.Conn().WriteString("PONG")
 }
