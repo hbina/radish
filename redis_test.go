@@ -1,23 +1,18 @@
 package redis
 
 import (
-	"github.com/go-redis/redis"
-	"github.com/stretchr/testify/assert"
+	"fmt"
+	"os"
 	"testing"
 	"time"
+
+	"github.com/go-redis/redis"
+	"github.com/stretchr/testify/assert"
 )
 
-// redis server
-var r = Default()
-
-// redis client
 var c = redis.NewClient(&redis.Options{
-	Addr: ":6379",
+	Addr: fmt.Sprintf(":%s", os.Getenv("PORT")),
 })
-
-func init() {
-	go r.Run(":6379")
-}
 
 func TestPingCommand(t *testing.T) {
 	s, err := c.Ping().Result()
@@ -31,7 +26,7 @@ func TestPingCommand(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestSetCommand(t *testing.T) {
+func TestSetGetCommand(t *testing.T) {
 	s, err := c.Set("k", "v", 0).Result()
 	assert.Equal(t, "OK", s)
 	assert.NoError(t, err)
@@ -43,10 +38,8 @@ func TestSetCommand(t *testing.T) {
 	s, err = c.Set("k3", "v", 1*time.Hour).Result()
 	assert.Equal(t, "OK", s)
 	assert.NoError(t, err)
-}
 
-func TestGetCommand(t *testing.T) {
-	s, err := c.Get("k").Result()
+	s, err = c.Get("k").Result()
 	assert.Equal(t, "v", s)
 	assert.NoError(t, err)
 }

@@ -1,8 +1,9 @@
 package redis
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestLPushCommand(t *testing.T) {
@@ -50,8 +51,8 @@ func TestLPopCommand(t *testing.T) {
 
 func TestLRangeCommand(t *testing.T) {
 	s, err := c.LRange("lrange", 0, 0).Result()
-	assert.Error(t, err)
-	assert.Zero(t, s)
+	assert.NoError(t, err)
+	assert.Equal(t, s, []string{})
 
 	sl, err := c.Set("works", "esfkjsefj", 0).Result()
 	assert.NoError(t, err)
