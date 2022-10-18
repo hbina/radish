@@ -2,6 +2,8 @@ package redis
 
 import (
 	"container/list"
+	"fmt"
+
 	"github.com/pkg/errors"
 )
 
@@ -31,7 +33,7 @@ func (l *List) TypeFancy() string {
 }
 
 func (l *List) OnDelete(key *string, db *RedisDb) {
-	panic("implement me")
+	fmt.Printf("Deleting list with key %s from database ID %d\n", *key, db.id)
 }
 
 // LLen returns number of elements.

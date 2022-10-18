@@ -1,5 +1,7 @@
 package redis
 
+import "fmt"
+
 const StringType = uint64(0)
 const StringTypeFancy = "string"
 
@@ -26,4 +28,5 @@ func (s *String) TypeFancy() string {
 }
 
 func (s *String) OnDelete(key *string, db *RedisDb) {
+	fmt.Printf("Deleting string with key %s from database ID %d\n", *key, db.id)
 }
