@@ -2,8 +2,9 @@ package redis
 
 import (
 	"fmt"
-	"github.com/redis-go/redcon"
 	"time"
+
+	"github.com/redis-go/redcon"
 )
 
 func TtlCommand(c *Client, cmd redcon.Command) {
@@ -26,5 +27,5 @@ func TtlCommand(c *Client, cmd redcon.Command) {
 		return
 	}
 
-	c.Conn().WriteInt64(int64(t.Sub(time.Now()).Seconds()))
+	c.Conn().WriteInt64(int64(time.Until(t).Seconds()))
 }
