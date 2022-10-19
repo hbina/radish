@@ -127,12 +127,6 @@ func (r *Redis) getCommands() Commands {
 func (r *Redis) CommandExists(cmds ...string) bool {
 	regCmds := r.Commands()
 
-	// TODO does this make the performance better because it does not create a loop every time?
-	if len(cmds) == 1 {
-		_, ex := regCmds[cmds[0]]
-		return ex
-	}
-
 	for _, cmd := range cmds {
 		if _, ex := regCmds[cmd]; !ex {
 			return false
