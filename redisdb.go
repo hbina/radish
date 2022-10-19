@@ -31,7 +31,7 @@ type RedisDb struct {
 type RedisDbs map[DatabaseId]*RedisDb
 
 // Database id
-type DatabaseId uint
+type DatabaseId uint32
 
 // Key-Item map
 type Keys map[string]Item
@@ -77,20 +77,16 @@ func (r *Redis) RedisDb(dbId DatabaseId) *RedisDb {
 
 	r.Mu().RLock()
 	db := getDb()
-	r.Mu().RUnlock()
+	defer r.Mu().RUnlock()
 	if db != nil {
 		return db
 	}
 
-	// create db
-	r.Mu().Lock()
-	defer r.Mu().Unlock()
-	// check if db does not exists again since
-	// multiple "mutex readers" can come to this point
-	db = getDb()
-	if db != nil {
-		return db
-	}
+	// NOTE: This differs from original Redis because the number of databases are configured
+	// at compile time with redis.conf
+	// However, it should be fine to always return a valid database unless some application
+	// rely on it to fail to stop?
+
 	// now really create db of that id
 	r.redisDbs[dbId] = NewRedisDb(dbId, r)
 	return r.redisDbs[dbId]
