@@ -5,22 +5,18 @@ import "github.com/redis-go/redcon"
 // Command flags. Please check the command table defined in the redis.c file
 // for more information about the meaning of every flag.
 const (
-	CMD_WRITE             CmdFlag = iota + 1 /* "w" flag */
-	CMD_READONLY                             /* "r" flag */
-	CMD_DENYOOM                              /* "m" flag */
-	CMD_MODULE                               /* Command exported by module. */
-	CMD_ADMIN                                /* "a" flag */
-	CMD_PUBSUB                               /* "p" flag */
-	CMD_NOSCRIPT                             /* "s" flag */
-	CMD_RANDOM                               /* "R" flag */
-	CMD_SORT_FOR_SCRIPT                      /* "S" flag */
-	CMD_LOADING                              /* "l" flag */
-	CMD_STALE                                /* "t" flag */
-	CMD_SKIP_MONITOR                         /* "M" flag */
-	CMD_ASKING                               /* "k" flag */
-	CMD_FAST                                 /* "F" flag */
-	CMD_MODULE_GETKEYS                       /* Use the modules getkeys interface. */
-	CMD_MODULE_NO_CLUSTER                    /* Deny on Redis Cluster. */
+	CMD_WRITE    uint64 = 1 << 0 /* "w" flag */
+	CMD_READONLY        = 1 << 1 /* "r" flag */
+	CMD_DENYOOM         = 1 << 2 /* "m" flag */
+	CMD_MODULE          = 1 << 3 /* Command exported by module. */
+	CMD_ADMIN           = 1 << 4 /* "a" flag */
+	CMD_PUBSUB          = 1 << 5 /* "p" flag */
+	CMD_NOSCRIPT        = 1 << 6 /* "s" flag */
+	CMD_BLOCKING        = 1 << 8
+	CMD_LOADING         = 1 << 9
+	CMD_STALE           = 1 << 10
+	CMD_FAST            = 1 << 14
+	// Add more commands whenever necessary
 )
 
 // A command can be registered.
@@ -31,20 +27,20 @@ type Command struct {
 	// Handler
 	handler CommandHandler
 
-	// Command flags
-	flags map[CmdFlag]struct{} // Use map as a set data structure
+	// Command flag
+	flag uint64 // Use map as a set data structure
 }
 
-func NewCommand(name string, handler CommandHandler, flags ...CmdFlag) *Command {
-	mFlags := make(map[CmdFlag]struct{}, len(flags))
+func NewCommand(name string, handler CommandHandler, flags ...uint64) *Command {
+	var flag uint64 = 0
 	for _, f := range flags {
-		mFlags[f] = struct{}{}
+		flag = flag | f
 	}
 
 	return &Command{
 		name:    name,
 		handler: handler,
-		flags:   mFlags,
+		flag:    flag,
 	}
 }
 
