@@ -31,7 +31,7 @@
 
 [[constraint]]
   branch = "master"
-  name = "github.com/redis-go/redcon"
+  name = "github.com/tidwall/redcon"
 
 [prune]
   go-tests = true

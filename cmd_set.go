@@ -2,10 +2,11 @@ package redis
 
 import (
 	"fmt"
-	"github.com/redis-go/redcon"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/tidwall/redcon"
 )
 
 // SET key value [NX] [XX] [EX <seconds>] [PX <milliseconds>]

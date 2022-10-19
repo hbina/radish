@@ -2,8 +2,9 @@ package redis
 
 import (
 	"fmt"
-	"github.com/redis-go/redcon"
 	"strconv"
+
+	"github.com/tidwall/redcon"
 )
 
 func LRangeCommand(c *Client, cmd redcon.Command) {

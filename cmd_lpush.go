@@ -2,8 +2,9 @@ package redis
 
 import (
 	"fmt"
-	"github.com/redis-go/redcon"
 	"time"
+
+	"github.com/tidwall/redcon"
 )
 
 func LPushCommand(c *Client, cmd redcon.Command) {

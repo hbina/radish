@@ -45,7 +45,7 @@
 [[projects]]
   branch = "master"
   digest = "1:b71eb6ea46bd52fc536b9b88ea26aa88d23d0af779b40515433643ecd9c5940b"
-  name = "github.com/redis-go/redcon"
+  name = "github.com/tidwall/redcon"
   packages = ["."]
   pruneopts = "UT"
   revision = "56b016127ae730019c5e3073a413ad9526440c38"
@@ -64,7 +64,7 @@
   input-imports = [
     "github.com/go-redis/redis",
     "github.com/pkg/errors",
-    "github.com/redis-go/redcon",
+    "github.com/tidwall/redcon",
     "github.com/stretchr/testify/assert",
   ]
   solver-name = "gps-cdcl"

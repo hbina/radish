@@ -3,7 +3,7 @@ package redis
 import (
 	"strings"
 
-	"github.com/redis-go/redcon"
+	"github.com/tidwall/redcon"
 )
 
 const (

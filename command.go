@@ -1,6 +1,6 @@
 package redis
 
-import "github.com/redis-go/redcon"
+import "github.com/tidwall/redcon"
 
 // Command flags. Please check the command table defined in the redis.c file
 // for more information about the meaning of every flag.

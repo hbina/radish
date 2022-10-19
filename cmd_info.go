@@ -1,7 +1,7 @@
 package redis
 
 import (
-	"github.com/redis-go/redcon"
+	"github.com/tidwall/redcon"
 )
 
 func InfoCommand(c *Client, cmd redcon.Command) {

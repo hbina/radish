@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/redis-go/redcon"
+	"github.com/tidwall/redcon"
 )
 
 func TtlCommand(c *Client, cmd redcon.Command) {

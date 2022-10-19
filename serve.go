@@ -4,7 +4,7 @@ import (
 	"crypto/tls"
 	"time"
 
-	"github.com/redis-go/redcon"
+	"github.com/tidwall/redcon"
 )
 
 // Run runs the default redis server.

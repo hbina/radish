@@ -4,7 +4,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/redis-go/redcon"
+	"github.com/tidwall/redcon"
 )
 
 const (

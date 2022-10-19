@@ -3,7 +3,7 @@ package redis
 import (
 	"strconv"
 
-	"github.com/redis-go/redcon"
+	"github.com/tidwall/redcon"
 )
 
 func SelectCommand(c *Client, cmd redcon.Command) {
