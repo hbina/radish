@@ -2,34 +2,38 @@ package redis
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/tidwall/redcon"
 )
 
 func RPushCommand(c *Client, cmd redcon.Command) {
-	if len(cmd.Args) < 3 {
-		c.Conn().WriteError(fmt.Sprintf(WrongNumOfArgsErr, "rpush"))
+	if len(cmd.Args) == 0 {
+		c.Conn().WriteError("no argument passed to handler. This should not be possible")
+		return
+	} else if len(cmd.Args) < 3 {
+		c.Conn().WriteError(fmt.Sprintf("wrong number of arguments for '%s' command", cmd.Args[0]))
 		return
 	}
+
 	key := string(cmd.Args[1])
-
 	db := c.Db()
-	i := db.GetOrExpire(&key, true)
-	if i == nil {
-		i := NewList()
-		db.Set(&key, i, false, time.Time{})
-	} else if i.Type() != ListType {
-		c.Conn().WriteError(fmt.Sprintf("%s: key is a %s not a %s", WrongTypeErr, i.TypeFancy(), ListTypeFancy))
+	item := db.GetOrExpire(&key, true)
+
+	if item == nil {
+		item = NewList()
+		db.Set(&key, item, nil)
+	} else if item.Type() != ListType {
+		c.Conn().WriteError(WrongTypeErr)
 		return
 	}
 
-	l := i.(*List)
+	list := item.(*List)
+
 	var length int
 	c.Redis().Mu().Lock()
 	for j := 2; j < len(cmd.Args); j++ {
 		v := string(cmd.Args[j])
-		length = l.RPush(&v)
+		length = list.RPush(&v)
 	}
 	c.Redis().Mu().Unlock()
 

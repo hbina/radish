@@ -2,35 +2,37 @@ package redis
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/tidwall/redcon"
 )
 
 func LPushCommand(c *Client, cmd redcon.Command) {
-	if len(cmd.Args) < 3 {
-		c.Conn().WriteError(fmt.Sprintf(WrongNumOfArgsErr, "lpush"))
+	if len(cmd.Args) == 0 {
+		c.Conn().WriteError("no argument passed to handler. This should not be possible")
+		return
+	} else if len(cmd.Args) == 1 {
+		c.Conn().WriteError(fmt.Sprintf("wrong number of arguments for '%s' command", cmd.Args[0]))
 		return
 	}
 	key := string(cmd.Args[1])
-	fmt.Println("KEY:", key)
 	db := c.Db()
-	i := db.GetOrExpire(&key, true)
-	if i == nil {
-		i = NewList()
-		db.Set(&key, i, false, time.Time{})
-		fmt.Println("CREATED NEW LIST")
-	} else if i.Type() != ListType {
-		c.Conn().WriteError(fmt.Sprintf("%s: key is a %s not a %s", WrongTypeErr, i.TypeFancy(), ListTypeFancy))
+	value := db.GetOrExpire(&key, true)
+	if value == nil {
+		value = NewList()
+		db.Set(&key, value, nil)
+	} else if value.Type() != ListType {
+		c.Conn().WriteError(fmt.Sprintf("%s: key is a %s not a %s", WrongTypeErr, value.TypeFancy(), ListTypeFancy))
 		return
 	}
 
-	l := i.(*List)
+	fmt.Println("LPUSH", value)
+
+	list := value.(*List)
 	var length int
 	c.Redis().Mu().Lock()
 	for j := 2; j < len(cmd.Args); j++ {
 		v := string(cmd.Args[j])
-		length = l.LPush(&v)
+		length = list.LPush(&v)
 	}
 	c.Redis().Mu().Unlock()
 

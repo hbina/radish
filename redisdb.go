@@ -31,7 +31,7 @@ type RedisDb struct {
 type RedisDbs map[DatabaseId]*RedisDb
 
 // Database id
-type DatabaseId uint32
+type DatabaseId uint64
 
 // Key-Item map
 type Keys map[string]Item
@@ -115,12 +115,10 @@ func (db *RedisDb) Id() DatabaseId {
 }
 
 // Sets a key with an item which can have an expiration time.
-func (db *RedisDb) Set(key *string, i Item, expires bool, expiry time.Time) {
-	db.Mu().Lock()
-	defer db.Mu().Unlock()
+func (db *RedisDb) Set(key *string, i Item, expiry *time.Time) {
 	db.keys[*key] = i
-	if expires {
-		db.expiringKeys[*key] = expiry
+	if expiry != nil {
+		db.expiringKeys[*key] = *expiry
 	}
 }
 
@@ -128,10 +126,6 @@ func (db *RedisDb) Set(key *string, i Item, expires bool, expiry time.Time) {
 func (db *RedisDb) Get(key *string) Item {
 	db.Mu().RLock()
 	defer db.Mu().RUnlock()
-	return db.get(key)
-}
-
-func (db *RedisDb) get(key *string) Item {
 	return db.keys[*key]
 }
 
@@ -148,11 +142,11 @@ func (db *RedisDb) delete(keys ...*string) int {
 		if k == nil {
 			return false
 		}
-		i := db.get(k)
-		if i == nil {
+		value, exists := db.keys[*k]
+		if !exists {
 			return true
 		}
-		i.OnDelete(k, db)
+		value.OnDelete(k, db)
 		delete(db.keys, *k)
 		delete(db.expiringKeys, *k)
 		return true
@@ -183,8 +177,8 @@ func (db *RedisDb) GetOrExpire(key *string, deleteIfExpired bool) Item {
 	// TODO mutex optimize this func so that a RLock is mainly first opened
 	db.Mu().Lock()
 	defer db.Mu().Unlock()
-	i, ok := db.keys[*key]
-	if !ok {
+	value, exists := db.keys[*key]
+	if !exists {
 		return nil
 	}
 	if db.expired(key) {
@@ -193,7 +187,7 @@ func (db *RedisDb) GetOrExpire(key *string, deleteIfExpired bool) Item {
 		}
 		return nil
 	}
-	return i
+	return value
 }
 
 // IsEmpty checks if db is empty.
@@ -216,6 +210,7 @@ func (db *RedisDb) Exists(key *string) bool {
 	defer db.Mu().RUnlock()
 	return db.exists(key)
 }
+
 func (db *RedisDb) exists(key *string) bool {
 	_, ok := db.keys[*key]
 	return ok
@@ -227,6 +222,7 @@ func (db *RedisDb) Expires(key *string) bool {
 	defer db.Mu().RUnlock()
 	return db.expires(key)
 }
+
 func (db *RedisDb) expires(key *string) bool {
 	_, ok := db.expiringKeys[*key]
 	return ok
@@ -238,6 +234,7 @@ func (db *RedisDb) Expired(key *string) bool {
 	defer db.Mu().RUnlock()
 	return db.expired(key)
 }
+
 func (db *RedisDb) expired(key *string) bool {
 	return db.expires(key) && TimeExpired(db.expiry(key))
 }
@@ -270,4 +267,14 @@ func (db *RedisDb) ExpiringKeys() ExpiringKeys {
 // TimeExpired check if a timestamp is older than now.
 func TimeExpired(expireAt time.Time) bool {
 	return time.Now().After(expireAt)
+}
+
+func (db *RedisDb) SyncFlushAll() {
+	db.Mu().RLock()
+	defer db.Mu().RUnlock()
+	for k, i := range db.keys {
+		i.OnDelete(&k, db)
+		delete(db.keys, k)
+		delete(db.expiringKeys, k)
+	}
 }

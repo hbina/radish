@@ -1,6 +1,7 @@
 package redis
 
 import (
+	"fmt"
 	"strings"
 	"sync"
 
@@ -10,6 +11,7 @@ import (
 const (
 	SyntaxErr         = "ERR syntax error"
 	InvalidIntErr     = "ERR value is not an integer or out of range"
+	InvalidFloatErr   = "ERR value is not a valid float"
 	WrongTypeErr      = "WRONGTYPE Operation against a key holding the wrong kind of value"
 	WrongNumOfArgsErr = "ERR wrong number of arguments for '%s' command"
 )
@@ -147,9 +149,14 @@ func createDefault() *Redis {
 		onClose: func(c *Client, err error) {
 		},
 		handler: func(c *Client, cmd redcon.Command) {
+			for _, v := range cmd.Args {
+				fmt.Printf("%s ", string(v))
+			}
+			fmt.Println()
 			cmdl := strings.ToLower(string(cmd.Args[0]))
-			if c.Redis().CommandExists(cmdl) {
-				c.Redis().CommandHandlerFn(cmdl)(c, cmd)
+			commandHandler := c.Redis().CommandHandlerFn(cmdl)
+			if commandHandler != nil {
+				(*commandHandler)(c, cmd)
 			} else {
 				c.Redis().UnknownCommandFn()(c, cmd)
 			}
@@ -178,6 +185,25 @@ func createDefault() *Redis {
 		NewCommand("config", ConfigCommand, CMD_WRITE),
 		NewCommand("info", InfoCommand, CMD_READONLY),
 		NewCommand("select", SelectCommand, CMD_WRITE),
+		NewCommand("flushall", FlushAllCommand, CMD_WRITE),
+		NewCommand("function", FunctionCommand),
+		NewCommand("incr", IncrCommand, CMD_WRITE),
+		NewCommand("incrby", IncrByCommand, CMD_WRITE),
+		NewCommand("incrbyfloat", IncrByFloatCommand, CMD_WRITE),
+		NewCommand("decr", DecrCommand),
+		NewCommand("decrby", DecrByCommand),
+		NewCommand("decrbyfloat", DecrByFloatCommand),
+		NewCommand("object", ObjectCommand),
 	})
 	return r
+}
+
+// Flush all keys synchronously
+func (db *Redis) SyncFlushAll() {
+	db.Mu().RLock()
+	defer db.Mu().RUnlock()
+
+	for _, v := range db.redisDbs {
+		v.SyncFlushAll()
+	}
 }

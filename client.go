@@ -70,7 +70,6 @@ func (c *Client) ClientId() ClientId {
 	return c.clientId
 }
 
-// The client's connection.
 func (c *Client) Conn() redcon.Conn {
 	c.Mu().RLock()
 	defer c.Mu().RUnlock()

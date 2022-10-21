@@ -30,7 +30,7 @@ func LRangeCommand(c *Client, cmd redcon.Command) {
 		c.Conn().WriteNull()
 		return
 	} else if i.Type() != ListType {
-		c.Conn().WriteError(fmt.Sprintf("%s: key is a %s not a %s", WrongTypeErr, i.TypeFancy(), ListTypeFancy))
+		c.Conn().WriteError(WrongTypeErr)
 		return
 	}
 

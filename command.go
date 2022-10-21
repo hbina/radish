@@ -75,36 +75,14 @@ func (r *Redis) RegisterCommands(cmds []*Command) {
 	r.Mu().Lock()
 	defer r.Mu().Unlock()
 	for _, cmd := range cmds {
-		r.registerCommand(cmd)
+		r.commands[cmd.Name()] = cmd
 	}
-}
-
-// RegisterCommand adds a command to the redis instance.
-// If cmd already exists the handler is overridden.
-func (r *Redis) RegisterCommand(cmd *Command) {
-	r.Mu().Lock()
-	defer r.Mu().Unlock()
-	r.registerCommand(cmd)
-}
-func (r *Redis) registerCommand(cmd *Command) {
-	r.getCommands()[cmd.Name()] = cmd
-}
-
-// UnregisterCommand removes a command.
-func (r *Redis) UnregisterCommand(name string) {
-	r.Mu().Lock()
-	defer r.Mu().Unlock()
-	delete(r.commands, name)
 }
 
 // Command returns the registered command or nil if not exists.
 func (r *Redis) Command(name string) *Command {
 	r.Mu().RLock()
 	defer r.Mu().RUnlock()
-	return r.command(name)
-}
-
-func (r *Redis) command(name string) *Command {
 	return r.commands[name]
 }
 
@@ -112,37 +90,19 @@ func (r *Redis) command(name string) *Command {
 func (r *Redis) Commands() Commands {
 	r.Mu().RLock()
 	defer r.Mu().RUnlock()
-	return r.getCommands()
-}
-
-func (r *Redis) getCommands() Commands {
 	return r.commands
 }
 
-// CommandExists checks if one or more commands are registered.
-func (r *Redis) CommandExists(cmds ...string) bool {
-	regCmds := r.Commands()
-
-	for _, cmd := range cmds {
-		if _, ex := regCmds[cmd]; !ex {
-			return false
-		}
-	}
-	return true
-}
-
-// FlushCommands removes all commands.
-func (r *Redis) FlushCommands() {
-	r.Mu().Lock()
-	defer r.Mu().Unlock()
-	r.commands = make(Commands)
-}
-
 // CommandHandlerFn returns the CommandHandler of cmd.
-func (r *Redis) CommandHandlerFn(name string) CommandHandler {
+func (r *Redis) CommandHandlerFn(name string) *CommandHandler {
 	r.Mu().RLock()
 	defer r.Mu().RUnlock()
-	return r.command(name).handler
+	k, v := r.commands[name]
+	if v {
+		return &k.handler
+	} else {
+		return nil
+	}
 }
 
 // UnknownCommandFn returns the UnknownCommand function.

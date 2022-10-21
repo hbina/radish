@@ -7,19 +7,27 @@ import (
 )
 
 func GetCommand(c *Client, cmd redcon.Command) {
+	if len(cmd.Args) == 0 {
+		c.Conn().WriteError("no argument passed to handler. This should not be possible")
+		return
+	} else if len(cmd.Args) == 1 {
+		c.Conn().WriteError(fmt.Sprintf("wrong number of arguments for '%s' command", cmd.Args[0]))
+		return
+	}
+
 	key := string(cmd.Args[1])
 
-	i := c.Db().GetOrExpire(&key, true)
-	if i == nil {
+	item := c.Db().GetOrExpire(&key, true)
+	if item == nil {
 		c.Conn().WriteNull()
 		return
 	}
 
-	if i.Type() != StringType {
-		c.Conn().WriteError(fmt.Sprintf("%s: key is a %s not a %s", WrongTypeErr, i.TypeFancy(), StringTypeFancy))
+	if item.Type() != StringType {
+		c.Conn().WriteError(fmt.Sprintf("%s: key is a %s not a %s", WrongTypeErr, item.TypeFancy(), StringTypeFancy))
 		return
 	}
 
-	v := *i.Value().(*string)
+	v := *item.Value().(*string)
 	c.Conn().WriteBulkString(v)
 }

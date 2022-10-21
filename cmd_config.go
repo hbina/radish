@@ -7,9 +7,14 @@ import (
 	"github.com/tidwall/redcon"
 )
 
+// https://redis.io/commands/config-get/
+// https://redis.io/commands/config-set/
 func ConfigCommand(c *Client, cmd redcon.Command) {
-	if len(cmd.Args) < 2 {
-		c.Conn().WriteError("wrong number of arguments for 'config' command")
+	if len(cmd.Args) == 0 {
+		c.Conn().WriteError("no argument passed to handler. This should not be possible")
+		return
+	} else if len(cmd.Args) == 1 {
+		c.Conn().WriteError(fmt.Sprintf("wrong number of arguments for '%s' command", cmd.Args[0]))
 		return
 	}
 

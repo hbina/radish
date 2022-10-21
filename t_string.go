@@ -1,6 +1,8 @@
 package redis
 
-import "fmt"
+import (
+	"fmt"
+)
 
 const StringType = uint64(0)
 const StringTypeFancy = "string"
