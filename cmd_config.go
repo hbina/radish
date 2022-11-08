@@ -3,26 +3,24 @@ package redis
 import (
 	"fmt"
 	"strings"
-
-	"github.com/tidwall/redcon"
 )
 
 // https://redis.io/commands/config-get/
 // https://redis.io/commands/config-set/
-func ConfigCommand(c *Client, cmd redcon.Command) {
-	if len(cmd.Args) == 0 {
+func ConfigCommand(c *Client, args [][]byte) {
+	if len(args) == 0 {
 		c.Conn().WriteError("no argument passed to handler. This should not be possible")
 		return
-	} else if len(cmd.Args) == 1 {
-		c.Conn().WriteError(fmt.Sprintf("wrong number of arguments for '%s' command", cmd.Args[0]))
+	} else if len(args) == 1 {
+		c.Conn().WriteError(fmt.Sprintf("wrong number of arguments for '%s' command", args[0]))
 		return
 	}
 
-	subcommand := string(cmd.Args[1])
+	subcommand := string(args[1])
 
 	if strings.ToLower(subcommand) == "get" {
-		if len(cmd.Args) < 3 {
-			c.Conn().WriteError(fmt.Sprintf("Unknown subcommand or wrong number of arguments for '%s'. Try CONFIG HELP.", string(cmd.Args[1])))
+		if len(args) < 3 {
+			c.Conn().WriteError(fmt.Sprintf("Unknown subcommand or wrong number of arguments for '%s'. Try CONFIG HELP.", string(args[1])))
 			return
 		}
 		// TODO: Update these to match our actual implementation
@@ -182,9 +180,9 @@ func ConfigCommand(c *Client, cmd redcon.Command) {
 
 		// Support glob style pattern matching
 
-		result := make([]string, 0, (len(cmd.Args)-2)*2)
-		for i := 2; i < len(cmd.Args); i++ {
-			k := string(cmd.Args[i])
+		result := make([]string, 0, (len(args)-2)*2)
+		for i := 2; i < len(args); i++ {
+			k := string(args[i])
 			v, e := redisConfig[k]
 			if e {
 				result = append(result, fmt.Sprintf("\"%s\"", k), fmt.Sprintf("\"%s\"", v))
@@ -197,12 +195,12 @@ func ConfigCommand(c *Client, cmd redcon.Command) {
 	} else if strings.ToLower(subcommand) == "set" {
 		// Currently no-op
 
-		if len(cmd.Args) < 4 {
-			c.Conn().WriteError(fmt.Sprintf("Unknown subcommand or wrong number of arguments for '%s'. Try CONFIG HELP.", string(cmd.Args[1])))
+		if len(args) < 4 {
+			c.Conn().WriteError(fmt.Sprintf("Unknown subcommand or wrong number of arguments for '%s'. Try CONFIG HELP.", string(args[1])))
 			return
 		}
 
-		c.Conn().Close()
+		c.Conn().WriteString("OK")
 	} else {
 		c.Conn().WriteError(fmt.Sprintf("Unknown subcommand '%s'. Try CONFIG HELP.", subcommand))
 	}

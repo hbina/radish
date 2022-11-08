@@ -1,7 +1,7 @@
 package redis
 
 import (
-	"fmt"
+	"log"
 	"strings"
 	"sync"
 
@@ -18,11 +18,11 @@ const (
 
 // This is the redis server.
 type Redis struct {
-	// databases/keyspaces
-	redisDbs RedisDbs
-
-	// Locking is important, share this mutex around to provide state.
 	mu *sync.RWMutex
+
+	// databases/keyspaces
+	redisDbs map[DatabaseId]*RedisDb
+	configDb map[string]string
 
 	commands       Commands
 	unknownCommand UnknownCommand
@@ -40,7 +40,7 @@ type Redis struct {
 	keyExpirer KeyExpirer
 
 	clients      Clients
-	nextClientId ClientId
+	nextClientId uint64
 }
 
 // A Handler is called when a request is received and after Accept
@@ -65,62 +65,42 @@ type ClientId uint64
 
 // Gets the handler func.
 func (r *Redis) HandlerFn() Handler {
-	r.Mu().RLock()
-	defer r.Mu().RUnlock()
 	return r.handler
 }
 
 // Sets the handler func.
 // Live updates (while redis is running) works.
 func (r *Redis) SetHandlerFn(new Handler) {
-	r.Mu().Lock()
-	defer r.Mu().Unlock()
 	r.handler = new
 }
 
 // Gets the accept func.
 func (r *Redis) AcceptFn() Accept {
-	r.Mu().RLock()
-	defer r.Mu().RUnlock()
 	return r.accept
 }
 
 // Sets the accept func.
 // Live updates (while redis is running) works.
 func (r *Redis) SetAcceptFn(new Accept) {
-	r.Mu().Lock()
-	defer r.Mu().Unlock()
 	r.accept = new
 }
 
 // Gets the onclose func.
 func (r *Redis) OnCloseFn() OnClose {
-	r.Mu().RLock()
-	defer r.Mu().RUnlock()
 	return r.onClose
 }
 
 // Sets the onclose func.
 // Live updates (while redis is running) works.
 func (r *Redis) SetOnCloseFn(new OnClose) {
-	r.Mu().Lock()
-	defer r.Mu().Unlock()
 	r.onClose = new
 }
 
-// The mutex of the redis.
-func (r *Redis) Mu() *sync.RWMutex {
-	return r.mu
-}
-
 func (r *Redis) KeyExpirer() KeyExpirer {
-	r.Mu().RLock()
-	defer r.Mu().RUnlock()
 	return r.keyExpirer
 }
+
 func (r *Redis) SetKeyExpirer(ke KeyExpirer) {
-	r.Mu().Lock()
-	defer r.Mu().Unlock()
 	r.keyExpirer = ke
 }
 
@@ -138,25 +118,31 @@ func Default() *Redis {
 	return defaultRedis
 }
 
+func escapeNewLines(s string) string {
+	s = strings.ReplaceAll(s, "\n", "\\n")
+	s = strings.ReplaceAll(s, "\r", "\\r")
+	return s
+}
+
 // createDefault creates a new default redis.
 func createDefault() *Redis {
 	// initialize default redis server
+	mu := new(sync.RWMutex)
 	r := &Redis{
-		mu: new(sync.RWMutex),
+		mu: mu,
 		accept: func(c *Client) bool {
 			return true
 		},
 		onClose: func(c *Client, err error) {
 		},
 		handler: func(c *Client, cmd redcon.Command) {
-			for _, v := range cmd.Args {
-				fmt.Printf("%s ", string(v))
-			}
-			fmt.Println()
+			mu.Lock()
+			defer mu.Unlock()
+			log.Println(escapeNewLines(string(cmd.Raw)))
 			cmdl := strings.ToLower(string(cmd.Args[0]))
 			commandHandler := c.Redis().CommandHandlerFn(cmdl)
 			if commandHandler != nil {
-				(*commandHandler)(c, cmd)
+				(*commandHandler)(c, cmd.Args)
 			} else {
 				c.Redis().UnknownCommandFn()(c, cmd)
 			}
@@ -166,7 +152,7 @@ func createDefault() *Redis {
 		},
 		commands: make(Commands, 0),
 	}
-	r.redisDbs = make(RedisDbs, redisDbMapSizeDefault)
+	r.redisDbs = make(map[DatabaseId]*RedisDb, redisDbMapSizeDefault)
 	r.RedisDb(0) // initializes default db 0
 	r.keyExpirer = KeyExpirer(NewKeyExpirer(r))
 
@@ -200,10 +186,31 @@ func createDefault() *Redis {
 
 // Flush all keys synchronously
 func (db *Redis) SyncFlushAll() {
-	db.Mu().RLock()
-	defer db.Mu().RUnlock()
-
 	for _, v := range db.redisDbs {
 		v.SyncFlushAll()
 	}
+}
+
+// RedisDb gets the redis database by its id or creates and returns it if not exists.
+func (r *Redis) RedisDb(dbId DatabaseId) *RedisDb {
+	getDb := func() *RedisDb { // returns nil if db not exists
+		if db, ok := r.redisDbs[dbId]; ok {
+			return db
+		}
+		return nil
+	}
+
+	db := getDb()
+	if db != nil {
+		return db
+	}
+
+	// NOTE: This differs from original Redis because the number of databases are configured
+	// at compile time with redis.conf
+	// However, it should be fine to always return a valid database unless some application
+	// rely on it to fail to stop?
+
+	// now really create db of that id
+	r.redisDbs[dbId] = NewRedisDb(dbId, r)
+	return r.redisDbs[dbId]
 }

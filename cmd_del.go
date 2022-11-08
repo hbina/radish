@@ -1,14 +1,10 @@
 package redis
 
-import (
-	"github.com/tidwall/redcon"
-)
-
-func DelCommand(c *Client, cmd redcon.Command) {
+func DelCommand(c *Client, args [][]byte) {
 	db := c.Db()
-	keys := make([]*string, 0, len(cmd.Args)-1)
-	for i := 1; i < len(cmd.Args); i++ {
-		k := string(cmd.Args[i])
+	keys := make([]*string, 0, len(args)-1)
+	for i := 1; i < len(args); i++ {
+		k := string(args[i])
 		keys = append(keys, &k)
 	}
 	dels := db.Delete(keys...)

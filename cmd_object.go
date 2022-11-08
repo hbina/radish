@@ -1,9 +1,5 @@
 package redis
 
-import (
-	"github.com/tidwall/redcon"
-)
-
-func ObjectCommand(c *Client, cmd redcon.Command) {
+func ObjectCommand(c *Client, args [][]byte) {
 	c.Conn().WriteNull()
 }

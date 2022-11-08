@@ -1,12 +1,13 @@
 package redis
 
 import (
+	"log"
 	"math"
 	"time"
 )
 
 type KeyExpirer interface {
-	Start(tick time.Duration, keyNum int, againPercentage int)
+	Start(tick time.Duration)
 	Stop()
 }
 
@@ -32,12 +33,12 @@ func NewKeyExpirer(r *Redis) *Expirer {
 // randomKeys - Amount of random expiring keys to get checked.
 //
 // againPercentage - If more than x% of keys were expired, start again in same tick.
-func (e *Expirer) Start(tick time.Duration, randomKeys int, againPercentage int) {
+func (e *Expirer) Start(tick time.Duration) {
 	ticker := time.NewTicker(tick)
 	for {
 		select {
 		case <-ticker.C:
-			e.do(randomKeys, againPercentage)
+			e.cleanupExpiredKeys()
 		case <-e.done:
 			ticker.Stop()
 			return
@@ -53,51 +54,17 @@ func (e *Expirer) Stop() {
 	}
 }
 
-func (e *Expirer) do(randomKeys, againPercentage int) {
-	var deletedKeys int
-
-	dbs := make(map[*RedisDb]struct{})
+func (e *Expirer) cleanupExpiredKeys() {
+	var count int = 0
+	e.Redis().mu.Lock()
+	defer e.Redis().mu.Unlock()
 	for _, db := range e.Redis().RedisDbs() {
-		if !db.HasExpiringKeys() {
-			continue
-		}
-		dbs[db] = struct{}{}
-	}
-
-	if len(dbs) == 0 {
-		return
-	}
-
-	for c := 0; c < randomKeys; c++ {
-		// get random db
-		db := func() *RedisDb {
-			for db := range dbs {
-				return db
-			}
-			return nil // won't happen
-		}()
-
-		// get random key
-		k := func() *string {
-			for k := range db.ExpiringKeys() {
-				return &k
-			}
-			return nil
-		}()
-
-		if k == nil {
-			continue
-		}
-
-		// del if expired
-		if db.DeleteExpired(k) != 0 {
-			deletedKeys++
+		for k := range db.ExpiringKeys() {
+			count += db.DeleteExpired(&k)
 		}
 	}
-
-	// Start again in new goroutine so keys are deleted fast
-	if againPercentage > 0 && deletedKeys/randomKeys*100 > againPercentage {
-		go e.do(randomKeys, againPercentage)
+	if count > 0 {
+		log.Printf("deleted %d keys from last cleanup job\n", count)
 	}
 }
 

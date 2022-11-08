@@ -3,18 +3,16 @@ package redis
 import (
 	"fmt"
 	"time"
-
-	"github.com/tidwall/redcon"
 )
 
-func TtlCommand(c *Client, cmd redcon.Command) {
-	if len(cmd.Args) != 2 {
-		c.Conn().WriteError(fmt.Sprintf("wrong number of arguments (given %d, expected 1)", len(cmd.Args)-1))
+func TtlCommand(c *Client, args [][]byte) {
+	if len(args) != 2 {
+		c.Conn().WriteError(fmt.Sprintf("wrong number of arguments (given %d, expected 1)", len(args)-1))
 		return
 	}
 
 	db := c.Db()
-	key := string(cmd.Args[1])
+	key := string(args[1])
 	db.DeleteExpired(&key)
 	if !db.Exists(&key) {
 		c.Conn().WriteInt(-2)

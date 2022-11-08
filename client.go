@@ -1,7 +1,7 @@
 package redis
 
 import (
-	"sync"
+	"sync/atomic"
 
 	"github.com/tidwall/redcon"
 )
@@ -37,17 +37,12 @@ func (r *Redis) NewClient(conn redcon.Conn) *Client {
 
 // NextClientId atomically gets and increments a counter to return the next client id.
 func (r *Redis) NextClientId() ClientId {
-	r.Mu().Lock()
-	defer r.Mu().Unlock()
-	id := r.nextClientId
-	r.nextClientId++
-	return id
+	id := atomic.AddUint64(&r.nextClientId, 1)
+	return ClientId(id)
 }
 
 // Clients gets the current connected clients.
 func (r *Redis) Clients() Clients {
-	r.Mu().RLock()
-	defer r.Mu().RUnlock()
 	return r.clients
 }
 
@@ -60,33 +55,22 @@ func (c *Client) Redis() *Redis {
 	return c.redis
 }
 
-// Mu the mutex.
-func (c *Client) Mu() *sync.RWMutex {
-	return c.Redis().Mu()
-}
-
 // ClientId get the client id.
 func (c *Client) ClientId() ClientId {
 	return c.clientId
 }
 
 func (c *Client) Conn() redcon.Conn {
-	c.Mu().RLock()
-	defer c.Mu().RUnlock()
 	return c.conn
 }
 
 // SelectDb selects the clients database.
 func (c *Client) SelectDb(db DatabaseId) {
-	c.Mu().Lock()
-	defer c.Mu().Unlock()
 	c.db = db
 }
 
 // DbId gets the clients selected database id.
 func (c *Client) DbId() DatabaseId {
-	c.Mu().RLock()
-	defer c.Mu().RUnlock()
 	return c.db
 }
 
@@ -98,7 +82,5 @@ func (c *Client) Db() *RedisDb {
 // Disconnects and removes a Client.
 func (c *Client) FreeClient() {
 	c.Conn().Close() // TODO should we log on error?
-	c.Mu().Lock()
-	defer c.Mu().Unlock()
 	delete(c.Redis().getClients(), c.ClientId())
 }

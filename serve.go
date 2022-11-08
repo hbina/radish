@@ -15,7 +15,7 @@ func Run(addr string) error {
 
 // Run runs the redis server.
 func (r *Redis) Run(addr string) error {
-	go r.KeyExpirer().Start(100*time.Millisecond, 20, 25)
+	go r.KeyExpirer().Start(1 * time.Second)
 	return redcon.ListenAndServe(
 		addr,
 		func(conn redcon.Conn, cmd redcon.Command) {
@@ -32,7 +32,7 @@ func (r *Redis) Run(addr string) error {
 
 // Run runs the redis server with tls.
 func (r *Redis) RunTLS(addr string, tls *tls.Config) error {
-	go r.KeyExpirer().Start(100*time.Millisecond, 20, 25)
+	go r.KeyExpirer().Start(1 * time.Second)
 	return redcon.ListenAndServeTLS(
 		addr,
 		func(conn redcon.Conn, cmd redcon.Command) {

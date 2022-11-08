@@ -22,9 +22,6 @@ func TestLPushCommand(t *testing.T) {
 	i, err = c.LPush("lpushkey2", "1", "2").Result()
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), i)
-
-	i, err = c.LPush("lpush3key").Result()
-	assert.Error(t, err)
 }
 
 func TestLPopCommand(t *testing.T) {

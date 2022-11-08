@@ -6,114 +6,117 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/tidwall/redcon"
 )
 
 const (
-	SetNone uint = iota
+	SetExpireMode uint = iota
 	SetEx
 	SetPx
 	SetExat
 	SetPxat
 )
 
+const (
+	SetWriteMode uint = iota
+	SetNx
+	SetXx
+)
+
+func getExpiryTime(c *Client, arg string, multiplier uint64) *time.Time {
+	unitTime, err := strconv.ParseUint(string(arg), 10, 64)
+	if err != nil {
+		c.Conn().WriteError(fmt.Sprintf("%s: %s", InvalidIntErr, err.Error()))
+		return nil
+	}
+	if unitTime == 0 {
+		c.Conn().WriteError("invalid expire time in 'set' command")
+		return nil
+	}
+
+	return ref.Time(time.Now().Add(time.Duration(unitTime * multiplier)))
+}
+
 // SET key value [NX | XX] [GET] [EX seconds | PX milliseconds |
 // EXAT unix-time-seconds | PXAT unix-time-milliseconds | KEEPTTL]
-func SetCommand(c *Client, cmd redcon.Command) {
-	if len(cmd.Args) == 0 {
+func SetCommand(c *Client, args [][]byte) {
+	if len(args) == 0 {
 		c.Conn().WriteError("no argument passed to handler. This should not be possible")
 		return
-	} else if len(cmd.Args) == 1 {
-		c.Conn().WriteError(fmt.Sprintf("wrong number of arguments for '%s' command", cmd.Args[0]))
+	} else if len(args) < 3 {
+		c.Conn().WriteError(fmt.Sprintf("wrong number of arguments for '%s' command", args[0]))
 		return
 	}
 
-	key := string(cmd.Args[1])
-	var value string
-	if len(cmd.Args) > 1 {
-		value = string(cmd.Args[2])
-	}
+	key := string(args[1])
+	value := string(args[2])
 
 	var expire *time.Time = nil
-	var expireMode uint = SetNone
-	var NX bool = false
-	var XX bool = false
+	expireMode := SetExpireMode
+	writeMode := SetWriteMode
+	shouldGet := false
 
-	if len(cmd.Args) > 2 {
-		for i := 3; i < len(cmd.Args); i++ {
-			arg := strings.ToLower(string(cmd.Args[i]))
-			switch arg {
-			default:
+	// Parse the optional arguments
+	for i := 3; i < len(args); i++ {
+		arg := strings.ToLower(string(args[i]))
+		switch arg {
+		default:
+			c.Conn().WriteError(SyntaxErr)
+			return
+		case "ex":
+			if expireMode != SetExpireMode {
 				c.Conn().WriteError(SyntaxErr)
 				return
-			case "ex":
-				if expireMode != SetNone {
-					c.Conn().WriteError(SyntaxErr)
-					return
-				}
-
-				// We require 1 more argument for EX
-				if len(cmd.Args) == i+1 {
-					c.Conn().WriteError(SyntaxErr)
-					return
-				}
-
-				// read next arg
-				i++
-				seconds, err := strconv.ParseUint(string(cmd.Args[i]), 10, 64)
-				if err != nil {
-					c.Conn().WriteError(fmt.Sprintf("%s: %s", InvalidIntErr, err.Error()))
-					return
-				}
-				if seconds == 0 {
-					c.Conn().WriteError("invalid expire time in 'set' command")
-					return
-				}
-				expire = ref.Time(time.Now().Add(time.Duration(seconds * uint64(time.Second))))
-				expireMode = SetEx
-				continue
-			case "px":
-				if expireMode != SetNone {
-					c.Conn().WriteError(SyntaxErr)
-					return
-				}
-
-				// We require 1 more argument for PX
-				if len(cmd.Args) == i {
-					c.Conn().WriteError(SyntaxErr)
-					return
-				}
-
-				// read next arg
-				i++
-				milliseconds, err := strconv.ParseUint(string(cmd.Args[i]), 10, 64)
-				if err != nil {
-					c.Conn().WriteError(fmt.Sprintf("%s: %s", InvalidIntErr, err.Error()))
-					return
-				}
-				if milliseconds == 0 {
-					c.Conn().WriteError("invalid expire time in 'set' command")
-					return
-				}
-				expire = ref.Time(time.Now().Add(time.Duration(milliseconds * uint64(time.Millisecond))))
-				expireMode = SetPx
-				continue
-			case "nx":
-				if XX {
-					c.Conn().WriteError(SyntaxErr)
-					return
-				}
-				NX = true
-				continue
-			case "xx":
-				if NX {
-					c.Conn().WriteError(SyntaxErr)
-					return
-				}
-				XX = true
-				continue
 			}
+
+			// We require 1 more argument for EX
+			if len(args) == i+1 {
+				c.Conn().WriteError(SyntaxErr)
+				return
+			}
+			i++
+
+			expire = getExpiryTime(c, string(args[i]), uint64(time.Second))
+			expireMode = SetEx
+			continue
+		case "px":
+			if expireMode != SetExpireMode {
+				c.Conn().WriteError(SyntaxErr)
+				return
+			}
+
+			// We require 1 more argument for PX
+			if len(args) == i {
+				c.Conn().WriteError(SyntaxErr)
+				return
+			}
+			i++
+
+			expire = getExpiryTime(c, string(args[i]), uint64(time.Millisecond))
+			expireMode = SetPx
+			continue
+		case "nx":
+			if writeMode != SetWriteMode {
+				c.Conn().WriteError(SyntaxErr)
+				return
+			}
+			writeMode = SetNx
+			continue
+		case "xx":
+			if writeMode != SetWriteMode {
+				c.Conn().WriteError(SyntaxErr)
+				return
+			}
+			writeMode = SetXx
+			continue
+		case "get":
+			shouldGet = true
+			continue
+		}
+	}
+
+	if shouldGet {
+		if !GetCommandRaw(c, [][]byte{[]byte("GET"), args[1], args[2]}) {
+			return
 		}
 	}
 
@@ -123,7 +126,7 @@ func SetCommand(c *Client, cmd redcon.Command) {
 	// TODO: Should we lock the database here?
 	// The `Exists` and `Set` calls below should be atomic
 	exists := db.Exists(&key)
-	if NX && exists || XX && !exists {
+	if writeMode == SetNx && exists || writeMode == SetXx && !exists {
 		c.Conn().WriteNull()
 		return
 	}

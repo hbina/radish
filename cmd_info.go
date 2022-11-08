@@ -1,9 +1,5 @@
 package redis
 
-import (
-	"github.com/tidwall/redcon"
-)
-
-func InfoCommand(c *Client, cmd redcon.Command) {
+func InfoCommand(c *Client, args [][]byte) {
 	c.Conn().WriteBulkString("")
 }

@@ -4,33 +4,28 @@ import (
 	"fmt"
 	"go-redis/ref"
 	"strconv"
-
-	"github.com/tidwall/redcon"
 )
 
-func IncrByCommand(c *Client, cmd redcon.Command) {
-	if len(cmd.Args) == 0 {
+func IncrByCommand(c *Client, args [][]byte) {
+	if len(args) == 0 {
 		c.Conn().WriteError("no argument passed to handler. This should not be possible")
 		return
-	} else if len(cmd.Args) != 3 {
-		c.Conn().WriteError(fmt.Sprintf("wrong number of arguments for '%s' command", cmd.Args[0]))
+	} else if len(args) != 3 {
+		c.Conn().WriteError(fmt.Sprintf("wrong number of arguments for '%s' command", args[0]))
 		return
 	}
 
 	db := c.Db()
 
-	key := string(cmd.Args[1])
-	incrBy, err := strconv.ParseInt(string(cmd.Args[2]), 10, 64)
+	key := string(args[1])
+	incrBy, err := strconv.ParseInt(string(args[2]), 10, 64)
 
 	if err != nil {
 		c.Conn().WriteError(InvalidIntErr)
 		return
 	}
 
-	db.Mu().Lock()
-	defer db.Mu().Unlock()
-
-	item, exists := db.keys[key]
+	item, exists := db.storage[key]
 
 	if !exists {
 		db.Set(&key, NewString(ref.String(fmt.Sprintf("%d", incrBy))), nil)

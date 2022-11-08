@@ -3,22 +3,20 @@ package redis
 import (
 	"fmt"
 	"strconv"
-
-	"github.com/tidwall/redcon"
 )
 
-func LRangeCommand(c *Client, cmd redcon.Command) {
-	if len(cmd.Args) < 3 {
+func LRangeCommand(c *Client, args [][]byte) {
+	if len(args) < 3 {
 		c.Conn().WriteError(fmt.Sprintf(WrongNumOfArgsErr, "lrange"))
 		return
 	}
-	key := string(cmd.Args[1])
-	start, err := strconv.Atoi(string(cmd.Args[2]))
+	key := string(args[1])
+	start, err := strconv.Atoi(string(args[2]))
 	if err != nil {
 		c.Conn().WriteError(fmt.Sprintf("%s: %s", InvalidIntErr, err.Error()))
 		return
 	}
-	end, err := strconv.Atoi(string(cmd.Args[3]))
+	end, err := strconv.Atoi(string(args[3]))
 	if err != nil {
 		c.Conn().WriteError(fmt.Sprintf("%s: %s", InvalidIntErr, err.Error()))
 		return
@@ -35,9 +33,7 @@ func LRangeCommand(c *Client, cmd redcon.Command) {
 	}
 
 	l := i.(*List)
-	c.Redis().Mu().RLock()
 	values := l.LRange(start, end)
-	c.Redis().Mu().RUnlock()
 
 	c.Conn().WriteArray(len(values))
 	for _, v := range values {

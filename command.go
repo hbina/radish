@@ -55,7 +55,7 @@ type Commands map[string]*Command
 //
 // However the CommandHandler is executed by the Handler,
 // so if you implement an own Handler make sure the CommandHandler is called.
-type CommandHandler func(c *Client, cmd redcon.Command)
+type CommandHandler func(c *Client, cmd [][]byte)
 
 // Is called when a request is received,
 // after Accept and if the command is not registered.
@@ -72,8 +72,7 @@ func (cmd *Command) Name() string {
 // RegisterCommands adds commands to the redis instance.
 // If a cmd already exists the handler is overridden.
 func (r *Redis) RegisterCommands(cmds []*Command) {
-	r.Mu().Lock()
-	defer r.Mu().Unlock()
+
 	for _, cmd := range cmds {
 		r.commands[cmd.Name()] = cmd
 	}
@@ -81,22 +80,19 @@ func (r *Redis) RegisterCommands(cmds []*Command) {
 
 // Command returns the registered command or nil if not exists.
 func (r *Redis) Command(name string) *Command {
-	r.Mu().RLock()
-	defer r.Mu().RUnlock()
+
 	return r.commands[name]
 }
 
 // Commands returns the commands map.
 func (r *Redis) Commands() Commands {
-	r.Mu().RLock()
-	defer r.Mu().RUnlock()
+
 	return r.commands
 }
 
 // CommandHandlerFn returns the CommandHandler of cmd.
 func (r *Redis) CommandHandlerFn(name string) *CommandHandler {
-	r.Mu().RLock()
-	defer r.Mu().RUnlock()
+
 	k, v := r.commands[name]
 	if v {
 		return &k.handler
@@ -107,7 +103,6 @@ func (r *Redis) CommandHandlerFn(name string) *CommandHandler {
 
 // UnknownCommandFn returns the UnknownCommand function.
 func (r *Redis) UnknownCommandFn() UnknownCommand {
-	r.Mu().RLock()
-	defer r.Mu().RUnlock()
+
 	return r.unknownCommand
 }
