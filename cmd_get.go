@@ -25,13 +25,12 @@ func GetCommandRaw(c *Client, args [][]byte) bool {
 		return true
 	}
 
-	if item.Type() == StringType {
+	if item.Type() == ValueTypeString {
 		v := *item.Value().(*string)
 		c.Conn().WriteBulkString(v)
-
 		return true
 	} else {
-		c.Conn().WriteError(fmt.Sprintf("%s: key is a %s not a %s", WrongTypeErr, item.TypeFancy(), StringTypeFancy))
+		c.Conn().WriteError(fmt.Sprintf("%s: key is a %s not a %s", WrongTypeErr, item.TypeFancy(), ValueTypeFancyString))
 		return false
 	}
 }

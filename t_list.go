@@ -7,9 +7,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-const ListType = uint64(1)
-const ListTypeFancy = "list"
-
 var _ Item = (*List)(nil)
 
 type List struct {
@@ -25,11 +22,11 @@ func (l *List) Value() interface{} {
 }
 
 func (l *List) Type() uint64 {
-	return ListType
+	return ValueTypeList
 }
 
 func (l *List) TypeFancy() string {
-	return ListTypeFancy
+	return ValueTypeFancyList
 }
 
 func (l *List) OnDelete(key *string, db *RedisDb) {

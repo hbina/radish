@@ -27,7 +27,7 @@ func LRangeCommand(c *Client, args [][]byte) {
 	if i == nil {
 		c.Conn().WriteNull()
 		return
-	} else if i.Type() != ListType {
+	} else if i.Type() != ValueTypeList {
 		c.Conn().WriteError(WrongTypeErr)
 		return
 	}

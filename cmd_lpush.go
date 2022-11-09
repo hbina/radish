@@ -18,8 +18,8 @@ func LPushCommand(c *Client, args [][]byte) {
 	if value == nil {
 		value = NewList()
 		db.Set(&key, value, nil)
-	} else if value.Type() != ListType {
-		c.Conn().WriteError(fmt.Sprintf("%s: key is a %s not a %s", WrongTypeErr, value.TypeFancy(), ListTypeFancy))
+	} else if value.Type() != ValueTypeList {
+		c.Conn().WriteError(fmt.Sprintf("%s: key is a %s not a %s", WrongTypeErr, value.TypeFancy(), ValueTypeFancyList))
 		return
 	}
 

@@ -20,7 +20,7 @@ func RPushCommand(c *Client, args [][]byte) {
 	if item == nil {
 		item = NewList()
 		db.Set(&key, item, nil)
-	} else if item.Type() != ListType {
+	} else if item.Type() != ValueTypeList {
 		c.Conn().WriteError(WrongTypeErr)
 		return
 	}

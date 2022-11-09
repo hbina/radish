@@ -2,9 +2,6 @@ package redis
 
 import "log"
 
-const StringType = uint64(0)
-const StringTypeFancy = "string"
-
 var _ Item = (*String)(nil)
 
 type String struct {
@@ -19,12 +16,12 @@ func (s *String) Value() interface{} {
 	return s.value
 }
 
-func (s *String) Type() uint64 {
-	return StringType
+func (l *String) Type() uint64 {
+	return ValueTypeString
 }
 
-func (s *String) TypeFancy() string {
-	return StringTypeFancy
+func (l *String) TypeFancy() string {
+	return ValueTypeFancyString
 }
 
 func (s *String) OnDelete(key *string, db *RedisDb) {

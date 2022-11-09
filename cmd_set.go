@@ -3,7 +3,6 @@ package redis
 import (
 	"fmt"
 	"go-redis/ref"
-	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -122,8 +121,7 @@ func SetCommand(c *Client, args [][]byte) {
 		if item == nil {
 			// c.Conn().WriteNull()
 		} else {
-			log.Println(item.TypeFancy())
-			if item.Type() == StringType {
+			if item.Type() == ValueTypeString {
 				v := *item.Value().(*string)
 				c.Conn().WriteBulkString(v)
 				found = true
