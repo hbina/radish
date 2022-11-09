@@ -3,6 +3,7 @@ package redis
 import (
 	"fmt"
 	"go-redis/ref"
+	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -114,17 +115,24 @@ func SetCommand(c *Client, args [][]byte) {
 		}
 	}
 
+	found := false
+
 	if shouldGet {
-		if !GetCommandRaw(c, [][]byte{[]byte("GET"), args[1], args[2]}) {
-			return
+		item := c.Db().GetOrExpire(&key, true)
+		if item == nil {
+			// c.Conn().WriteNull()
+		} else {
+			log.Println(item.TypeFancy())
+			if item.Type() == StringType {
+				v := *item.Value().(*string)
+				c.Conn().WriteBulkString(v)
+				found = true
+			}
 		}
 	}
 
-	// clients selected db
 	db := c.Db()
 
-	// TODO: Should we lock the database here?
-	// The `Exists` and `Set` calls below should be atomic
 	exists := db.Exists(&key)
 	if writeMode == SetNx && exists || writeMode == SetXx && !exists {
 		c.Conn().WriteNull()
@@ -132,5 +140,8 @@ func SetCommand(c *Client, args [][]byte) {
 	}
 
 	db.Set(&key, NewString(&value), expire)
-	c.Conn().WriteString("OK")
+
+	if !found {
+		c.Conn().WriteString("OK")
+	}
 }

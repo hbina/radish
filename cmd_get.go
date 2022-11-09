@@ -22,16 +22,16 @@ func GetCommandRaw(c *Client, args [][]byte) bool {
 	item := c.Db().GetOrExpire(&key, true)
 	if item == nil {
 		c.Conn().WriteNull()
-		return false
+		return true
 	}
 
-	if item.Type() != StringType {
+	if item.Type() == StringType {
+		v := *item.Value().(*string)
+		c.Conn().WriteBulkString(v)
+
+		return true
+	} else {
 		c.Conn().WriteError(fmt.Sprintf("%s: key is a %s not a %s", WrongTypeErr, item.TypeFancy(), StringTypeFancy))
 		return false
 	}
-
-	v := *item.Value().(*string)
-	c.Conn().WriteBulkString(v)
-
-	return true
 }
