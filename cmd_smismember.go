@@ -4,12 +4,12 @@ import (
 	"fmt"
 )
 
-// https://redis.io/commands/smembers/
-func SmembersCommand(c *Client, args [][]byte) {
+// https://redis.io/commands/smismember/
+func SmismemberCommand(c *Client, args [][]byte) {
 	if len(args) == 0 {
 		c.Conn().WriteError(ZeroArgumentErr)
 		return
-	} else if len(args) != 2 {
+	} else if len(args) < 3 {
 		c.Conn().WriteError(fmt.Sprintf("wrong number of arguments for '%s' command", args[0]))
 		return
 	}
@@ -28,13 +28,20 @@ func SmembersCommand(c *Client, args [][]byte) {
 
 	set := maybeSet.Value().(map[string]struct{})
 
-	result := make([]string, 0)
-	for k := range set {
-		result = append(result, k)
+	// We already checked that there are at least 3 arguments.
+	// So this should at least iterate once
+	result := make([]int, 0)
+	for i := 2; i < len(args); i++ {
+		_, exists := set[string(args[i])]
+		if exists {
+			result = append(result, 1)
+		} else {
+			result = append(result, 0)
+		}
 	}
 
 	c.Conn().WriteArray(len(result))
 	for _, v := range result {
-		c.Conn().WriteBulkString(v)
+		c.Conn().WriteInt(v)
 	}
 }
