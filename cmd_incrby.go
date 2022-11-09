@@ -2,7 +2,6 @@ package redis
 
 import (
 	"fmt"
-	"go-redis/ref"
 	"strconv"
 )
 
@@ -28,7 +27,7 @@ func IncrByCommand(c *Client, args [][]byte) {
 	item, exists := db.storage[key]
 
 	if !exists {
-		db.Set(&key, NewString(ref.String(fmt.Sprintf("%d", incrBy))), nil)
+		db.Set(key, NewString(fmt.Sprintf("%d", incrBy)), nil)
 		c.conn.WriteInt64(incrBy)
 		return
 	}
@@ -49,6 +48,6 @@ func IncrByCommand(c *Client, args [][]byte) {
 
 	intValue += incrBy
 
-	db.Set(&key, NewString(ref.String(fmt.Sprint(intValue))), nil)
+	db.Set(key, NewString(fmt.Sprint(intValue)), nil)
 	c.conn.WriteInt64(intValue)
 }

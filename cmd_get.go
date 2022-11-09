@@ -19,7 +19,7 @@ func GetCommandRaw(c *Client, args [][]byte) bool {
 
 	key := string(args[1])
 
-	item := c.Db().GetOrExpire(&key, true)
+	item := c.Db().GetOrExpire(key, true)
 	if item == nil {
 		c.Conn().WriteNull()
 		return true

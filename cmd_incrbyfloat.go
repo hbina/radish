@@ -2,7 +2,6 @@ package redis
 
 import (
 	"fmt"
-	"go-redis/ref"
 	"strconv"
 )
 
@@ -29,7 +28,7 @@ func IncrByFloatCommand(c *Client, args [][]byte) {
 
 	if !exists {
 		incrByStr := strconv.FormatFloat(incrBy, 'f', -1, 64)
-		db.Set(&key, NewString(ref.String(incrByStr)), nil)
+		db.Set(key, NewString(incrByStr), nil)
 		c.conn.WriteString(fmt.Sprintf("\"%s\"", incrByStr))
 		return
 	}
@@ -51,6 +50,6 @@ func IncrByFloatCommand(c *Client, args [][]byte) {
 	floatValue += incrBy
 
 	floatValueStr := strconv.FormatFloat(floatValue, 'f', -1, 64)
-	db.Set(&key, NewString(ref.String(floatValueStr)), nil)
+	db.Set(key, NewString(floatValueStr), nil)
 	c.conn.WriteString(fmt.Sprintf("\"%s\"", floatValueStr))
 }

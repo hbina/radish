@@ -23,7 +23,7 @@ func LRangeCommand(c *Client, args [][]byte) {
 	}
 
 	db := c.Db()
-	i := db.GetOrExpire(&key, true)
+	i := db.GetOrExpire(key, true)
 	if i == nil {
 		c.Conn().WriteNull()
 		return

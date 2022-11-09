@@ -9,6 +9,18 @@ const (
 	redisDbMapSizeDefault = 3
 )
 
+const (
+	ValueTypeList = iota
+	ValueTypeString
+	ValueTypeSet
+)
+
+const (
+	ValueTypeFancyList   = "list"
+	ValueTypeFancyString = "string"
+	ValueTypeFancySet    = "set"
+)
+
 // A redis database.
 // There can be more than one in a redis instance.
 type RedisDb struct {
@@ -44,12 +56,11 @@ type Item interface {
 	// This need to be constant for the type because it is
 	// used when de-/serializing item from/to disk.
 	Type() uint64
-	// The type of the Item as readable string.
 	TypeFancy() string
 
 	// OnDelete is triggered before the key of the item is deleted.
 	// db is the affected database.
-	OnDelete(key *string, db *RedisDb)
+	OnDelete(key string, db RedisDb)
 }
 
 // NewRedisDb creates a new db.
@@ -78,36 +89,33 @@ func (db *RedisDb) Id() DatabaseId {
 }
 
 // Sets a key with an item which can have an expiration time.
-func (db *RedisDb) Set(key *string, i Item, expiry *time.Time) {
-	db.storage[*key] = i
+func (db *RedisDb) Set(key string, i Item, expiry *time.Time) {
+	db.storage[key] = i
 	if expiry != nil {
-		db.expiringKeys[*key] = *expiry
+		db.expiringKeys[key] = *expiry
 	}
 }
 
 // Returns the item by the key or nil if key does not exists.
-func (db *RedisDb) Get(key *string) Item {
-	return db.storage[*key]
+func (db *RedisDb) Get(key string) Item {
+	return db.storage[key]
 }
 
 // Deletes a key, returns number of deleted keys.
-func (db *RedisDb) Delete(keys ...*string) int {
+func (db *RedisDb) Delete(keys ...string) int {
 	return db.delete(keys...)
 }
 
 // If checkExists is false, then return bool is reprehensible.
-func (db *RedisDb) delete(keys ...*string) int {
-	do := func(k *string) bool {
-		if k == nil {
-			return false
-		}
-		value, exists := db.storage[*k]
+func (db *RedisDb) delete(keys ...string) int {
+	do := func(k string) bool {
+		value, exists := db.storage[k]
 		if !exists {
 			return true
 		}
-		value.OnDelete(k, db)
-		delete(db.storage, *k)
-		delete(db.expiringKeys, *k)
+		value.OnDelete(k, *db)
+		delete(db.storage, k)
+		delete(db.expiringKeys, k)
 		return true
 	}
 
@@ -121,10 +129,10 @@ func (db *RedisDb) delete(keys ...*string) int {
 	return c
 }
 
-func (db *RedisDb) DeleteExpired(keys ...*string) int {
+func (db *RedisDb) DeleteExpired(keys ...string) int {
 	var c int
 	for _, k := range keys {
-		if k != nil && db.Expired(k) && db.Delete(k) > 0 {
+		if db.Expired(k) && db.Delete(k) > 0 {
 			c++
 		}
 	}
@@ -132,8 +140,8 @@ func (db *RedisDb) DeleteExpired(keys ...*string) int {
 }
 
 // GetOrExpire gets the item or nil if expired or not exists. If 'deleteIfExpired' is true the key will be deleted.
-func (db *RedisDb) GetOrExpire(key *string, deleteIfExpired bool) Item {
-	value, exists := db.storage[*key]
+func (db *RedisDb) GetOrExpire(key string, deleteIfExpired bool) Item {
+	value, exists := db.storage[key]
 	if !exists {
 		return nil
 	}
@@ -167,31 +175,31 @@ func (db *RedisDb) exists(key *string) bool {
 }
 
 // Check if key has an expiry set.
-func (db *RedisDb) Expires(key *string) bool {
+func (db *RedisDb) Expires(key string) bool {
 	return db.expires(key)
 }
 
-func (db *RedisDb) expires(key *string) bool {
-	_, ok := db.expiringKeys[*key]
+func (db *RedisDb) expires(key string) bool {
+	_, ok := db.expiringKeys[key]
 	return ok
 }
 
 // Expired only check if a key can and is expired.
-func (db *RedisDb) Expired(key *string) bool {
+func (db *RedisDb) Expired(key string) bool {
 	return db.expired(key)
 }
 
-func (db *RedisDb) expired(key *string) bool {
+func (db *RedisDb) expired(key string) bool {
 	return db.expires(key) && TimeExpired(db.expiry(key))
 }
 
 // Expiry gets the expiry of the key has one.
-func (db *RedisDb) Expiry(key *string) time.Time {
+func (db *RedisDb) Expiry(key string) time.Time {
 	return db.expiry(key)
 }
 
-func (db *RedisDb) expiry(key *string) time.Time {
-	return db.expiringKeys[*key]
+func (db *RedisDb) expiry(key string) time.Time {
+	return db.expiringKeys[key]
 }
 
 // Keys gets all keys in this db.
@@ -211,7 +219,7 @@ func TimeExpired(expireAt time.Time) bool {
 
 func (db *RedisDb) SyncFlushAll() {
 	for k, i := range db.storage {
-		i.OnDelete(&k, db)
+		i.OnDelete(k, *db)
 		delete(db.storage, k)
 		delete(db.expiringKeys, k)
 	}

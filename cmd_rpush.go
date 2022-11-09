@@ -15,11 +15,11 @@ func RPushCommand(c *Client, args [][]byte) {
 
 	key := string(args[1])
 	db := c.Db()
-	item := db.GetOrExpire(&key, true)
+	item := db.GetOrExpire(key, true)
 
 	if item == nil {
 		item = NewList()
-		db.Set(&key, item, nil)
+		db.Set(key, item, nil)
 	} else if item.Type() != ValueTypeList {
 		c.Conn().WriteError(WrongTypeErr)
 		return

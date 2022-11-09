@@ -13,13 +13,13 @@ func TtlCommand(c *Client, args [][]byte) {
 
 	db := c.Db()
 	key := string(args[1])
-	db.DeleteExpired(&key)
+	db.DeleteExpired(key)
 	if !db.Exists(&key) {
 		c.Conn().WriteInt(-2)
 		return
 	}
 
-	t := db.Expiry(&key)
+	t := db.Expiry(key)
 	if t.IsZero() {
 		c.Conn().WriteInt(-1)
 		return

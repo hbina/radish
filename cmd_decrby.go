@@ -2,7 +2,6 @@ package redis
 
 import (
 	"fmt"
-	"go-redis/ref"
 	"strconv"
 )
 
@@ -28,7 +27,7 @@ func DecrByCommand(c *Client, args [][]byte) {
 	item, exists := db.storage[key]
 
 	if !exists {
-		db.Set(&key, NewString(ref.String(fmt.Sprintf("%d", decrBy))), nil)
+		db.Set(key, NewString(fmt.Sprintf("%d", decrBy)), nil)
 		c.conn.WriteInt64(decrBy)
 		return
 	}
@@ -49,6 +48,6 @@ func DecrByCommand(c *Client, args [][]byte) {
 
 	intValue -= decrBy
 
-	db.Set(&key, NewString(ref.String(fmt.Sprint(intValue))), nil)
+	db.Set(key, NewString(fmt.Sprint(intValue)), nil)
 	c.conn.WriteInt64(intValue)
 }

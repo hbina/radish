@@ -10,27 +10,27 @@ import (
 var _ Item = (*List)(nil)
 
 type List struct {
-	goList *list.List
+	goList list.List
 }
 
 func NewList() *List {
-	return &List{goList: list.New()}
+	return &List{goList: *list.New()}
 }
 
 func (l *List) Value() interface{} {
 	return l.goList
 }
 
-func (l *List) Type() uint64 {
+func (l List) Type() uint64 {
 	return ValueTypeList
 }
 
-func (l *List) TypeFancy() string {
+func (l List) TypeFancy() string {
 	return ValueTypeFancyList
 }
 
-func (l *List) OnDelete(key *string, db *RedisDb) {
-	log.Printf("Deleting list with key %s from database ID %d\n", *key, db.id)
+func (l List) OnDelete(key string, db RedisDb) {
+	log.Printf("Deleting list with key %s from database ID %d\n", key, db.id)
 }
 
 // LLen returns number of elements.
@@ -131,12 +131,12 @@ func (l *List) LRem(count int, value *string) int {
 }
 
 // LSet see redis doc
-func (l *List) LSet(index int, value *string) error {
+func (l *List) LSet(index int, value string) error {
 	e := atIndex(index, l.goList)
 	if e == nil {
 		return errors.New("index out of range")
 	}
-	e.Value = *value
+	e.Value = value
 	return nil
 }
 
@@ -212,7 +212,7 @@ func startEndIndexes(start, end int, listLen int) (int, int) {
 }
 
 // atIndex finds element at given index or nil.
-func atIndex(index int, list *list.List) *list.Element {
+func atIndex(index int, list list.List) *list.Element {
 	index = toIndex(index, list.Len())
 	e, i := list.Front(), 0
 	for ; e.Next() != nil && i < index; i++ {

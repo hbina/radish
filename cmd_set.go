@@ -117,7 +117,7 @@ func SetCommand(c *Client, args [][]byte) {
 	found := false
 
 	if shouldGet {
-		item := c.Db().GetOrExpire(&key, true)
+		item := c.Db().GetOrExpire(key, true)
 		if item == nil {
 			// c.Conn().WriteNull()
 		} else {
@@ -137,7 +137,7 @@ func SetCommand(c *Client, args [][]byte) {
 		return
 	}
 
-	db.Set(&key, NewString(&value), expire)
+	db.Set(key, NewString(value), expire)
 
 	if !found {
 		c.Conn().WriteString("OK")

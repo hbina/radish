@@ -12,7 +12,7 @@ func RPopCommand(c *Client, args [][]byte) {
 	key := string(args[1])
 
 	db := c.Db()
-	i := db.GetOrExpire(&key, true)
+	i := db.GetOrExpire(key, true)
 	if i == nil {
 		c.Conn().WriteNull()
 		return
@@ -24,7 +24,7 @@ func RPopCommand(c *Client, args [][]byte) {
 	l := i.(*List)
 	v, b := l.RPop()
 	if b {
-		db.Delete(&key)
+		db.Delete(key)
 	}
 
 	c.Conn().WriteBulkString(*v)

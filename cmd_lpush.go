@@ -14,10 +14,10 @@ func LPushCommand(c *Client, args [][]byte) {
 	}
 	key := string(args[1])
 	db := c.Db()
-	value := db.GetOrExpire(&key, true)
+	value := db.GetOrExpire(key, true)
 	if value == nil {
 		value = NewList()
-		db.Set(&key, value, nil)
+		db.Set(key, value, nil)
 	} else if value.Type() != ValueTypeList {
 		c.Conn().WriteError(fmt.Sprintf("%s: key is a %s not a %s", WrongTypeErr, value.TypeFancy(), ValueTypeFancyList))
 		return

@@ -2,7 +2,6 @@ package redis
 
 import (
 	"fmt"
-	"go-redis/ref"
 	"strconv"
 )
 
@@ -29,7 +28,7 @@ func DecrByFloatCommand(c *Client, args [][]byte) {
 
 	if !exists {
 		decrByStr := strconv.FormatFloat(decrBy, 'f', -1, 64)
-		db.Set(&key, NewString(ref.String(decrByStr)), nil)
+		db.Set(key, NewString(decrByStr), nil)
 		c.conn.WriteString(fmt.Sprintf("\"%s\"", decrByStr))
 		return
 	}
@@ -51,6 +50,6 @@ func DecrByFloatCommand(c *Client, args [][]byte) {
 	floatValue -= decrBy
 
 	floatValueStr := strconv.FormatFloat(floatValue, 'f', -1, 64)
-	db.Set(&key, NewString(ref.String(floatValueStr)), nil)
+	db.Set(key, NewString(floatValueStr), nil)
 	c.conn.WriteString(fmt.Sprintf("\"%s\"", floatValueStr))
 }
