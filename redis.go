@@ -14,6 +14,7 @@ const (
 	InvalidFloatErr   = "ERR value is not a valid float"
 	WrongTypeErr      = "WRONGTYPE Operation against a key holding the wrong kind of value"
 	WrongNumOfArgsErr = "ERR wrong number of arguments for '%s' command"
+	ZeroArgumentErr   = "ERR zero argument passed to the handler. This is an implementation bug"
 )
 
 // This is the redis server.
@@ -180,6 +181,8 @@ func createDefault() *Redis {
 		NewCommand("decrby", DecrByCommand),
 		NewCommand("decrbyfloat", DecrByFloatCommand),
 		NewCommand("object", ObjectCommand),
+		NewCommand("sadd", SaddCommand),
+		NewCommand("smembers", SmembersCommand),
 	})
 
 	// NOTE: Taken by dumping from `CONFIG GET *`.

@@ -2,7 +2,6 @@ package redis
 
 import (
 	"fmt"
-	"go-redis/ref"
 	"strconv"
 	"strings"
 	"time"
@@ -32,10 +31,11 @@ func getExpiryTime(c *Client, arg string, multiplier uint64) *time.Time {
 		c.Conn().WriteError("invalid expire time in 'set' command")
 		return nil
 	}
-
-	return ref.Time(time.Now().Add(time.Duration(unitTime * multiplier)))
+	result := time.Now().Add(time.Duration(unitTime * multiplier))
+	return &result
 }
 
+// https://redis.io/commands/set/
 // SET key value [NX | XX] [GET] [EX seconds | PX milliseconds |
 // EXAT unix-time-seconds | PXAT unix-time-milliseconds | KEEPTTL]
 func SetCommand(c *Client, args [][]byte) {
