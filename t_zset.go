@@ -3,17 +3,21 @@ package redis
 import (
 	"log"
 
-	"github.com/wangjia184/sortedset"
+	"github.com/zavitax/sortedset-go"
 )
 
 var _ Item = (*ZSet)(nil)
 
 type ZSet struct {
-	value sortedset.SortedSet
+	value sortedset.SortedSet[string, float64, struct{}]
 }
 
 func NewZSetEmpty() *ZSet {
-	return &ZSet{value: *sortedset.New()}
+	return &ZSet{value: *sortedset.New[string, float64, struct{}]()}
+}
+
+func NewZSet(value sortedset.SortedSet[string, float64, struct{}]) *ZSet {
+	return &ZSet{value: value}
 }
 
 func (s *ZSet) Value() interface{} {

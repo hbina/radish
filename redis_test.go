@@ -1,6 +1,8 @@
 package redis
 
 import (
+	"fmt"
+	"os"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -9,11 +11,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var dbId int64 = 10
+var dbId int64 = 0
+var port string = fmt.Sprintf("localhost:%s", os.Getenv("PORT"))
 
 func CreateTestClient() *redis.Client {
 	c := redis.NewClient(&redis.Options{
-		Addr: "localhost:6380",
+		Addr: port,
 		DB:   int(atomic.AddInt64(&dbId, 1)),
 	})
 	return c
@@ -110,7 +113,7 @@ func TestZaddCommand(t *testing.T) {
 			Score: 1, Member: "one",
 		}).Result()
 		assert.NoError(t, err)
-		assert.Equal(t, "(integer) 1", s)
+		assert.Equal(t, int64(1), s)
 	}
 
 	{
@@ -118,7 +121,7 @@ func TestZaddCommand(t *testing.T) {
 			Score: 1, Member: "uno",
 		}).Result()
 		assert.NoError(t, err)
-		assert.Equal(t, "(integer) 1", s)
+		assert.Equal(t, int64(1), s)
 	}
 
 	{
@@ -129,6 +132,6 @@ func TestZaddCommand(t *testing.T) {
 				Score: 3, Member: "three",
 			}).Result()
 		assert.NoError(t, err)
-		assert.Equal(t, "(integer) 2", s)
+		assert.Equal(t, int64(2), s)
 	}
 }
