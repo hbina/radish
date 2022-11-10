@@ -119,10 +119,15 @@ func Default() *Redis {
 	return defaultRedis
 }
 
-func escapeNewLines(s string) string {
-	s = strings.ReplaceAll(s, "\n", "\\n")
-	s = strings.ReplaceAll(s, "\r", "\\r")
-	return s
+func collectArgs(args [][]byte) string {
+	result := ""
+	for i, arg := range args {
+		result += string(arg)
+		if i != len(args)-1 {
+			result += " "
+		}
+	}
+	return result
 }
 
 // createDefault creates a new default redis.
@@ -139,7 +144,7 @@ func createDefault() *Redis {
 		handler: func(c *Client, cmd redcon.Command) {
 			mu.Lock()
 			defer mu.Unlock()
-			log.Println(escapeNewLines(string(cmd.Raw)))
+			log.Println(collectArgs(cmd.Args))
 			cmdl := strings.ToLower(string(cmd.Args[0]))
 			commandHandler := c.Redis().CommandHandlerFn(cmdl)
 			if commandHandler != nil {
@@ -184,6 +189,7 @@ func createDefault() *Redis {
 		NewCommand("sadd", SaddCommand),
 		NewCommand("smembers", SmembersCommand),
 		NewCommand("smismember", SmismemberCommand),
+		NewCommand("zadd", ZaddCommand),
 	})
 
 	// NOTE: Taken by dumping from `CONFIG GET *`.

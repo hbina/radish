@@ -7,6 +7,8 @@ import (
 )
 
 func TestLPushCommand(t *testing.T) {
+	c := CreateTestClient()
+
 	i, err := c.LPush("lpushkey", "va").Result()
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), i)
@@ -25,6 +27,8 @@ func TestLPushCommand(t *testing.T) {
 }
 
 func TestLPopCommand(t *testing.T) {
+	c := CreateTestClient()
+
 	s, err := c.LPop("lpop1").Result()
 	assert.Zero(t, s)
 	assert.Error(t, err)
@@ -47,6 +51,8 @@ func TestLPopCommand(t *testing.T) {
 }
 
 func TestLRangeCommand(t *testing.T) {
+	c := CreateTestClient()
+
 	s, err := c.LRange("lrange", 0, 0).Result()
 	assert.NoError(t, err)
 	assert.Equal(t, s, []string{})

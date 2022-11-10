@@ -5,27 +5,33 @@ import (
 )
 
 func LPopCommand(c *Client, args [][]byte) {
-	if len(args) < 2 {
-		c.Conn().WriteError(fmt.Sprintf(WrongNumOfArgsErr, "lpop"))
+	if len(args) == 0 {
+		c.Conn().WriteError("no argument passed to handler. This should not be possible")
+		return
+	} else if len(args) < 2 {
+		c.Conn().WriteError(fmt.Sprintf(WrongNumOfArgsErr, args[0]))
 		return
 	}
-	key := string(args[1])
 
+	key := string(args[1])
 	db := c.Db()
-	i := db.GetOrExpire(key, true)
-	if i == nil {
+	item, _ := db.GetOrExpire(key, true)
+
+	if item == nil {
 		c.Conn().WriteNull()
 		return
-	} else if i.Type() != ValueTypeList {
+	} else if item.Type() != ValueTypeList {
 		c.Conn().WriteError(WrongTypeErr)
 		return
 	}
 
-	l := i.(*List)
-	v, b := l.LPop()
-	if b {
-		db.Delete(key)
-	}
+	l := item.(*List)
+	value, valid := l.LPop()
 
-	c.Conn().WriteBulkString(*v)
+	if valid {
+		c.Conn().WriteBulkString(value)
+	} else {
+		db.Delete(key)
+		c.Conn().WriteNull()
+	}
 }

@@ -25,5 +25,5 @@ func (l String) TypeFancy() string {
 }
 
 func (s String) OnDelete(key string, db RedisDb) {
-	log.Printf("Deleting string with key %s from database ID %d\n", key, db.id)
+	log.Printf("Deleting %s with key %s from database ID %d\n", s.TypeFancy(), key, db.id)
 }

@@ -13,12 +13,14 @@ const (
 	ValueTypeList = iota
 	ValueTypeString
 	ValueTypeSet
+	ValueTypeZSet
 )
 
 const (
 	ValueTypeFancyList   = "list"
 	ValueTypeFancyString = "string"
 	ValueTypeFancySet    = "set"
+	ValueTypeFancyZSet   = "zset"
 )
 
 // A redis database.
@@ -89,10 +91,10 @@ func (db *RedisDb) Id() DatabaseId {
 }
 
 // Sets a key with an item which can have an expiration time.
-func (db *RedisDb) Set(key string, i Item, expiry *time.Time) {
+func (db *RedisDb) Set(key string, i Item, expiry time.Time) {
 	db.storage[key] = i
-	if expiry != nil {
-		db.expiringKeys[key] = *expiry
+	if !time.Time.IsZero(expiry) {
+		db.expiringKeys[key] = expiry
 	}
 }
 
@@ -103,17 +105,8 @@ func (db *RedisDb) Get(key string) Item {
 
 // Deletes a key, returns number of deleted keys.
 func (db *RedisDb) Delete(keys ...string) int {
-	return db.delete(keys...)
-}
-
-// If checkExists is false, then return bool is reprehensible.
-func (db *RedisDb) delete(keys ...string) int {
 	do := func(k string) bool {
-		value, exists := db.storage[k]
-		if !exists {
-			return true
-		}
-		value.OnDelete(k, *db)
+		// value.OnDelete(k, *db)
 		delete(db.storage, k)
 		delete(db.expiringKeys, k)
 		return true
@@ -140,18 +133,18 @@ func (db *RedisDb) DeleteExpired(keys ...string) int {
 }
 
 // GetOrExpire gets the item or nil if expired or not exists. If 'deleteIfExpired' is true the key will be deleted.
-func (db *RedisDb) GetOrExpire(key string, deleteIfExpired bool) Item {
+func (db *RedisDb) GetOrExpire(key string, deleteIfExpired bool) (Item, time.Time) {
 	value, exists := db.storage[key]
 	if !exists {
-		return nil
+		return nil, time.Time{}
 	}
 	if db.expired(key) {
 		if deleteIfExpired {
-			db.delete(key)
+			db.Delete(key)
 		}
-		return nil
+		return nil, time.Time{}
 	}
-	return value
+	return value, db.expiringKeys[key]
 }
 
 // IsEmpty checks if db is empty.

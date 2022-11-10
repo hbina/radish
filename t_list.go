@@ -30,7 +30,7 @@ func (l List) TypeFancy() string {
 }
 
 func (l List) OnDelete(key string, db RedisDb) {
-	log.Printf("Deleting list with key %s from database ID %d\n", key, db.id)
+	log.Printf("Deleting %s with key %s from database ID %d\n", l.TypeFancy(), key, db.id)
 }
 
 // LLen returns number of elements.
@@ -39,29 +39,29 @@ func (l *List) LLen() int {
 }
 
 // LPush returns the length of the list after the push operation.
-func (l *List) LPush(values ...*string) int {
+func (l *List) LPush(values ...string) int {
 	for _, v := range values {
-		l.goList.PushFront(*v)
+		l.goList.PushFront(v)
 	}
 	return l.LLen()
 }
 
 // RPush returns the length of the list after the push operation.
-func (l *List) RPush(values ...*string) int {
+func (l *List) RPush(values ...string) int {
 	for _, v := range values {
-		l.goList.PushBack(*v)
+		l.goList.PushBack(v)
 	}
 	return l.LLen()
 }
 
 // LInsert see redis doc
-func (l *List) LInsert(isBefore bool, pivot, value *string) int {
+func (l *List) LInsert(isBefore bool, pivot, value string) int {
 	for e := l.goList.Front(); e.Next() != nil; e = e.Next() {
-		if *vts(e) == *pivot {
+		if getString(e) == pivot {
 			if isBefore {
-				l.goList.InsertBefore(*value, e)
+				l.goList.InsertBefore(value, e)
 			} else {
-				l.goList.InsertAfter(*value, e)
+				l.goList.InsertAfter(value, e)
 			}
 			return l.LLen()
 		}
@@ -69,37 +69,37 @@ func (l *List) LInsert(isBefore bool, pivot, value *string) int {
 	return -1
 }
 
-// LPop returns popped value and false -
-// returns true if list is now emptied so the key can be deleted.
-func (l *List) LPop() (*string, bool) {
+// RPop pops the front of the list and returns the value.
+// Returns true if its valid, false otherwise.
+func (l *List) LPop() (string, bool) {
 	if e := l.goList.Front(); e == nil {
-		return nil, true
+		return "", false
 	} else {
 		l.goList.Remove(e)
-		return vts(e), false
+		return getString(e), true
 	}
 }
 
-// RPop returns popped value and false -
-// returns true if list is now emptied so the key can be deleted.
-func (l *List) RPop() (*string, bool) {
+// RPop pops the back of the list and returns the value.
+// Returns true if its valid, false otherwise.
+func (l *List) RPop() (string, bool) {
 	if e := l.goList.Back(); e == nil {
-		return nil, true
+		return "", false
 	} else {
 		l.goList.Remove(e)
-		return vts(e), false
+		return getString(e), true
 	}
 }
 
 // LRem see redis doc
-func (l *List) LRem(count int, value *string) int {
+func (l *List) LRem(count int, value string) int {
 	// count > 0: Remove elements equal to value moving from head to tail.
 	// count < 0: Remove elements equal to value moving from tail to head.
 	// count = 0: Remove all elements equal to value.
 	var rem int
 	if count >= 0 {
 		for e := l.goList.Front(); e.Next() != nil; {
-			if *vts(e) == *value {
+			if getString(e) == value {
 				r := e
 				e = e.Next()
 				l.goList.Remove(r)
@@ -114,7 +114,7 @@ func (l *List) LRem(count int, value *string) int {
 	} else if count < 0 {
 		count = abs(count)
 		for e := l.goList.Back(); e.Prev() != nil; {
-			if *vts(e) == *value {
+			if getString(e) == value {
 				r := e
 				e = e.Prev()
 				l.goList.Remove(r)
@@ -141,12 +141,12 @@ func (l *List) LSet(index int, value string) error {
 }
 
 // LIndex see redis doc
-func (l *List) LIndex(index int) (*string, error) {
+func (l *List) LIndex(index int) (string, bool) {
 	e := atIndex(index, l.goList)
 	if e == nil {
-		return nil, errors.New("index out of range")
+		return "", false
 	}
-	return vts(e), nil
+	return getString(e), true
 }
 
 // LRange see redis doc
@@ -163,10 +163,10 @@ func (l *List) LRange(start int, end int) []string {
 		return values
 	}
 	// fill with values
-	values = append(values, *vts(e))
+	values = append(values, getString(e))
 	for i := 0; i < to; i++ {
 		e = e.Next()
-		values = append(values, *vts(e))
+		values = append(values, getString(e))
 	}
 	return values
 }
@@ -245,9 +245,9 @@ func toIndex(i int, len int) int {
 }
 
 // Value of a list element to string.
-func vts(e *list.Element) *string {
+func getString(e *list.Element) string {
 	v := e.Value.(string)
-	return &v
+	return v
 }
 
 // Return positive x

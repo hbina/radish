@@ -3,6 +3,7 @@ package redis
 import (
 	"fmt"
 	"strconv"
+	"time"
 )
 
 func DecrByFloatCommand(c *Client, args [][]byte) {
@@ -10,7 +11,7 @@ func DecrByFloatCommand(c *Client, args [][]byte) {
 		c.Conn().WriteError("no argument passed to handler. This should not be possible")
 		return
 	} else if len(args) != 3 {
-		c.Conn().WriteError(fmt.Sprintf("wrong number of arguments for '%s' command", args[0]))
+		c.Conn().WriteError(fmt.Sprintf(WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -28,7 +29,7 @@ func DecrByFloatCommand(c *Client, args [][]byte) {
 
 	if !exists {
 		decrByStr := strconv.FormatFloat(decrBy, 'f', -1, 64)
-		db.Set(key, NewString(decrByStr), nil)
+		db.Set(key, NewString(decrByStr), time.Time{})
 		c.conn.WriteString(fmt.Sprintf("\"%s\"", decrByStr))
 		return
 	}
@@ -50,6 +51,6 @@ func DecrByFloatCommand(c *Client, args [][]byte) {
 	floatValue -= decrBy
 
 	floatValueStr := strconv.FormatFloat(floatValue, 'f', -1, 64)
-	db.Set(key, NewString(floatValueStr), nil)
+	db.Set(key, NewString(floatValueStr), time.Time{})
 	c.conn.WriteString(fmt.Sprintf("\"%s\"", floatValueStr))
 }

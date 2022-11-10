@@ -21,18 +21,17 @@ const (
 	SetXx
 )
 
-func getExpiryTime(c *Client, arg string, multiplier uint64) *time.Time {
+func getExpiryTime(c *Client, arg string, multiplier uint64) time.Time {
 	unitTime, err := strconv.ParseUint(string(arg), 10, 64)
 	if err != nil {
 		c.Conn().WriteError(fmt.Sprintf("%s: %s", InvalidIntErr, err.Error()))
-		return nil
+		return time.Time{}
 	}
 	if unitTime == 0 {
 		c.Conn().WriteError("invalid expire time in 'set' command")
-		return nil
+		return time.Time{}
 	}
-	result := time.Now().Add(time.Duration(unitTime * multiplier))
-	return &result
+	return time.Now().Add(time.Duration(unitTime * multiplier))
 }
 
 // https://redis.io/commands/set/
@@ -43,14 +42,14 @@ func SetCommand(c *Client, args [][]byte) {
 		c.Conn().WriteError("no argument passed to handler. This should not be possible")
 		return
 	} else if len(args) < 3 {
-		c.Conn().WriteError(fmt.Sprintf("wrong number of arguments for '%s' command", args[0]))
+		c.Conn().WriteError(fmt.Sprintf(WrongNumOfArgsErr, args[0]))
 		return
 	}
 
 	key := string(args[1])
 	value := string(args[2])
 
-	var expire *time.Time = nil
+	var expire time.Time
 	expireMode := SetExpireMode
 	writeMode := SetWriteMode
 	shouldGet := false
@@ -117,7 +116,7 @@ func SetCommand(c *Client, args [][]byte) {
 	found := false
 
 	if shouldGet {
-		item := c.Db().GetOrExpire(key, true)
+		item, _ := c.Db().GetOrExpire(key, true)
 		if item == nil {
 			// c.Conn().WriteNull()
 		} else {

@@ -29,7 +29,7 @@ func (l Set) TypeFancy() string {
 }
 
 func (s Set) OnDelete(key string, db RedisDb) {
-	log.Printf("Deleting set with key %s from database ID %d\n", key, db.id)
+	log.Printf("Deleting %s with key %s from database ID %d\n", s.TypeFancy(), key, db.id)
 }
 
 func (s *Set) AddMember(key string) {

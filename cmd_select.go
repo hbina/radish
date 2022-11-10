@@ -10,7 +10,7 @@ func SelectCommand(c *Client, args [][]byte) {
 		c.Conn().WriteError("no argument passed to handler. This should not be possible")
 		return
 	} else if len(args) == 1 {
-		c.Conn().WriteError(fmt.Sprintf("wrong number of arguments for '%s' command", args[0]))
+		c.Conn().WriteError(fmt.Sprintf(WrongNumOfArgsErr, args[0]))
 		return
 	}
 

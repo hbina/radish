@@ -2,10 +2,11 @@ package redis
 
 import (
 	"fmt"
+	"time"
 )
 
-// https://redis.io/commands/smismember/
-func SmismemberCommand(c *Client, args [][]byte) {
+// https://redis.io/commands/sadd/
+func ZaddCommand(c *Client, args [][]byte) {
 	if len(args) == 0 {
 		c.Conn().WriteError(ZeroArgumentErr)
 		return
@@ -30,18 +31,18 @@ func SmismemberCommand(c *Client, args [][]byte) {
 
 	// We already checked that there are at least 3 arguments.
 	// So this should at least iterate once
-	result := make([]int, 0)
+	count := 0
 	for i := 2; i < len(args); i++ {
-		_, exists := set[string(args[i])]
-		if exists {
-			result = append(result, 1)
-		} else {
-			result = append(result, 0)
+		newMember := string(args[i])
+		_, found := set[newMember]
+		if !found {
+			set[newMember] = struct{}{}
+			count++
 		}
+
 	}
 
-	c.Conn().WriteArray(len(result))
-	for _, v := range result {
-		c.Conn().WriteInt(v)
-	}
+	c.Db().Set(key, NewSetFromMap(set), time.Time{})
+
+	c.Conn().WriteInt(count)
 }

@@ -1,6 +1,7 @@
 package redis
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -16,12 +17,10 @@ func PingCommand(c *Client, args [][]byte) {
 		c.Conn().WriteString("PONG")
 	} else if len(args) == 2 {
 		var buf strings.Builder
-		buf.WriteString("\"")
-		buf.Write(args[1])
-		buf.WriteString("\"")
+		buf.WriteString(string(args[1]))
 		s := buf.String()
-		c.Conn().WriteString(s)
+		c.Conn().WriteBulkString(s)
 	} else {
-		c.Conn().WriteError(PingTooManyArguments)
+		c.Conn().WriteError(fmt.Sprintf(WrongNumOfArgsErr, "ping"))
 	}
 }

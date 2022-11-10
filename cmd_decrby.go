@@ -3,6 +3,7 @@ package redis
 import (
 	"fmt"
 	"strconv"
+	"time"
 )
 
 func DecrByCommand(c *Client, args [][]byte) {
@@ -10,7 +11,7 @@ func DecrByCommand(c *Client, args [][]byte) {
 		c.Conn().WriteError("no argument passed to handler. This should not be possible")
 		return
 	} else if len(args) != 3 {
-		c.Conn().WriteError(fmt.Sprintf("wrong number of arguments for '%s' command", args[0]))
+		c.Conn().WriteError(fmt.Sprintf(WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -27,7 +28,7 @@ func DecrByCommand(c *Client, args [][]byte) {
 	item, exists := db.storage[key]
 
 	if !exists {
-		db.Set(key, NewString(fmt.Sprintf("%d", decrBy)), nil)
+		db.Set(key, NewString(fmt.Sprintf("%d", decrBy)), time.Time{})
 		c.conn.WriteInt64(decrBy)
 		return
 	}
@@ -48,6 +49,6 @@ func DecrByCommand(c *Client, args [][]byte) {
 
 	intValue -= decrBy
 
-	db.Set(key, NewString(fmt.Sprint(intValue)), nil)
+	db.Set(key, NewString(fmt.Sprint(intValue)), time.Time{})
 	c.conn.WriteInt64(intValue)
 }

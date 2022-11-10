@@ -2,6 +2,7 @@ package redis
 
 import (
 	"fmt"
+	"time"
 )
 
 // https://redis.io/commands/sadd/
@@ -10,7 +11,7 @@ func SaddCommand(c *Client, args [][]byte) {
 		c.Conn().WriteError(ZeroArgumentErr)
 		return
 	} else if len(args) < 3 {
-		c.Conn().WriteError(fmt.Sprintf("wrong number of arguments for '%s' command", args[0]))
+		c.Conn().WriteError(fmt.Sprintf(WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -41,7 +42,7 @@ func SaddCommand(c *Client, args [][]byte) {
 
 	}
 
-	c.Db().Set(key, NewSetFromMap(set), nil)
+	c.Db().Set(key, NewSetFromMap(set), time.Time{})
 
 	c.Conn().WriteInt(count)
 }
