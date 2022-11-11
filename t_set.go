@@ -5,19 +5,19 @@ import "log"
 var _ Item = (*Set)(nil)
 
 type Set struct {
-	value map[string]struct{}
+	inner map[string]struct{}
 }
 
 func NewSetFromMap(value map[string]struct{}) *Set {
-	return &Set{value: value}
+	return &Set{inner: value}
 }
 
 func NewSetEmpty() *Set {
-	return &Set{value: map[string]struct{}{}}
+	return &Set{inner: map[string]struct{}{}}
 }
 
 func (s Set) Value() interface{} {
-	return s.value
+	return s.inner
 }
 
 func (l Set) Type() uint64 {
@@ -33,12 +33,12 @@ func (s Set) OnDelete(key string, db RedisDb) {
 }
 
 func (s *Set) AddMember(key string) {
-	s.value[key] = struct{}{}
+	s.inner[key] = struct{}{}
 }
 
 func (s *Set) GetMembers(key string) []string {
-	r := make([]string, 0, len(s.value))
-	for k := range s.value {
+	r := make([]string, 0, len(s.inner))
+	for k := range s.inner {
 		r = append(r, k)
 	}
 	return r

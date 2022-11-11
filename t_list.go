@@ -10,15 +10,15 @@ import (
 var _ Item = (*List)(nil)
 
 type List struct {
-	goList *list.List
+	inner *list.List
 }
 
 func NewList() *List {
-	return &List{goList: list.New()}
+	return &List{inner: list.New()}
 }
 
 func (l *List) Value() interface{} {
-	return l.goList
+	return l.inner
 }
 
 func (l List) Type() uint64 {
@@ -35,13 +35,13 @@ func (l List) OnDelete(key string, db RedisDb) {
 
 // LLen returns number of elements.
 func (l *List) LLen() int {
-	return l.goList.Len()
+	return l.inner.Len()
 }
 
 // LPush returns the length of the list after the push operation.
 func (l *List) LPush(values ...string) int {
 	for _, v := range values {
-		l.goList.PushFront(v)
+		l.inner.PushFront(v)
 	}
 	return l.LLen()
 }
@@ -49,19 +49,19 @@ func (l *List) LPush(values ...string) int {
 // RPush returns the length of the list after the push operation.
 func (l *List) RPush(values ...string) int {
 	for _, v := range values {
-		l.goList.PushBack(v)
+		l.inner.PushBack(v)
 	}
 	return l.LLen()
 }
 
 // LInsert see redis doc
 func (l *List) LInsert(isBefore bool, pivot, value string) int {
-	for e := l.goList.Front(); e.Next() != nil; e = e.Next() {
+	for e := l.inner.Front(); e.Next() != nil; e = e.Next() {
 		if getString(e) == pivot {
 			if isBefore {
-				l.goList.InsertBefore(value, e)
+				l.inner.InsertBefore(value, e)
 			} else {
-				l.goList.InsertAfter(value, e)
+				l.inner.InsertAfter(value, e)
 			}
 			return l.LLen()
 		}
@@ -72,10 +72,10 @@ func (l *List) LInsert(isBefore bool, pivot, value string) int {
 // RPop pops the front of the list and returns the value.
 // Returns true if its valid, false otherwise.
 func (l *List) LPop() (string, bool) {
-	if e := l.goList.Front(); e == nil {
+	if e := l.inner.Front(); e == nil {
 		return "", false
 	} else {
-		l.goList.Remove(e)
+		l.inner.Remove(e)
 		return getString(e), true
 	}
 }
@@ -83,10 +83,10 @@ func (l *List) LPop() (string, bool) {
 // RPop pops the back of the list and returns the value.
 // Returns true if its valid, false otherwise.
 func (l *List) RPop() (string, bool) {
-	if e := l.goList.Back(); e == nil {
+	if e := l.inner.Back(); e == nil {
 		return "", false
 	} else {
-		l.goList.Remove(e)
+		l.inner.Remove(e)
 		return getString(e), true
 	}
 }
@@ -98,11 +98,11 @@ func (l *List) LRem(count int, value string) int {
 	// count = 0: Remove all elements equal to value.
 	var rem int
 	if count >= 0 {
-		for e := l.goList.Front(); e.Next() != nil; {
+		for e := l.inner.Front(); e.Next() != nil; {
 			if getString(e) == value {
 				r := e
 				e = e.Next()
-				l.goList.Remove(r)
+				l.inner.Remove(r)
 				rem++
 				if count != 0 && rem == count {
 					break
@@ -113,11 +113,11 @@ func (l *List) LRem(count int, value string) int {
 		}
 	} else if count < 0 {
 		count = abs(count)
-		for e := l.goList.Back(); e.Prev() != nil; {
+		for e := l.inner.Back(); e.Prev() != nil; {
 			if getString(e) == value {
 				r := e
 				e = e.Prev()
-				l.goList.Remove(r)
+				l.inner.Remove(r)
 				rem++
 				if count != 0 && rem == count {
 					break
@@ -132,7 +132,7 @@ func (l *List) LRem(count int, value string) int {
 
 // LSet see redis doc
 func (l *List) LSet(index int, value string) error {
-	e := atIndex(index, l.goList)
+	e := atIndex(index, l.inner)
 	if e == nil {
 		return errors.New("index out of range")
 	}
@@ -142,7 +142,7 @@ func (l *List) LSet(index int, value string) error {
 
 // LIndex see redis doc
 func (l *List) LIndex(index int) (string, bool) {
-	e := atIndex(index, l.goList)
+	e := atIndex(index, l.inner)
 	if e == nil {
 		return "", false
 	}
@@ -158,7 +158,7 @@ func (l *List) LRange(start int, end int) []string {
 		return values
 	}
 	// get start element
-	e := atIndex(from, l.goList)
+	e := atIndex(from, l.inner)
 	if e == nil { // shouldn't happen
 		return values
 	}
@@ -176,28 +176,28 @@ func (l *List) LTrim(start int, end int) bool {
 	// from index to index
 	from, to := startEndIndexes(start, end, l.LLen())
 	if from > to {
-		l.goList.Init()
+		l.inner.Init()
 		return true
 	}
 	// trim before
 	if from > 0 {
 		i := 0
-		e := l.goList.Front()
+		e := l.inner.Front()
 		for e != nil && i < from {
 			del := e
 			e = e.Next()
-			l.goList.Remove(del)
+			l.inner.Remove(del)
 			i++
 		}
 	}
 	// trim after
 	if to < l.LLen() {
 		i := l.LLen()
-		e := l.goList.Back()
+		e := l.inner.Back()
 		for e != nil && i > to {
 			del := e
 			e = e.Prev()
-			l.goList.Remove(del)
+			l.inner.Remove(del)
 			i--
 		}
 	}
@@ -206,7 +206,7 @@ func (l *List) LTrim(start int, end int) bool {
 
 // TODO: For now we only store strings so this should be enough.
 func (list List) ForEachF(f func(a string)) {
-	l := list.goList
+	l := list.inner
 	for e := l.Front(); e != nil; e = e.Next() {
 		f(e.Value.(string))
 	}

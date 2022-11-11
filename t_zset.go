@@ -9,19 +9,19 @@ import (
 var _ Item = (*ZSet)(nil)
 
 type ZSet struct {
-	value sortedset.SortedSet[string, float64, struct{}]
+	inner sortedset.SortedSet[string, float64, struct{}]
 }
 
 func NewZSetEmpty() *ZSet {
-	return &ZSet{value: *sortedset.New[string, float64, struct{}]()}
+	return &ZSet{inner: *sortedset.New[string, float64, struct{}]()}
 }
 
 func NewZSet(value sortedset.SortedSet[string, float64, struct{}]) *ZSet {
-	return &ZSet{value: value}
+	return &ZSet{inner: value}
 }
 
 func (s *ZSet) Value() interface{} {
-	return s.value
+	return s.inner
 }
 
 func (l ZSet) Type() uint64 {

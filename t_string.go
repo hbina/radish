@@ -5,15 +5,15 @@ import "log"
 var _ Item = (*String)(nil)
 
 type String struct {
-	value string
+	inner string
 }
 
 func NewString(value string) *String {
-	return &String{value: value}
+	return &String{inner: value}
 }
 
 func (s *String) Value() interface{} {
-	return s.value
+	return s.inner
 }
 
 func (l String) Type() uint64 {
