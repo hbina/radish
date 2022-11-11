@@ -10,11 +10,11 @@ import (
 var _ Item = (*List)(nil)
 
 type List struct {
-	goList list.List
+	goList *list.List
 }
 
 func NewList() *List {
-	return &List{goList: *list.New()}
+	return &List{goList: list.New()}
 }
 
 func (l *List) Value() interface{} {
@@ -204,6 +204,14 @@ func (l *List) LTrim(start int, end int) bool {
 	return false
 }
 
+// TODO: For now we only store strings so this should be enough.
+func (list List) ForEachF(f func(a string)) {
+	l := list.goList
+	for e := l.Front(); e != nil; e = e.Next() {
+		f(e.Value.(string))
+	}
+}
+
 func startEndIndexes(start, end int, listLen int) (int, int) {
 	if end > listLen-1 {
 		end = listLen - 1
@@ -212,7 +220,7 @@ func startEndIndexes(start, end int, listLen int) (int, int) {
 }
 
 // atIndex finds element at given index or nil.
-func atIndex(index int, list list.List) *list.Element {
+func atIndex(index int, list *list.List) *list.Element {
 	index = toIndex(index, list.Len())
 	e, i := list.Front(), 0
 	for ; e.Next() != nil && i < index; i++ {
