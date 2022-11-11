@@ -9,12 +9,13 @@ import (
 )
 
 const (
-	SyntaxErr         = "ERR syntax error"
-	InvalidIntErr     = "ERR value is not an integer or out of range"
-	InvalidFloatErr   = "ERR value is not a valid float"
-	WrongTypeErr      = "WRONGTYPE Operation against a key holding the wrong kind of value"
-	WrongNumOfArgsErr = "ERR wrong number of arguments for '%s' command"
-	ZeroArgumentErr   = "ERR zero argument passed to the handler. This is an implementation bug"
+	SyntaxErr                    = "ERR syntax error"
+	InvalidIntErr                = "ERR value is not an integer or out of range"
+	InvalidFloatErr              = "ERR value is not a valid float"
+	WrongTypeErr                 = "WRONGTYPE Operation against a key holding the wrong kind of value"
+	WrongNumOfArgsErr            = "ERR wrong number of arguments for '%s' command"
+	ZeroArgumentErr              = "ERR zero argument passed to the handler. This is an implementation bug"
+	MultipleElementIncrementPair = "ERR %s option supports a single increment-element pair"
 )
 
 // This is the redis server.

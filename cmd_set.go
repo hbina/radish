@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	SetExpireMode uint = iota
+	SetMode = iota
 	SetEx
 	SetPx
 	SetExat
@@ -16,9 +16,9 @@ const (
 )
 
 const (
-	SetWriteMode uint = iota
-	SetNx
-	SetXx
+	SetExpireMode = iota
+	SetExpireNx
+	SetExpireXx
 )
 
 func getExpiryTime(c *Client, arg string, multiplier uint64) time.Time {
@@ -50,8 +50,8 @@ func SetCommand(c *Client, args [][]byte) {
 	value := string(args[2])
 
 	var expire time.Time
-	expireMode := SetExpireMode
-	writeMode := SetWriteMode
+	expireMode := SetMode
+	writeMode := SetExpireMode
 	shouldGet := false
 
 	// Parse the optional arguments
@@ -62,7 +62,7 @@ func SetCommand(c *Client, args [][]byte) {
 			c.Conn().WriteError(SyntaxErr)
 			return
 		case "ex":
-			if expireMode != SetExpireMode {
+			if expireMode != SetMode {
 				c.Conn().WriteError(SyntaxErr)
 				return
 			}
@@ -78,7 +78,7 @@ func SetCommand(c *Client, args [][]byte) {
 			expireMode = SetEx
 			continue
 		case "px":
-			if expireMode != SetExpireMode {
+			if expireMode != SetMode {
 				c.Conn().WriteError(SyntaxErr)
 				return
 			}
@@ -94,18 +94,18 @@ func SetCommand(c *Client, args [][]byte) {
 			expireMode = SetPx
 			continue
 		case "nx":
-			if writeMode != SetWriteMode {
+			if writeMode != SetExpireMode {
 				c.Conn().WriteError(SyntaxErr)
 				return
 			}
-			writeMode = SetNx
+			writeMode = SetExpireNx
 			continue
 		case "xx":
-			if writeMode != SetWriteMode {
+			if writeMode != SetExpireMode {
 				c.Conn().WriteError(SyntaxErr)
 				return
 			}
-			writeMode = SetXx
+			writeMode = SetExpireXx
 			continue
 		case "get":
 			shouldGet = true
@@ -131,7 +131,7 @@ func SetCommand(c *Client, args [][]byte) {
 	db := c.Db()
 
 	exists := db.Exists(&key)
-	if writeMode == SetNx && exists || writeMode == SetXx && !exists {
+	if writeMode == SetExpireNx && exists || writeMode == SetExpireXx && !exists {
 		c.Conn().WriteNull()
 		return
 	}
