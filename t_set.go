@@ -83,3 +83,10 @@ func (s *Set) Intersect(o *Set) *Set {
 
 	return set
 }
+
+// TODO: For now we only store strings so this should be enough.
+func (s *Set) ForEachF(f func(a string)) {
+	for k := range s.inner {
+		f(k)
+	}
+}

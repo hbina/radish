@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// https://redis.io/commands/srem/
+// https://redis.io/commands/sintercard/
 // SREM key member [member ...]
 // TODO: Cleanup this mess. It feels like this shouldn't be as complicated as this?
 func SintercardCommand(c *Client, args [][]byte) {
@@ -68,33 +68,10 @@ func SintercardCommand(c *Client, args [][]byte) {
 		limit = int(limitValue64)
 	}
 
-	db := c.Db()
+	intersection := genericSinterCommand(c, keys)
 
-	intersection := NewSetEmpty()
-
-	// TODO: Is it possible to optimize using the fact that we know what the
-	// upper bound is?
-	for i, key := range keys {
-		maybeSet, _ := db.GetOrExpire(key, true)
-
-		// If any of the sets are nil, then the intersections must be 0
-		if maybeSet == nil {
-			c.Conn().WriteInt(0)
-			return
-		} else if maybeSet.Type() != ValueTypeSet {
-			c.Conn().WriteError(WrongTypeErr)
-			return
-		}
-
-		set := maybeSet.(*Set)
-
-		if i == 0 {
-			intersection = set
-		} else {
-			intersection = intersection.Intersect(set)
-		}
-
-		// TODO: Optimization to return early by checking if intersection is empty
+	if intersection == nil {
+		return
 	}
 
 	if limit > intersection.Len() || limit == 0 {

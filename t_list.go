@@ -211,7 +211,7 @@ func (l *List) LTrim(start int, end int) bool {
 }
 
 // TODO: For now we only store strings so this should be enough.
-func (list List) ForEachF(f func(a string)) {
+func (list *List) ForEachF(f func(a string)) {
 	l := list.inner
 	for e := l.Front(); e != nil; e = e.Next() {
 		f(e.Value.(string))
