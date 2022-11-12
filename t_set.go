@@ -16,24 +16,32 @@ func NewSetEmpty() *Set {
 	return &Set{inner: map[string]struct{}{}}
 }
 
-func (s Set) Value() interface{} {
+func (s *Set) Value() interface{} {
 	return s.inner
 }
 
-func (l Set) Type() uint64 {
+func (l *Set) Type() uint64 {
 	return ValueTypeSet
 }
 
-func (l Set) TypeFancy() string {
+func (l *Set) TypeFancy() string {
 	return ValueTypeFancySet
 }
 
-func (s Set) OnDelete(key string, db RedisDb) {
+func (s *Set) OnDelete(key string, db RedisDb) {
 	log.Printf("Deleting %s with key %s from database ID %d\n", s.TypeFancy(), key, db.id)
 }
 
-func (s *Set) AddMember(key string) {
-	s.inner[key] = struct{}{}
+func (s *Set) AddMember(keys ...string) {
+	for _, key := range keys {
+		s.inner[key] = struct{}{}
+	}
+}
+
+func (s *Set) RemoveMember(keys ...string) {
+	for _, key := range keys {
+		delete(s.inner, key)
+	}
 }
 
 func (s *Set) GetMembers(key string) []string {
@@ -42,4 +50,9 @@ func (s *Set) GetMembers(key string) []string {
 		r = append(r, k)
 	}
 	return r
+}
+
+func (s *Set) Exists(key string) bool {
+	_, exists := s.inner[key]
+	return exists
 }

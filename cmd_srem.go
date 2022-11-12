@@ -26,15 +26,14 @@ func SremCommand(c *Client, args [][]byte) {
 		return
 	}
 
-	set := val.Value().(map[string]struct{})
+	set := val.(*Set)
 
 	count := 0
 	for i := 2; i < len(args); i++ {
-		_, exists := set[string(args[i])]
-		if exists {
+		if set.Exists(string(args[i])) {
 			count++
 		}
-		delete(set, string(args[i]))
+		set.RemoveMember(key)
 	}
 
 	c.Conn().WriteInt(count)
