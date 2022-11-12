@@ -16,6 +16,7 @@ const (
 	WrongNumOfArgsErr            = "ERR wrong number of arguments for '%s' command"
 	ZeroArgumentErr              = "ERR zero argument passed to the handler. This is an implementation bug"
 	MultipleElementIncrementPair = "ERR %s option supports a single increment-element pair"
+	DeserializationErr           = "ERR unable to deserialize '%s' into a valid object"
 )
 
 // This is the redis server.
@@ -192,6 +193,8 @@ func createDefault() *Redis {
 		NewCommand("smismember", SmismemberCommand),
 		NewCommand("zadd", ZaddCommand),
 		NewCommand("dump", DumpCommand),
+		NewCommand("exists", ExistsCommand),
+		NewCommand("restore", RestoreCommand),
 	})
 
 	// NOTE: Taken by dumping from `CONFIG GET *`.

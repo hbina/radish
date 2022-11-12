@@ -112,7 +112,7 @@ func ZaddCommand(c *Client, args [][]byte) {
 	maybeSet := c.Db().Get(key)
 
 	if maybeSet == nil {
-		maybeSet = NewZSetEmpty()
+		maybeSet = NewZSet()
 	}
 
 	if maybeSet.Type() != ValueTypeZSet {
@@ -142,7 +142,7 @@ func ZaddCommand(c *Client, args [][]byte) {
 		}
 	}
 
-	c.Db().Set(key, NewZSet(set), time.Time{})
+	c.Db().Set(key, NewZSetFromSortedSet(set), time.Time{})
 
 	c.Conn().WriteInt(addedCount)
 }

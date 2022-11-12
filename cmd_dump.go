@@ -5,13 +5,7 @@ import (
 	"fmt"
 )
 
-// Key-value pair
-type Kvp struct {
-	Key   string      `json:"key"`
-	Type  string      `json:"type"`
-	Value interface{} `json:"value"`
-}
-
+// https://redis.io/commands/dump/
 func DumpCommand(c *Client, args [][]byte) {
 	if len(args) == 0 {
 		c.Conn().WriteError("no argument passed to handler. This should not be possible")
@@ -42,6 +36,7 @@ func DumpCommand(c *Client, args [][]byte) {
 		}
 
 		c.Conn().WriteBulkString(string(str))
+
 		return
 	} else if value.Type() == ValueTypeList {
 		arr := make([]string, 0)
@@ -62,6 +57,7 @@ func DumpCommand(c *Client, args [][]byte) {
 		}
 
 		c.Conn().WriteBulkString(string(str))
+
 		return
 	} else if value.Type() == ValueTypeSet {
 		str, err := json.Marshal(Kvp{
@@ -76,6 +72,8 @@ func DumpCommand(c *Client, args [][]byte) {
 		}
 
 		c.Conn().WriteBulkString(string(str))
+
+		return
 	} else if value.Type() == ValueTypeZSet {
 		str, err := json.Marshal(Kvp{
 			Key:   key,
@@ -89,8 +87,9 @@ func DumpCommand(c *Client, args [][]byte) {
 		}
 
 		c.Conn().WriteBulkString(string(str))
+
+		return
 	}
 
-	c.Conn().WriteError("Unknown Type")
-
+	c.Conn().WriteError(fmt.Sprintf("Dump for %s is not yet implemented", value.TypeFancy()))
 }

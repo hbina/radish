@@ -12,11 +12,11 @@ type ZSet struct {
 	inner sortedset.SortedSet[string, float64, struct{}]
 }
 
-func NewZSetEmpty() *ZSet {
+func NewZSet() *ZSet {
 	return &ZSet{inner: *sortedset.New[string, float64, struct{}]()}
 }
 
-func NewZSet(value sortedset.SortedSet[string, float64, struct{}]) *ZSet {
+func NewZSetFromSortedSet(value sortedset.SortedSet[string, float64, struct{}]) *ZSet {
 	return &ZSet{inner: value}
 }
 

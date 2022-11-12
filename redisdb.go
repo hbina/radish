@@ -23,6 +23,14 @@ const (
 	ValueTypeFancyZSet   = "zset"
 )
 
+// Key-value pair.
+// Will be used when serializing/deserializing redis objects.
+type Kvp struct {
+	Key   string      `json:"key"`
+	Type  string      `json:"type"`
+	Value interface{} `json:"value"`
+}
+
 // A redis database.
 // There can be more than one in a redis instance.
 type RedisDb struct {
@@ -91,11 +99,13 @@ func (db *RedisDb) Id() DatabaseId {
 }
 
 // Sets a key with an item which can have an expiration time.
-func (db *RedisDb) Set(key string, i Item, expiry time.Time) {
+func (db *RedisDb) Set(key string, i Item, expiry time.Time) Item {
+	old := db.storage[key]
 	db.storage[key] = i
 	if !time.Time.IsZero(expiry) {
 		db.expiringKeys[key] = expiry
 	}
+	return old
 }
 
 // Returns the item by the key or nil if key does not exists.

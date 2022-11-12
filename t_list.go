@@ -13,6 +13,12 @@ type List struct {
 	inner *list.List
 }
 
+func NewListFromArr(arr []string) *List {
+	list := NewList()
+	list.LPush(arr...)
+	return list
+}
+
 func NewList() *List {
 	return &List{inner: list.New()}
 }

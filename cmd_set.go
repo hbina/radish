@@ -2,7 +2,6 @@ package redis
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -20,19 +19,6 @@ const (
 	SetExpireNx
 	SetExpireXx
 )
-
-func getExpiryTime(c *Client, arg string, multiplier uint64) time.Time {
-	unitTime, err := strconv.ParseUint(string(arg), 10, 64)
-	if err != nil {
-		c.Conn().WriteError(fmt.Sprintf("%s: %s", InvalidIntErr, err.Error()))
-		return time.Time{}
-	}
-	if unitTime == 0 {
-		c.Conn().WriteError("invalid expire time in 'set' command")
-		return time.Time{}
-	}
-	return time.Now().Add(time.Duration(unitTime * multiplier))
-}
 
 // https://redis.io/commands/set/
 // SET key value [NX | XX] [GET] [EX seconds | PX milliseconds |
@@ -74,7 +60,14 @@ func SetCommand(c *Client, args [][]byte) {
 			}
 			i++
 
-			expire = getExpiryTime(c, string(args[i]), uint64(time.Second))
+			ttl, err := parseExpiryTime(string(args[i]), uint64(time.Second))
+
+			if ttl.IsZero() || err != nil {
+				c.Conn().WriteError(InvalidIntErr)
+				return
+			}
+
+			expire = ttl
 			expireMode = SetEx
 			continue
 		case "px":
@@ -90,7 +83,14 @@ func SetCommand(c *Client, args [][]byte) {
 			}
 			i++
 
-			expire = getExpiryTime(c, string(args[i]), uint64(time.Millisecond))
+			ttl, err := parseExpiryTime(string(args[i]), uint64(time.Millisecond))
+
+			if ttl.IsZero() || err != nil {
+				c.Conn().WriteError(InvalidIntErr)
+				return
+			}
+
+			expire = ttl
 			expireMode = SetPx
 			continue
 		case "nx":
