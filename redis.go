@@ -191,6 +191,7 @@ func createDefault() *Redis {
 		NewCommand("smembers", SmembersCommand),
 		NewCommand("smismember", SmismemberCommand),
 		NewCommand("zadd", ZaddCommand),
+		NewCommand("dump", DumpCommand),
 	})
 
 	// NOTE: Taken by dumping from `CONFIG GET *`.
