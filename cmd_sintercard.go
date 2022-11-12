@@ -68,7 +68,34 @@ func SintercardCommand(c *Client, args [][]byte) {
 		limit = int(limitValue64)
 	}
 
-	intersection := genericSinterCommand(c, keys)
+	db := c.Db()
+
+	intersection := NewSetEmpty()
+
+	// TODO: Is it possible to optimize using the fact that we know what the
+	// upper bound is?
+	for i, key := range keys {
+		maybeSet, _ := db.GetOrExpire(key, true)
+
+		// If any of the sets are nil, then the intersections must be 0
+		if maybeSet == nil {
+			c.Conn().WriteInt(0)
+			return
+		} else if maybeSet.Type() != ValueTypeSet {
+			c.Conn().WriteError(WrongTypeErr)
+			return
+		}
+
+		set := maybeSet.(*Set)
+
+		if i == 0 {
+			intersection = set
+		} else {
+			intersection = intersection.Intersect(set)
+		}
+
+		// TODO: Optimization to return nil early by checking if intersection is empty
+	}
 
 	if intersection == nil {
 		return

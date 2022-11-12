@@ -22,7 +22,34 @@ func SinterCommand(c *Client, args [][]byte) {
 		keys = append(keys, string(args[i]))
 	}
 
-	intersection := genericSinterCommand(c, keys)
+	db := c.Db()
+
+	intersection := NewSetEmpty()
+
+	// TODO: Is it possible to optimize using the fact that we know what the
+	// upper bound is?
+	for i, key := range keys {
+		maybeSet, _ := db.GetOrExpire(key, true)
+
+		// If any of the sets are nil, then the intersections must be 0
+		if maybeSet == nil {
+			c.Conn().WriteArray(0)
+			return
+		} else if maybeSet.Type() != ValueTypeSet {
+			c.Conn().WriteError(WrongTypeErr)
+			return
+		}
+
+		set := maybeSet.(*Set)
+
+		if i == 0 {
+			intersection = set
+		} else {
+			intersection = intersection.Intersect(set)
+		}
+
+		// TODO: Optimization to return nil early by checking if intersection is empty
+	}
 
 	if intersection == nil {
 		return
@@ -32,39 +59,4 @@ func SinterCommand(c *Client, args [][]byte) {
 	intersection.ForEachF(func(a string) {
 		c.Conn().WriteBulkString(a)
 	})
-}
-
-// https://redis.io/commands/sinter/
-// SINTER key [key ...]
-func genericSinterCommand(c *Client, keys []string) *Set {
-	db := c.Db()
-
-	result := NewSetEmpty()
-
-	// TODO: Is it possible to optimize using the fact that we know what the
-	// upper bound is?
-	for i, key := range keys {
-		maybeSet, _ := db.GetOrExpire(key, true)
-
-		// If any of the sets are nil, then the intersections must be 0
-		if maybeSet == nil {
-			c.Conn().WriteInt(0)
-			return nil
-		} else if maybeSet.Type() != ValueTypeSet {
-			c.Conn().WriteError(WrongTypeErr)
-			return nil
-		}
-
-		set := maybeSet.(*Set)
-
-		if i == 0 {
-			result = set
-		} else {
-			result = result.Intersect(set)
-		}
-
-		// TODO: Optimization to return nil early by checking if intersection is empty
-	}
-
-	return result
 }
