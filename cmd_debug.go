@@ -1,5 +1,5 @@
 package redis
 
-func FunctionCommand(c *Client, args [][]byte) {
+func DebugCommand(c *Client, args [][]byte) {
 	c.Conn().WriteString("Not implemented")
 }

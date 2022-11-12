@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-func TtlCommand(c *Client, args [][]byte) {
+func PttlCommand(c *Client, args [][]byte) {
 	if len(args) != 2 {
 		c.Conn().WriteError(fmt.Sprintf(WrongNumOfArgsErr, args[0]))
 		return
@@ -27,5 +27,5 @@ func TtlCommand(c *Client, args [][]byte) {
 		return
 	}
 
-	c.Conn().WriteInt64(int64(time.Until(ttl).Seconds()))
+	c.Conn().WriteInt64(int64(time.Until(ttl).Milliseconds()))
 }

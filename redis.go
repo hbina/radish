@@ -170,7 +170,6 @@ func createDefault() *Redis {
 		NewCommand("get", GetCommand, CMD_READONLY, CMD_FAST),
 		NewCommand("del", DelCommand, CMD_WRITE),
 		NewCommand("ttl", TtlCommand, CMD_READONLY, CMD_FAST),
-
 		NewCommand("lpush", LPushCommand, CMD_WRITE, CMD_FAST, CMD_DENYOOM),
 		NewCommand("rpush", RPushCommand, CMD_WRITE, CMD_FAST, CMD_DENYOOM),
 		NewCommand("lpop", LPopCommand, CMD_WRITE, CMD_FAST),
@@ -195,6 +194,8 @@ func createDefault() *Redis {
 		NewCommand("dump", DumpCommand),
 		NewCommand("exists", ExistsCommand),
 		NewCommand("restore", RestoreCommand),
+		NewCommand("pttl", PttlCommand),
+		NewCommand("debug", DebugCommand),
 	})
 
 	// NOTE: Taken by dumping from `CONFIG GET *`.

@@ -148,7 +148,7 @@ func (db *RedisDb) GetOrExpire(key string, deleteIfExpired bool) (Item, time.Tim
 	if !exists {
 		return nil, time.Time{}
 	}
-	if db.expired(key) {
+	if db.Expired(key) {
 		if deleteIfExpired {
 			db.Delete(key)
 		}
@@ -179,30 +179,23 @@ func (db *RedisDb) exists(key *string) bool {
 
 // Check if key has an expiry set.
 func (db *RedisDb) Expires(key string) bool {
-	return db.expires(key)
-}
-
-func (db *RedisDb) expires(key string) bool {
 	_, ok := db.expiringKeys[key]
 	return ok
 }
 
 // Expired only check if a key can and is expired.
 func (db *RedisDb) Expired(key string) bool {
-	return db.expired(key)
-}
-
-func (db *RedisDb) expired(key string) bool {
-	return db.expires(key) && TimeExpired(db.expiry(key))
+	ttl, exists := db.Expiry(key)
+	if !exists {
+		return false
+	}
+	return db.Expires(key) && TimeExpired(ttl)
 }
 
 // Expiry gets the expiry of the key has one.
-func (db *RedisDb) Expiry(key string) time.Time {
-	return db.expiry(key)
-}
-
-func (db *RedisDb) expiry(key string) time.Time {
-	return db.expiringKeys[key]
+func (db *RedisDb) Expiry(key string) (time.Time, bool) {
+	val, ok := db.expiringKeys[key]
+	return val, ok
 }
 
 // Keys gets all keys in this db.
@@ -213,11 +206,6 @@ func (db *RedisDb) Keys() KeyValue {
 // ExpiringKeys gets keys with an expiry set and their timeout.
 func (db *RedisDb) ExpiringKeys() ExpiringKeys {
 	return db.expiringKeys
-}
-
-// TimeExpired check if a timestamp is older than now.
-func TimeExpired(expireAt time.Time) bool {
-	return time.Now().After(expireAt)
 }
 
 func (db *RedisDb) SyncFlushAll() {

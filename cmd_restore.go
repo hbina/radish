@@ -20,7 +20,7 @@ func RestoreCommand(c *Client, args [][]byte) {
 	}
 
 	key := string(args[1])
-	ttl, err := parseExpiryTime(string(args[2]), uint64(time.Millisecond)) // TODO: Validate that its a number
+	ttl, err := ParseExpiryTime(string(args[2]), uint64(time.Millisecond))
 
 	// Do not fail on time.Time{}
 	if err != nil {
