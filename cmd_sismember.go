@@ -4,17 +4,18 @@ import (
 	"fmt"
 )
 
-// https://redis.io/commands/smembers/
-func SmembersCommand(c *Client, args [][]byte) {
+// https://redis.io/commands/sismember/
+func SismemberCommand(c *Client, args [][]byte) {
 	if len(args) == 0 {
 		c.Conn().WriteError(ZeroArgumentErr)
 		return
-	} else if len(args) != 2 {
+	} else if len(args) != 3 {
 		c.Conn().WriteError(fmt.Sprintf(WrongNumOfArgsErr, args[0]))
 		return
 	}
 
 	key := string(args[1])
+	member := string(args[2])
 	maybeSet := c.Db().Get(key)
 
 	if maybeSet == nil {
@@ -28,13 +29,10 @@ func SmembersCommand(c *Client, args [][]byte) {
 
 	set := maybeSet.(*Set)
 
-	result := make([]string, 0)
-	set.ForEachF(func(k string) {
-		result = append(result, k)
-	})
-
-	c.Conn().WriteArray(len(result))
-	for _, v := range result {
-		c.Conn().WriteBulkString(v)
+	if set.Exists(member) {
+		c.Conn().WriteInt(1)
+	} else {
+		c.Conn().WriteInt(0)
 	}
+
 }

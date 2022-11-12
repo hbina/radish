@@ -204,6 +204,7 @@ func createDefault() *Redis {
 		NewCommand("sinter", SinterCommand),
 		NewCommand("sinterstore", SinterstoreCommand),
 		NewCommand("scard", ScardCommand),
+		NewCommand("sismember", SismemberCommand),
 	})
 
 	// NOTE: Taken by dumping from `CONFIG GET *`.

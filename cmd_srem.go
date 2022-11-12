@@ -15,26 +15,29 @@ func SremCommand(c *Client, args [][]byte) {
 		return
 	}
 
+	db := c.Db()
 	key := string(args[1])
-	val, _ := c.Db().GetOrExpire(key, true)
+	maybeSet, ttl := db.GetOrExpire(key, true)
 
-	if val == nil {
+	if maybeSet == nil {
 		c.Conn().WriteInt(0)
 		return
-	} else if val.Type() != ValueTypeSet {
+	} else if maybeSet.Type() != ValueTypeSet {
 		c.Conn().WriteError(WrongTypeErr)
 		return
 	}
 
-	set := val.(*Set)
+	set := maybeSet.(*Set)
 
 	count := 0
 	for i := 2; i < len(args); i++ {
 		if set.Exists(string(args[i])) {
 			count++
 		}
-		set.RemoveMember(key)
+		set.RemoveMember(string(args[i]))
 	}
+
+	db.Set(key, set, ttl)
 
 	c.Conn().WriteInt(count)
 }

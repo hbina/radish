@@ -22,8 +22,8 @@ func SinterstoreCommand(c *Client, args [][]byte) {
 	// Collect keys
 	// TODO: Can optimize by removing this temporary array and use the args directly.
 	keys := make([]string, 0, len(args)-2)
-	for i := 2; i < len(args)-2; i++ {
-		keys = append(keys, string(args[i+2]))
+	for i := 2; i < len(args); i++ {
+		keys = append(keys, string(args[i]))
 	}
 
 	db := c.Db()
