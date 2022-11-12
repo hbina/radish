@@ -129,7 +129,7 @@ func ZaddCommand(c *Client, args [][]byte) {
 		member := string(args[i+1])
 		old := set.GetByKey(member)
 
-		if (old == nil && expireMode != ZaddExpireNx) ||
+		if (old == nil && expireMode == ZaddExpireNx) ||
 			(old != nil && expireMode == ZaddExpireXx) ||
 			(old != nil && compareMode == ZaddCompareGt && score <= old.Score()) ||
 			(old != nil && compareMode == ZaddCompareLt && score >= old.Score()) {
