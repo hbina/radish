@@ -1,6 +1,7 @@
 package redis
 
 import (
+	"fmt"
 	"log"
 	"strings"
 	"sync"
@@ -9,15 +10,16 @@ import (
 )
 
 const (
-	SyntaxErr                    = "ERR syntax error"
-	InvalidIntErr                = "ERR value is not an integer or out of range"
-	InvalidFloatErr              = "ERR value is not a valid float"
-	WrongTypeErr                 = "WRONGTYPE Operation against a key holding the wrong kind of value"
-	WrongNumOfArgsErr            = "ERR wrong number of arguments for '%s' command"
-	ZeroArgumentErr              = "ERR zero argument passed to the handler. This is an implementation bug"
-	MultipleElementIncrementPair = "ERR %s option supports a single increment-element pair"
-	DeserializationErr           = "ERR unable to deserialize '%s' into a valid object"
-	OptionNotSupported           = "ERR option '%s' is not currently supported"
+	SyntaxErr                       = "ERR syntax error"
+	InvalidIntErr                   = "ERR value is not an integer or out of range"
+	InvalidFloatErr                 = "ERR value is not a valid float"
+	WrongTypeErr                    = "WRONGTYPE Operation against a key holding the wrong kind of value"
+	WrongNumOfArgsErr               = "ERR wrong number of arguments for '%s' command"
+	ZeroArgumentErr                 = "ERR zero argument passed to the handler. This is an implementation bug"
+	MultipleElementIncrementPairErr = "ERR %s option supports a single increment-element pair"
+	DeserializationErr              = "ERR unable to deserialize '%s' into a valid object"
+	OptionNotSupportedErr           = "ERR option '%s' is not currently supported"
+	UnknownCommandErr               = "ERR unknown command '%s'"
 )
 
 // This is the redis server.
@@ -145,6 +147,8 @@ func createDefault() *Redis {
 		onClose: func(c *Client, err error) {
 		},
 		handler: func(c *Client, cmd redcon.Command) {
+			// TODO: Check that args is not empty
+			// TODO: Remove the first argument from argument to command handlers
 			mu.Lock()
 			defer mu.Unlock()
 			log.Println(collectArgs(cmd.Args))
@@ -157,7 +161,7 @@ func createDefault() *Redis {
 			}
 		},
 		unknownCommand: func(c *Client, cmd redcon.Command) {
-			c.Conn().WriteError("ERR unknown command '" + string(cmd.Args[0]) + "'")
+			c.Conn().WriteError(fmt.Sprintf(UnknownCommandErr, cmd.Args[0]))
 		},
 		commands: make(Commands, 0),
 	}
@@ -197,6 +201,7 @@ func createDefault() *Redis {
 		NewCommand("restore", RestoreCommand),
 		NewCommand("pttl", PttlCommand),
 		NewCommand("debug", DebugCommand),
+		NewCommand("srem", SremCommand),
 	})
 
 	// NOTE: Taken by dumping from `CONFIG GET *`.

@@ -48,7 +48,7 @@ func RestoreCommand(c *Client, args [][]byte) {
 		case "idletime":
 		case "freq":
 		default:
-			c.Conn().WriteError(fmt.Sprintf(OptionNotSupported, arg))
+			c.Conn().WriteError(fmt.Sprintf(OptionNotSupportedErr, arg))
 			return
 		}
 	}

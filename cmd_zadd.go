@@ -105,7 +105,7 @@ func ZaddCommand(c *Client, args [][]byte) {
 	// Redis does not support multiple score-element pair when doing INCR option
 	// for some reasons...
 	if incrEnabled && len(args)-optionCount-2 > 2 {
-		c.Conn().WriteError(fmt.Sprintf(MultipleElementIncrementPair, "INCR"))
+		c.Conn().WriteError(fmt.Sprintf(MultipleElementIncrementPairErr, "INCR"))
 		return
 	}
 
