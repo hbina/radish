@@ -17,6 +17,7 @@ const (
 	ZeroArgumentErr              = "ERR zero argument passed to the handler. This is an implementation bug"
 	MultipleElementIncrementPair = "ERR %s option supports a single increment-element pair"
 	DeserializationErr           = "ERR unable to deserialize '%s' into a valid object"
+	OptionNotSupported           = "ERR option '%s' is not currently supported"
 )
 
 // This is the redis server.

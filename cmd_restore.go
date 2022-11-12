@@ -4,12 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/zavitax/sortedset-go"
 )
 
 // https://redis.io/commands/restore/
+// RESTORE key ttl serialized-value [REPLACE] [ABSTTL] [IDLETIME seconds] [FREQ frequency]
 func RestoreCommand(c *Client, args [][]byte) {
 	if len(args) == 0 {
 		c.Conn().WriteError("no argument passed to handler. This should not be possible")
@@ -35,6 +37,20 @@ func RestoreCommand(c *Client, args [][]byte) {
 		log.Println(err)
 		c.Conn().WriteError(fmt.Sprintf(DeserializationErr, string(args[3])))
 		return
+	}
+
+	// Parse the rest of options
+	for i := 4; i < len(args); i++ {
+		arg := strings.ToLower(string(args[i]))
+		switch arg {
+		case "replace":
+		case "absttl":
+		case "idletime":
+		case "freq":
+		default:
+			c.Conn().WriteError(fmt.Sprintf(OptionNotSupported, arg))
+			return
+		}
 	}
 
 	db := c.Db()
