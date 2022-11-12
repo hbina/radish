@@ -10,16 +10,14 @@ import (
 )
 
 const (
-	SyntaxErr                       = "ERR syntax error"
-	InvalidIntErr                   = "ERR value is not an integer or out of range"
-	InvalidFloatErr                 = "ERR value is not a valid float"
-	WrongTypeErr                    = "WRONGTYPE Operation against a key holding the wrong kind of value"
-	WrongNumOfArgsErr               = "ERR wrong number of arguments for '%s' command"
-	ZeroArgumentErr                 = "ERR zero argument passed to the handler. This is an implementation bug"
-	MultipleElementIncrementPairErr = "ERR %s option supports a single increment-element pair"
-	DeserializationErr              = "ERR unable to deserialize '%s' into a valid object"
-	OptionNotSupportedErr           = "ERR option '%s' is not currently supported"
-	UnknownCommandErr               = "ERR unknown command '%s'"
+	SyntaxErr             = "ERR syntax error"
+	InvalidIntErr         = "ERR value is not an integer or out of range"
+	InvalidFloatErr       = "ERR value is not a valid float"
+	WrongTypeErr          = "WRONGTYPE Operation against a key holding the wrong kind of value"
+	WrongNumOfArgsErr     = "ERR wrong number of arguments for '%s' command"
+	ZeroArgumentErr       = "ERR zero argument passed to the handler. This is an implementation bug"
+	DeserializationErr    = "ERR unable to deserialize '%s' into a valid object"
+	OptionNotSupportedErr = "ERR option '%s' is not currently supported"
 )
 
 // This is the redis server.
@@ -161,7 +159,7 @@ func createDefault() *Redis {
 			}
 		},
 		unknownCommand: func(c *Client, cmd redcon.Command) {
-			c.Conn().WriteError(fmt.Sprintf(UnknownCommandErr, cmd.Args[0]))
+			c.Conn().WriteError(fmt.Sprintf("ERR unknown command '%s'", cmd.Args[0]))
 		},
 		commands: make(Commands, 0),
 	}

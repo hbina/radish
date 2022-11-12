@@ -56,3 +56,30 @@ func (s *Set) Exists(key string) bool {
 	_, exists := s.inner[key]
 	return exists
 }
+
+func (s *Set) Len() int {
+	return len(s.inner)
+}
+
+// Intersect returns a new Set that is an intersection of both sets.
+// TODO: Better intersection algorithm?
+func (s *Set) Intersect(o *Set) *Set {
+	set := NewSetEmpty()
+
+	// loop over smaller set
+	if s.Len() < o.Len() {
+		for elem := range s.inner {
+			if o.Exists(elem) {
+				set.AddMember(elem)
+			}
+		}
+	} else {
+		for elem := range o.inner {
+			if s.Exists(elem) {
+				set.AddMember(elem)
+			}
+		}
+	}
+
+	return set
+}
