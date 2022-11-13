@@ -5,10 +5,9 @@ import (
 	"time"
 )
 
-// https://redis.io/commands/sinterstore/
-// SREM key member [member ...]
-// TODO: Cleanup this mess. It feels like this shouldn't be as complicated as this?
-func SinterstoreCommand(c *Client, args [][]byte) {
+// https://redis.io/commands/sdiffstore/
+// SDIFFSTORE destination key [key ...]
+func SdiffstoreCommand(c *Client, args [][]byte) {
 	if len(args) == 0 {
 		c.Conn().WriteError(ZeroArgumentErr)
 		return
@@ -27,17 +26,14 @@ func SinterstoreCommand(c *Client, args [][]byte) {
 	}
 
 	db := c.Db()
-	intersection := NewSetEmpty()
+	var diff *Set = nil
 
-	// TODO: Is it possible to optimize using the fact that we know what the
-	// upper bound is?
-	for i, key := range keys {
+	for _, key := range keys {
 		maybeSet, _ := db.GetOrExpire(key, true)
 
 		// If any of the sets are nil, then the intersections must be 0
 		if maybeSet == nil {
-			c.Conn().WriteInt(0)
-			return
+			maybeSet = NewSetEmpty()
 		} else if maybeSet.Type() != ValueTypeSet {
 			c.Conn().WriteError(WrongTypeErr)
 			return
@@ -45,20 +41,14 @@ func SinterstoreCommand(c *Client, args [][]byte) {
 
 		set := maybeSet.(*Set)
 
-		if i == 0 {
-			intersection = set
+		if diff == nil {
+			diff = set
 		} else {
-			intersection = intersection.Intersect(set)
+			diff = diff.Diff(set)
 		}
-
-		// TODO: Optimization to return nil early by checking if intersection is empty
 	}
 
-	if intersection == nil {
-		c.Conn().WriteError("This should not be possible")
-	} else {
-		db.Set(destination, intersection, time.Time{})
-	}
+	db.Set(destination, diff, time.Time{})
 
-	c.Conn().WriteInt(intersection.Len())
+	c.Conn().WriteInt(diff.Len())
 }

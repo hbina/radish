@@ -1,6 +1,9 @@
 package redis
 
-import "log"
+import (
+	"log"
+	"math/rand"
+)
 
 var _ Item = (*Set)(nil)
 
@@ -44,7 +47,7 @@ func (s *Set) RemoveMember(keys ...string) {
 	}
 }
 
-func (s *Set) GetMembers(key string) []string {
+func (s *Set) GetMembers() []string {
 	r := make([]string, 0, len(s.inner))
 	for k := range s.inner {
 		r = append(r, k)
@@ -59,6 +62,27 @@ func (s *Set) Exists(key string) bool {
 
 func (s *Set) Len() int {
 	return len(s.inner)
+}
+
+// Pop removes a random key from the set.
+func (s *Set) Pop() *string {
+	member := s.GetRandomMember()
+	if member != nil {
+		s.RemoveMember(*member)
+		return member
+	}
+	return nil
+}
+
+// GetRandomMeber returns a random member from the set.
+func (s *Set) GetRandomMember() *string {
+	if s.Len() > 0 {
+		keys := s.GetMembers()
+		idx := rand.Intn(len(keys))
+		key := keys[idx]
+		return &key
+	}
+	return nil
 }
 
 // Intersect returns a new Set that is an intersection of both sets.
@@ -78,6 +102,34 @@ func (s *Set) Intersect(o *Set) *Set {
 			if s.Exists(elem) {
 				set.AddMember(elem)
 			}
+		}
+	}
+
+	return set
+}
+
+// Union returns a new Set that is a union of both sets.
+func (s *Set) Union(o *Set) *Set {
+	set := NewSetEmpty()
+
+	for elem := range s.inner {
+		set.AddMember(elem)
+	}
+
+	for elem := range o.inner {
+		set.AddMember(elem)
+	}
+
+	return set
+}
+
+// Diff returns a new Set that is a diff of both sets.
+func (s *Set) Diff(o *Set) *Set {
+	set := NewSetEmpty()
+
+	for elem := range s.inner {
+		if !o.Exists(elem) {
+			set.AddMember(elem)
 		}
 	}
 
