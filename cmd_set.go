@@ -7,17 +7,21 @@ import (
 )
 
 const (
-	SetMode = iota
-	SetEx
-	SetPx
-	SetExat
-	SetPxat
+	SetExpireMode = iota
+	// Set key to expire after seconds
+	SetExpireEx
+	// Set key to expire after milliseconds
+	SetExpirePx
+	SetExpireExat
+	SetExpirePxat
 )
 
 const (
-	SetExpireMode = iota
-	SetExpireNx
-	SetExpireXx
+	SetWriteMode = iota
+	// Only write if key doesnt already exists
+	SetWriteNx
+	// Only write if key already exists
+	SetWriteXx
 )
 
 // https://redis.io/commands/set/
@@ -36,8 +40,8 @@ func SetCommand(c *Client, args [][]byte) {
 	value := string(args[2])
 
 	var expire time.Time
-	expireMode := SetMode
-	writeMode := SetExpireMode
+	expireMode := SetExpireMode
+	writeMode := SetWriteMode
 	shouldGet := false
 
 	// Parse the optional arguments
@@ -48,7 +52,7 @@ func SetCommand(c *Client, args [][]byte) {
 			c.Conn().WriteError(SyntaxErr)
 			return
 		case "ex":
-			if expireMode != SetMode {
+			if expireMode != SetExpireMode {
 				c.Conn().WriteError(SyntaxErr)
 				return
 			}
@@ -68,10 +72,10 @@ func SetCommand(c *Client, args [][]byte) {
 			}
 
 			expire = ttl
-			expireMode = SetEx
+			expireMode = SetExpireEx
 			continue
 		case "px":
-			if expireMode != SetMode {
+			if expireMode != SetExpireMode {
 				c.Conn().WriteError(SyntaxErr)
 				return
 			}
@@ -91,21 +95,21 @@ func SetCommand(c *Client, args [][]byte) {
 			}
 
 			expire = ttl
-			expireMode = SetPx
+			expireMode = SetExpirePx
 			continue
 		case "nx":
-			if writeMode != SetExpireMode {
+			if writeMode != SetWriteMode {
 				c.Conn().WriteError(SyntaxErr)
 				return
 			}
-			writeMode = SetExpireNx
+			writeMode = SetWriteNx
 			continue
 		case "xx":
-			if writeMode != SetExpireMode {
+			if writeMode != SetWriteMode {
 				c.Conn().WriteError(SyntaxErr)
 				return
 			}
-			writeMode = SetExpireXx
+			writeMode = SetWriteXx
 			continue
 		case "get":
 			shouldGet = true
@@ -113,7 +117,16 @@ func SetCommand(c *Client, args [][]byte) {
 		}
 	}
 
-	found := false
+	genericSetCommand(c, key, value, expire, writeMode, shouldGet)
+}
+
+func genericSetCommand(c *Client,
+	key string,
+	value string,
+	expire time.Time,
+	writeMode int,
+	shouldGet bool) {
+	var foundItem Item = nil
 
 	if shouldGet {
 		item, _ := c.Db().GetOrExpire(key, true)
@@ -121,24 +134,35 @@ func SetCommand(c *Client, args [][]byte) {
 			// c.Conn().WriteNull()
 		} else {
 			if item.Type() == ValueTypeString {
-				v := *item.Value().(*string)
-				c.Conn().WriteBulkString(v)
-				found = true
+				foundItem = item
+			} else {
+				c.Conn().WriteError(WrongTypeErr)
+				return
 			}
 		}
 	}
 
 	db := c.Db()
-
 	exists := db.Exists(&key)
-	if writeMode == SetExpireNx && exists || writeMode == SetExpireXx && !exists {
-		c.Conn().WriteNull()
+
+	if writeMode == SetWriteNx && exists || writeMode == SetWriteXx && !exists {
+		c.Conn().WriteInt(0)
 		return
 	}
 
 	db.Set(key, NewString(value), expire)
 
-	if !found {
+	if writeMode != SetWriteMode {
+		// If we are not in default write mode, then we must have written something
+		c.Conn().WriteInt(1)
+	} else if shouldGet && foundItem == nil {
+		// If we should be getting something but found nothing then return nil
+		c.Conn().WriteNull()
+	} else if shouldGet && foundItem != nil {
+		// We found something and we already checked that its a valid string Item
+		c.Conn().WriteBulkString(*foundItem.Value().(*string))
+	} else {
+		// Otherwise just print OK
 		c.Conn().WriteString("OK")
 	}
 }

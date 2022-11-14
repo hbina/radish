@@ -133,12 +133,18 @@ func (db *RedisDb) Set(key string, i Item, expiry time.Time) Item {
 		}
 	}
 
-	old := db.storage[key]
+	old, exists := db.storage[key]
 	db.storage[key] = i
+
 	if !time.Time.IsZero(expiry) {
 		db.expiringKeys[key] = expiry
 	}
-	return old
+
+	if exists {
+		return old
+	} else {
+		return nil
+	}
 }
 
 // Returns the item by the key or nil if key does not exists.
@@ -241,10 +247,14 @@ func (db *RedisDb) ExpiringKeys() ExpiringKeys {
 	return db.expiringKeys
 }
 
-func (db *RedisDb) SyncFlushAll() {
+func (db *RedisDb) Clear() {
 	for k, i := range db.storage {
 		i.OnDelete(k, *db)
 		delete(db.storage, k)
 		delete(db.expiringKeys, k)
 	}
+}
+
+func (db *RedisDb) Len() int {
+	return len(db.storage)
 }

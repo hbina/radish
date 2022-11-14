@@ -1,8 +1,6 @@
 package redis
 
 import (
-	"sync/atomic"
-
 	"github.com/tidwall/redcon"
 )
 
@@ -20,34 +18,9 @@ type Client struct {
 	conn redcon.Conn
 
 	// Selected database (default 0)
-	db DatabaseId
+	dbId DatabaseId
 
 	redis *Redis
-}
-
-// NewClient creates new client and adds it to the redis.
-func (r *Redis) NewClient(conn redcon.Conn) *Client {
-	c := &Client{
-		conn:     conn,
-		redis:    r,
-		clientId: r.NextClientId(),
-	}
-	return c
-}
-
-// NextClientId atomically gets and increments a counter to return the next client id.
-func (r *Redis) NextClientId() ClientId {
-	id := atomic.AddUint64(&r.nextClientId, 1)
-	return ClientId(id)
-}
-
-// Clients gets the current connected clients.
-func (r *Redis) Clients() Clients {
-	return r.clients
-}
-
-func (r *Redis) getClients() Clients {
-	return r.clients
 }
 
 // Redis gets the redis instance.
@@ -65,13 +38,13 @@ func (c *Client) Conn() redcon.Conn {
 }
 
 // SelectDb selects the clients database.
-func (c *Client) SelectDb(db DatabaseId) {
-	c.db = db
+func (c *Client) SelectDb(dbId DatabaseId) {
+	c.dbId = dbId
 }
 
 // DbId gets the clients selected database id.
 func (c *Client) DbId() DatabaseId {
-	return c.db
+	return c.dbId
 }
 
 // Db gets the clients selected database.

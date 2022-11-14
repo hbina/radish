@@ -5,6 +5,7 @@ import (
 	"log"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/tidwall/redcon"
 )
@@ -215,6 +216,10 @@ func createDefault() *Redis {
 		NewCommand("watch", WatchCommand),
 		NewCommand("multi", MultiCommand),
 		NewCommand("exec", ExecCommand),
+		NewCommand("flushdb", FlushDbCommand),
+		NewCommand("dbsize", DbSizeCommand),
+		NewCommand("setx", SetXCommand),
+		NewCommand("setnx", SetNxCommand),
 	})
 
 	// NOTE: Taken by dumping from `CONFIG GET *`.
@@ -376,9 +381,18 @@ func createDefault() *Redis {
 }
 
 // Flush all keys synchronously
-func (db *Redis) SyncFlushAll() {
-	for _, v := range db.redisDbs {
-		v.SyncFlushAll()
+func (r *Redis) SyncFlushAll() {
+	for _, v := range r.redisDbs {
+		v.Clear()
+	}
+}
+
+// Flush the selected db
+func (r *Redis) SyncFlushDb(dbId DatabaseId) {
+	d, exists := r.redisDbs[dbId]
+
+	if exists {
+		d.Clear()
 	}
 }
 
@@ -416,4 +430,29 @@ func (r *Redis) GetConfigValue(key string) *string {
 
 func (r *Redis) SetConfigValue(key string, value string) {
 	r.configDb[key] = value
+}
+
+// NewClient creates new client and adds it to the redis.
+func (r *Redis) NewClient(conn redcon.Conn) *Client {
+	c := &Client{
+		conn:     conn,
+		redis:    r,
+		clientId: r.NextClientId(),
+	}
+	return c
+}
+
+// NextClientId atomically gets and increments a counter to return the next client id.
+func (r *Redis) NextClientId() ClientId {
+	id := atomic.AddUint64(&r.nextClientId, 1)
+	return ClientId(id)
+}
+
+// Clients gets the current connected clients.
+func (r *Redis) Clients() Clients {
+	return r.clients
+}
+
+func (r *Redis) getClients() Clients {
+	return r.clients
 }
