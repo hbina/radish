@@ -212,6 +212,9 @@ func createDefault() *Redis {
 		NewCommand("spop", SpopCommand),
 		NewCommand("srandmember", SrandmemberCommand),
 		NewCommand("smove", SmoveCommand),
+		NewCommand("watch", WatchCommand),
+		NewCommand("multi", MultiCommand),
+		NewCommand("exec", ExecCommand),
 	})
 
 	// NOTE: Taken by dumping from `CONFIG GET *`.
