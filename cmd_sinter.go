@@ -24,17 +24,14 @@ func SinterCommand(c *Client, args [][]byte) {
 
 	db := c.Db()
 
-	intersection := NewSetEmpty()
+	var intersection *Set = nil
 
-	// TODO: Is it possible to optimize using the fact that we know what the
-	// upper bound is?
-	for i, key := range keys {
+	for _, key := range keys {
 		maybeSet, _ := db.GetOrExpire(key, true)
 
 		// If any of the sets are nil, then the intersections must be 0
 		if maybeSet == nil {
-			c.Conn().WriteArray(0)
-			return
+			maybeSet = NewSetEmpty()
 		} else if maybeSet.Type() != ValueTypeSet {
 			c.Conn().WriteError(WrongTypeErr)
 			return
@@ -42,16 +39,15 @@ func SinterCommand(c *Client, args [][]byte) {
 
 		set := maybeSet.(*Set)
 
-		if i == 0 {
+		if intersection == nil {
 			intersection = set
 		} else {
 			intersection = intersection.Intersect(set)
 		}
-
-		// TODO: Optimization to return nil early by checking if intersection is empty
 	}
 
 	if intersection == nil {
+		c.Conn().WriteArray(0)
 		return
 	}
 

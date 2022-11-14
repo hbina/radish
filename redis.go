@@ -211,6 +211,7 @@ func createDefault() *Redis {
 		NewCommand("sdiffstore", SdiffstoreCommand),
 		NewCommand("spop", SpopCommand),
 		NewCommand("srandmember", SrandmemberCommand),
+		NewCommand("smove", SmoveCommand),
 	})
 
 	// NOTE: Taken by dumping from `CONFIG GET *`.

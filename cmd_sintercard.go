@@ -21,13 +21,13 @@ func SintercardCommand(c *Client, args [][]byte) {
 	numberOfKeys64, err := strconv.ParseInt(string(args[1]), 10, 32)
 
 	if err != nil {
-		c.Conn().WriteError(InvalidIntErr)
+		c.Conn().WriteError("ERR numkeys should be greater than 0")
 		return
 	}
 
 	numberOfKeys := int(numberOfKeys64)
 
-	if numberOfKeys < 0 {
+	if numberOfKeys <= 0 {
 		c.Conn().WriteError("ERR numkeys should be greater than 0")
 		return
 	}
@@ -61,7 +61,7 @@ func SintercardCommand(c *Client, args [][]byte) {
 		limitValue64, err := strconv.ParseInt(string(args[len(args)-1]), 10, 32)
 
 		if strings.ToLower(limitOption) != "limit" || err != nil || limitValue64 < 0 {
-			c.Conn().WriteError(SyntaxErr)
+			c.Conn().WriteError("ERR LIMIT can't be negative")
 			return
 		}
 
@@ -70,17 +70,16 @@ func SintercardCommand(c *Client, args [][]byte) {
 
 	db := c.Db()
 
-	intersection := NewSetEmpty()
+	var intersection *Set = nil
 
 	// TODO: Is it possible to optimize using the fact that we know what the
 	// upper bound is?
-	for i, key := range keys {
+	for _, key := range keys {
 		maybeSet, _ := db.GetOrExpire(key, true)
 
 		// If any of the sets are nil, then the intersections must be 0
 		if maybeSet == nil {
-			c.Conn().WriteInt(0)
-			return
+			maybeSet = NewSetEmpty()
 		} else if maybeSet.Type() != ValueTypeSet {
 			c.Conn().WriteError(WrongTypeErr)
 			return
@@ -88,16 +87,15 @@ func SintercardCommand(c *Client, args [][]byte) {
 
 		set := maybeSet.(*Set)
 
-		if i == 0 {
+		if intersection == nil {
 			intersection = set
 		} else {
 			intersection = intersection.Intersect(set)
 		}
-
-		// TODO: Optimization to return nil early by checking if intersection is empty
 	}
 
 	if intersection == nil {
+		c.Conn().WriteInt(0)
 		return
 	}
 

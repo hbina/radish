@@ -16,14 +16,18 @@ func (s *String) Value() interface{} {
 	return s.inner
 }
 
-func (l String) Type() uint64 {
+func (l *String) Type() uint64 {
 	return ValueTypeString
 }
 
-func (l String) TypeFancy() string {
+func (l *String) TypeFancy() string {
 	return ValueTypeFancyString
 }
 
-func (s String) OnDelete(key string, db RedisDb) {
+func (s *String) OnDelete(key string, db RedisDb) {
 	log.Printf("Deleting %s with key %s from database ID %d\n", s.TypeFancy(), key, db.id)
+}
+
+func (s *String) Len() int {
+	return len(s.inner)
 }

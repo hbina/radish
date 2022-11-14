@@ -100,6 +100,39 @@ func (db *RedisDb) Id() DatabaseId {
 
 // Sets a key with an item which can have an expiration time.
 func (db *RedisDb) Set(key string, i Item, expiry time.Time) Item {
+	// Empty item is considered a delete operation because
+	// operations on non-existent key is equivalent to zeroth of that
+	// object type.
+	if i.Type() == ValueTypeString {
+		str := i.(*String)
+
+		if str.Len() == 0 {
+			db.Delete(key)
+			return nil
+		}
+	} else if i.Type() == ValueTypeList {
+		list := i.(*List)
+
+		if list.LLen() == 0 {
+			db.Delete(key)
+			return nil
+		}
+	} else if i.Type() == ValueTypeSet {
+		set := i.(*Set)
+
+		if set.Len() == 0 {
+			db.Delete(key)
+			return nil
+		}
+	} else if i.Type() == ValueTypeZSet {
+		str := i.(*ZSet)
+
+		if str.Len() == 0 {
+			db.Delete(key)
+			return nil
+		}
+	}
+
 	old := db.storage[key]
 	db.storage[key] = i
 	if !time.Time.IsZero(expiry) {

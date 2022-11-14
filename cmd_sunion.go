@@ -38,8 +38,6 @@ func SunionCommand(c *Client, args [][]byte) {
 
 		set := maybeSet.(*Set)
 		union = union.Union(set)
-
-		// TODO: Optimization to return nil early by checking if intersection is empty
 	}
 
 	c.Conn().WriteArray(union.Len())

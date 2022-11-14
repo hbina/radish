@@ -2,6 +2,7 @@ package redis
 
 import (
 	"fmt"
+	"math/rand"
 	"strconv"
 )
 
@@ -17,7 +18,8 @@ func SrandmemberCommand(c *Client, args [][]byte) {
 	}
 
 	key := string(args[1])
-	var count *int = nil
+	useCount := false
+	count := 0
 
 	if len(args) == 3 {
 		count64, err := strconv.ParseInt(string(args[2]), 10, 32)
@@ -26,8 +28,8 @@ func SrandmemberCommand(c *Client, args [][]byte) {
 			c.Conn().WriteError(InvalidIntErr)
 		}
 
-		count32 := int(count64)
-		count = &count32
+		useCount = true
+		count = int(count64)
 	}
 
 	db := c.Db()
@@ -36,7 +38,7 @@ func SrandmemberCommand(c *Client, args [][]byte) {
 
 	// If any of the sets are nil, then the intersections must be 0
 	if maybeSet == nil {
-		c.Conn().WriteNull()
+		c.Conn().WriteArray(0)
 		return
 	} else if maybeSet.Type() != ValueTypeSet {
 		c.Conn().WriteError(WrongTypeErr)
@@ -45,31 +47,57 @@ func SrandmemberCommand(c *Client, args [][]byte) {
 
 	set := maybeSet.(*Set)
 
-	// TODO: If count larger than set, then just delete set
-	if count != nil {
-		removed := make([]string, 0)
-
-		if *count < 0 {
-			for i := 0; i < -*count; i++ {
-				member := set.GetRandomMember()
-
-				if member != nil {
-					removed = append(removed, *member)
-				}
-			}
-		} else {
-			size := 0
-
-			set.ForEachF(func(a string) {
-				if size < *count {
-					removed = append(removed, a)
-				}
-				size++
-			})
+	if useCount {
+		if count > set.Len() {
+			count = set.Len()
 		}
 
-		c.Conn().WriteArray(len(removed))
-		for _, k := range removed {
+		result := make([]string, 0)
+
+		members := set.GetMembers()
+		if count < 0 {
+			// If negative, we just append freely to the result.
+			// However, we need to check if the set is zero because
+			// rand.Intn is inclusive on the LHS.
+			for i := 0; i < -count && set.Len() > 0; i++ {
+				randomIdx := rand.Intn(len(members))
+				member := members[randomIdx]
+				result = append(result, member)
+			}
+		} else {
+			set2 := make(map[string]struct{}, count)
+
+			// Try to fairly choose members
+			for i := 0; i < (count)*10; i++ {
+				randomIdx := rand.Intn(len(members))
+				member := members[randomIdx]
+				set2[member] = struct{}{}
+
+				if len(set2) == count {
+					break
+				}
+			}
+
+			// If we failed to fill up the result then
+			// we just loop over the set.
+			// Go says that iterating over map is semi-random
+			// This check will always be enough to fill up result because
+			// we already truncated count to be at most as big as set
+			for k := range set.inner {
+				if len(set2) == count {
+					break
+				}
+				set2[k] = struct{}{}
+			}
+
+			// Finally, map set to result
+			for k := range set2 {
+				result = append(result, k)
+			}
+		}
+
+		c.Conn().WriteArray(len(result))
+		for _, k := range result {
 			c.Conn().WriteBulkString(k)
 		}
 	} else {

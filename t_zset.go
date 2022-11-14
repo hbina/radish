@@ -35,3 +35,7 @@ func (l ZSet) TypeFancy() string {
 func (s ZSet) OnDelete(key string, db RedisDb) {
 	log.Printf("Deleting %s with key %s from database ID %d\n", s.TypeFancy(), key, db.id)
 }
+
+func (s ZSet) Len() int {
+	return s.inner.GetCount()
+}

@@ -2,7 +2,6 @@ package redis
 
 import (
 	"fmt"
-	"os"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -12,7 +11,7 @@ import (
 )
 
 var dbId int64 = 0
-var port string = fmt.Sprintf("localhost:%s", os.Getenv("PORT"))
+var port string = fmt.Sprintf("localhost:%s", "6380")
 
 func CreateTestClient() *redis.Client {
 	c := redis.NewClient(&redis.Options{
@@ -134,4 +133,49 @@ func TestZaddCommand(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, int64(2), s)
 	}
+}
+
+// Tests taken from "SRANDMEMBER with <count> - $type"
+// in unit/types/set.tcl from redis
+func TestSrandMember(t *testing.T) {
+	c := CreateTestClient()
+
+	for i := 0; i < 50; i++ {
+		s, err := c.SAdd("testsrandmember", fmt.Sprint(i)).Result()
+		assert.NoError(t, err)
+		assert.True(t, s > 0)
+	}
+
+	var sizes = []int{5, 45}
+
+	for _, size := range sizes {
+		_, err := c.Del("testrandmember2").Result()
+		assert.NoError(t, err)
+
+		// Iterate many times to increase probability of succeeding
+		for i := 0; i < 1000; i++ {
+			s, err := c.SRandMemberN("testsrandmember", int64(size)).Result()
+			assert.NoError(t, err)
+
+			for _, v := range s {
+				_, err := c.SAdd("testsrandmember2", v).Result()
+				assert.NoError(t, err)
+			}
+
+			c1, err := c.SCard("testsrandmember").Result()
+			assert.NoError(t, err)
+			c2, err := c.SCard("testsrandmember2").Result()
+			assert.NoError(t, err)
+			if c1 == c2 {
+				break
+			}
+		}
+
+		c1, err := c.SCard("testsrandmember").Result()
+		assert.NoError(t, err)
+		c2, err := c.SCard("testsrandmember2").Result()
+		assert.NoError(t, err)
+		assert.Equal(t, c1, c2, fmt.Sprintf("Failed when size = %d", size))
+	}
+
 }

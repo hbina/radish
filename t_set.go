@@ -41,10 +41,12 @@ func (s *Set) AddMember(keys ...string) {
 	}
 }
 
-func (s *Set) RemoveMember(keys ...string) {
-	for _, key := range keys {
-		delete(s.inner, key)
-	}
+// RemoveMember removes the given member from the set.
+// Returns true if the key exists. False otherwise.
+func (s *Set) RemoveMember(key string) bool {
+	_, exists := s.inner[key]
+	delete(s.inner, key)
+	return exists
 }
 
 func (s *Set) GetMembers() []string {
