@@ -220,6 +220,7 @@ func createDefault() *Redis {
 		NewCommand("dbsize", DbSizeCommand),
 		NewCommand("setx", SetXCommand),
 		NewCommand("setnx", SetNxCommand),
+		NewCommand("expire", ExpireCommand),
 	})
 
 	// NOTE: Taken by dumping from `CONFIG GET *`.

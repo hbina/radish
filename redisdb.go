@@ -1,6 +1,7 @@
 package redis
 
 import (
+	"log"
 	"time"
 )
 
@@ -135,10 +136,7 @@ func (db *RedisDb) Set(key string, i Item, expiry time.Time) Item {
 
 	old, exists := db.storage[key]
 	db.storage[key] = i
-
-	if !time.Time.IsZero(expiry) {
-		db.expiringKeys[key] = expiry
-	}
+	db.expiringKeys[key] = expiry // Always overwrite expiring keys
 
 	if exists {
 		return old
@@ -147,9 +145,23 @@ func (db *RedisDb) Set(key string, i Item, expiry time.Time) Item {
 	}
 }
 
-// Returns the item by the key or nil if key does not exists.
+// Get returns the item by the key or nil if key does not exists.
+// TODO: Should this returns the exists bool?
 func (db *RedisDb) Get(key string) Item {
 	return db.storage[key]
+}
+
+// GetExpiry returns the item by the key or nil if key does not exists.
+func (db *RedisDb) GetExpiry(key string) (time.Time, bool) {
+	v, e := db.expiringKeys[key]
+	return v, e
+}
+
+// SetExpiry sets the expiry of a key
+func (db *RedisDb) SetExpiry(key string, ttl time.Time) (time.Time, bool) {
+	old, exists := db.expiringKeys[key]
+	db.expiringKeys[key] = ttl
+	return old, exists
 }
 
 // Deletes a key, returns number of deleted keys.
@@ -175,6 +187,7 @@ func (db *RedisDb) DeleteExpired(keys ...string) int {
 	var c int
 	for _, k := range keys {
 		if db.Expired(k) && db.Delete(k) > 0 {
+			log.Printf("deleting %s", k)
 			c++
 		}
 	}
@@ -182,6 +195,7 @@ func (db *RedisDb) DeleteExpired(keys ...string) int {
 }
 
 // GetOrExpire gets the item or nil if expired or not exists. If 'deleteIfExpired' is true the key will be deleted.
+// TODO: Should this return the exists bool or its enough to return nil?
 func (db *RedisDb) GetOrExpire(key string, deleteIfExpired bool) (Item, time.Time) {
 	value, exists := db.storage[key]
 	if !exists {
@@ -225,7 +239,9 @@ func (db *RedisDb) Expires(key string) bool {
 // Expired only check if a key can and is expired.
 func (db *RedisDb) Expired(key string) bool {
 	ttl, exists := db.Expiry(key)
-	if !exists {
+	// Since we always write ttl in Set, we need to
+	// check if its zero.
+	if !exists || time.Time.IsZero(ttl) {
 		return false
 	}
 	return db.Expires(key) && TimeExpired(ttl)
