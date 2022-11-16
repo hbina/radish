@@ -14,6 +14,7 @@ const (
 	SetExpirePx
 	SetExpireExat
 	SetExpirePxat
+	SetExpirePersist
 )
 
 const (
@@ -64,7 +65,7 @@ func SetCommand(c *Client, args [][]byte) {
 			}
 			i++
 
-			ttl, err := ParseExpiryTime(string(args[i]), uint64(time.Second))
+			ttl, err := ParseTtlFromUnitTime(string(args[i]), int64(time.Second))
 
 			if ttl.IsZero() || err != nil {
 				c.Conn().WriteError(InvalidIntErr)
@@ -87,7 +88,7 @@ func SetCommand(c *Client, args [][]byte) {
 			}
 			i++
 
-			ttl, err := ParseExpiryTime(string(args[i]), uint64(time.Millisecond))
+			ttl, err := ParseTtlFromUnitTime(string(args[i]), int64(time.Millisecond))
 
 			if ttl.IsZero() || err != nil {
 				c.Conn().WriteError(InvalidIntErr)

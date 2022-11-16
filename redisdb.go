@@ -244,7 +244,7 @@ func (db *RedisDb) Expired(key string) bool {
 	if !exists || time.Time.IsZero(ttl) {
 		return false
 	}
-	return db.Expires(key) && TimeExpired(ttl)
+	return db.Expires(key) && time.Now().After(ttl)
 }
 
 // Expiry gets the expiry of the key has one.

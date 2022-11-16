@@ -59,7 +59,7 @@ func ExpireCommand(c *Client, args [][]byte) {
 		}
 	}
 
-	newTtl, err := ParseExpiryTime(seconds, uint64(time.Second))
+	newTtl, err := ParseTtlFromUnitTime(seconds, int64(time.Second))
 
 	if err != nil {
 		c.Conn().WriteError(InvalidIntErr)
