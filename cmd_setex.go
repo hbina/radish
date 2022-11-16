@@ -7,6 +7,7 @@ import (
 
 // https://redis.io/commands/setex/
 // SETEX key seconds value
+// This is equivalent to calling `SET key value EX seconds`
 func SetexCommand(c *Client, args [][]byte) {
 	if len(args) != 4 {
 		c.Conn().WriteError(fmt.Sprintf(WrongNumOfArgsErr, args[0]))
@@ -24,9 +25,9 @@ func SetexCommand(c *Client, args [][]byte) {
 		return
 	}
 
-	// This is currently buggy because genericSetCommand will perform some writes to the connection that we don't want to happen.
-	// We could add a stub connection here but the better solution is for this function to return Result<T, Error>
-	// Oh well...
-	genericSetCommand(c, key, value, time.Time{}, SetWriteMode, false)
-	genericExpireCommand(c, key, newTtl, ExpireMode)
+	db := c.Db()
+
+	db.Set(key, NewString(value), newTtl)
+
+	c.Conn().WriteString("OK")
 }

@@ -66,42 +66,23 @@ func ExpireCommand(c *Client, args [][]byte) {
 		return
 	}
 
-	if genericExpireCommand(c, key, newTtl, mode) {
-		c.Conn().WriteInt(1)
-	} else {
-		c.Conn().WriteInt(0)
-	}
-}
-
-func genericExpireCommand(c *Client, key string, newTtl time.Time, mode int) bool {
 	item, oldTtl := c.Db().GetOrExpire(key, true)
 
 	if item == nil {
-		return false
+		c.Conn().WriteInt(0)
+		return
 	}
 
 	if mode == ExpireNx && time.Time.IsZero(oldTtl) {
-
 		c.Db().SetExpiry(key, newTtl)
-		return true
-
 	} else if mode == ExpireXx && !time.Time.IsZero(oldTtl) {
-
 		c.Db().SetExpiry(key, newTtl)
-		return true
-
 	} else if mode == ExpireGt && newTtl.After(oldTtl) {
-
 		c.Db().SetExpiry(key, newTtl)
-		return true
-
 	} else if mode == ExpireLt && newTtl.Before(oldTtl) {
-
 		c.Db().SetExpiry(key, newTtl)
-		return true
-
 	} else {
-
-		return false
+		c.Db().SetExpiry(key, newTtl)
 	}
+	c.Conn().WriteInt(1)
 }

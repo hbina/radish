@@ -7,6 +7,7 @@ import (
 
 // https://redis.io/commands/setnx/
 // SETNX key value
+// This is equivalent to calling SET key value NX
 func SetNxCommand(c *Client, args [][]byte) {
 	if len(args) == 0 {
 		c.Conn().WriteError("no argument passed to handler. This should not be possible")
@@ -19,5 +20,15 @@ func SetNxCommand(c *Client, args [][]byte) {
 	key := string(args[1])
 	value := string(args[2])
 
-	genericSetCommand(c, key, value, time.Time{}, SetWriteNx, false)
+	db := c.Db()
+	exists := db.Exists(&key)
+
+	if exists {
+		c.Conn().WriteInt(0)
+		return
+	}
+
+	db.Set(key, NewString(value), time.Time{})
+
+	c.Conn().WriteInt(1)
 }

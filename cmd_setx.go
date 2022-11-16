@@ -19,5 +19,15 @@ func SetXCommand(c *Client, args [][]byte) {
 	key := string(args[1])
 	value := string(args[2])
 
-	genericSetCommand(c, key, value, time.Time{}, SetWriteXx, false)
+	db := c.Db()
+	exists := db.Exists(&key)
+
+	if !exists {
+		c.Conn().WriteInt(0)
+		return
+	}
+
+	db.Set(key, NewString(value), time.Time{})
+
+	c.Conn().WriteInt(1)
 }

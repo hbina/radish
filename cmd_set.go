@@ -117,22 +117,11 @@ func SetCommand(c *Client, args [][]byte) {
 		}
 	}
 
-	genericSetCommand(c, key, value, expire, writeMode, shouldGet)
-}
-
-func genericSetCommand(c *Client,
-	key string,
-	value string,
-	expire time.Time,
-	writeMode int,
-	shouldGet bool) {
 	var foundItem Item = nil
 
 	if shouldGet {
 		item, _ := c.Db().GetOrExpire(key, true)
-		if item == nil {
-			// c.Conn().WriteNull()
-		} else {
+		if item != nil {
 			if item.Type() == ValueTypeString {
 				foundItem = item
 			} else {
