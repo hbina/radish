@@ -222,6 +222,7 @@ func createDefault() *Redis {
 		NewCommand("setnx", SetNxCommand),
 		NewCommand("expire", ExpireCommand),
 		NewCommand("setex", SetexCommand),
+		NewCommand("getex", GetexCommand),
 	})
 
 	// NOTE: Taken by dumping from `CONFIG GET *`.
