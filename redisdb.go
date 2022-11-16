@@ -159,9 +159,14 @@ func (db *RedisDb) GetExpiry(key string) (time.Time, bool) {
 
 // SetExpiry sets the expiry of a key
 func (db *RedisDb) SetExpiry(key string, ttl time.Time) (time.Time, bool) {
-	old, exists := db.expiringKeys[key]
-	db.expiringKeys[key] = ttl
-	return old, exists
+	if time.Time.IsZero(ttl) {
+		delete(db.expiringKeys, key)
+		return time.Time{}, false
+	} else {
+		old, exists := db.expiringKeys[key]
+		db.expiringKeys[key] = ttl
+		return old, exists
+	}
 }
 
 // Deletes a key, returns number of deleted keys.
