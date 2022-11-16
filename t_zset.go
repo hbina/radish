@@ -2,21 +2,19 @@ package redis
 
 import (
 	"log"
-
-	"github.com/zavitax/sortedset-go"
 )
 
 var _ Item = (*ZSet)(nil)
 
 type ZSet struct {
-	inner sortedset.SortedSet[string, float64, struct{}]
+	inner SortedSet[string, float64, struct{}]
 }
 
 func NewZSet() *ZSet {
-	return &ZSet{inner: *sortedset.New[string, float64, struct{}]()}
+	return &ZSet{inner: *New[string, float64, struct{}]()}
 }
 
-func NewZSetFromSortedSet(value sortedset.SortedSet[string, float64, struct{}]) *ZSet {
+func NewZSetFromSortedSet(value SortedSet[string, float64, struct{}]) *ZSet {
 	return &ZSet{inner: value}
 }
 

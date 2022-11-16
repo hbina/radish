@@ -6,8 +6,6 @@ import (
 	"log"
 	"strings"
 	"time"
-
-	"github.com/zavitax/sortedset-go"
 )
 
 // https://redis.io/commands/restore/
@@ -83,7 +81,7 @@ func RestoreCommand(c *Client, args [][]byte) {
 
 		db.Set(key, NewSetFromMap(set), ttl)
 	} else if kvp.Type == ValueTypeFancyZSet {
-		set, ok := kvp.Value.(sortedset.SortedSet[string, float64, struct{}])
+		set, ok := kvp.Value.(SortedSet[string, float64, struct{}])
 
 		if !ok {
 			c.Conn().WriteError(fmt.Sprintf(DeserializationErr, string(args[3])))

@@ -5,8 +5,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/zavitax/sortedset-go"
 )
 
 const (
@@ -120,7 +118,7 @@ func ZaddCommand(c *Client, args [][]byte) {
 		return
 	}
 
-	set := maybeSet.Value().(sortedset.SortedSet[string, float64, struct{}])
+	set := maybeSet.Value().(SortedSet[string, float64, struct{}])
 
 	addedCount := 0
 	for i := 2; i < len(args); i += 2 {
