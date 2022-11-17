@@ -229,6 +229,8 @@ func createDefault() *Redis {
 		NewCommand("mset", MsetCommand),
 		NewCommand("msetnx", MsetnxCommand),
 		NewCommand("strlen", StrlenCommand),
+		NewCommand("setbit", SetbitCommand),
+		NewCommand("getbit", GetbitCommand),
 	})
 
 	// NOTE: Taken by dumping from `CONFIG GET *`.
