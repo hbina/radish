@@ -1,35 +1,52 @@
-<p align="center">
-<img
-    src="https://redislabs.com/wp-content/uploads/2018/03/golang-redis.jpg"
-    width="466" height="265" border="0">
-<br>
-</p>
+# Introduction
 
-<p align="center"><b>Becoming a full Redis implementation in Go</b></p>
+Redis implementation in Go.
 
-This project started to see how easy it is to implement a full Redis clone in Go.
-As one of the side effects, imagine you could write redis modules in Go, that would be awesome!
+The aim of this project is to implement Redis in idiomatic-ish Go.
+It will try to be as stupid and simple as possible.
+Optimizations will come later.
+It
 
 # Get involved!
-This project is in *work-in-progress*, so share ideas, code and have fun.
 
-The goal is to have all features and commands like the actual [redis](https://github.com/antirez/redis) written in C have.
-We are searching contributors!
+This project is in _work-in-progress_, so share ideas, code and have fun.
 
+The goal is to have all features and commands like the actual [redis](https://github.com/redis/redis) written in C have.
+I am always open to collaborate!
 
-### Documentation
+# Test
 
-godoc: https://godoc.org/github.com/redis-go/redis
+## Running Go tests
 
-### Running the test
+There are some tests written in Go.
+I aim to make this comprehensive in the future.
 
 ```bash
 $ go run cmd/main.go <PORT>
 $ PORT=<PORT> go test
 ```
 
+## Running Reference Redis' Tests Suite
 
-### Roadmap
+To check agains the reference implementation, you can also run the test from `redis` and point it to this implementation.
+
+Note that there are some tests that are irrevelant to us because it is an implementation details (most tests that uses `OBJECT` command) of the reference `redis`.
+I maintain a [branch](https://github.com/hbina/redis/tree/hbina-retrofitting-tests-for-go-redis) in my fork of `redis` that trims out some of these.
+
+After cloning the `redis` repository,
+
+```
+./runtest --host 127.0.0.1 --port 6380 --tags -needs:repl --ignore-encoding
+```
+
+From this command, we are currently ignoring replication and encoding features.
+
+[Link](https://github.com/redis/redis/blob/203b12e41ff7981f0fae5b23819f072d61594813/tests/README.md) for explanations of some these options.
+
+### Test
+
+# Roadmap
+
 - [x] Client connection / request / respond
 - [x] RESP protocol
 - [x] able to register commands
@@ -38,16 +55,15 @@ $ PORT=<PORT> go test
 - [ ] Implementing data structures
   - [x] String
   - [x] List
-  - [ ] Set
-  - [ ] Sorted Set
+  - [x] Set
+  - [x] Sorted Set
   - [ ] Hash
   - [ ] ...
 - [ ] Tests
-  - [x] For existing commands
-  - [x] For key expirer
-- [ ] Alpha Release
+  - [x] unit/types/set
 
 ### TODO beside Roadmap
+
 - [ ] Persistence
 - [ ] Redis config
   - [ ] Default redis config format
