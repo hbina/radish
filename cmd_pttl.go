@@ -15,7 +15,7 @@ func PttlCommand(c *Client, args [][]byte) {
 	key := string(args[1])
 	db.DeleteExpired(key)
 
-	if !db.Exists(&key) {
+	if !db.Exists(key) {
 		c.Conn().WriteInt(-2)
 		return
 	}

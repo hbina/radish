@@ -224,6 +224,11 @@ func createDefault() *Redis {
 		NewCommand("setex", SetexCommand),
 		NewCommand("getex", GetexCommand),
 		NewCommand("getdel", GetdelCommand),
+		NewCommand("mget", MgetCommand),
+		NewCommand("getset", GetsetCommand),
+		NewCommand("mset", MsetCommand),
+		NewCommand("msetnx", MsetnxCommand),
+		NewCommand("strlen", StrlenCommand),
 	})
 
 	// NOTE: Taken by dumping from `CONFIG GET *`.

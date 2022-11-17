@@ -133,7 +133,7 @@ func SetCommand(c *Client, args [][]byte) {
 	}
 
 	db := c.Db()
-	exists := db.Exists(&key)
+	exists := db.Exists(key)
 
 	if writeMode == SetWriteNx && exists || writeMode == SetWriteXx && !exists {
 		c.Conn().WriteInt(0)

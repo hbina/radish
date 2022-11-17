@@ -20,7 +20,7 @@ func SetXCommand(c *Client, args [][]byte) {
 	value := string(args[2])
 
 	db := c.Db()
-	exists := db.Exists(&key)
+	exists := db.Exists(key)
 
 	if !exists {
 		c.Conn().WriteInt(0)

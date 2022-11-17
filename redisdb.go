@@ -228,14 +228,12 @@ func (db *RedisDb) HasExpiringKeys() bool {
 	return len(db.expiringKeys) != 0
 }
 
-// Check if key exists.
-func (db *RedisDb) Exists(key *string) bool {
-	return db.exists(key)
-}
-
-func (db *RedisDb) exists(key *string) bool {
-	_, ok := db.storage[*key]
-	return ok
+// Exists return whether or not a key exists.
+// Internally, it has the side effect of evicting keys that
+// expires.
+func (db *RedisDb) Exists(key string) bool {
+	maybeItem, _ := db.GetOrExpire(key, true)
+	return maybeItem != nil
 }
 
 // Check if key has an expiry set.
