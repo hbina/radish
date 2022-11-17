@@ -18,7 +18,7 @@ func TtlCommand(c *Client, args [][]byte) {
 
 	item, ttl := db.GetOrExpire(key, true)
 
-	if item != nil {
+	if item == nil {
 		c.Conn().WriteInt(-2)
 		return
 	} else if item != nil && time.Time.IsZero(ttl) {
