@@ -22,7 +22,7 @@ func RestoreCommand(c *Client, args [][]byte) {
 	key := string(args[1])
 	ttl, err := ParseTtlFromUnitTime(string(args[2]), int64(time.Millisecond))
 
-	// Do not fail on time.Time{}
+	// Do not fail on time.Time{}, RESTORE will simply ignore it
 	if err != nil {
 		c.Conn().WriteError(InvalidIntErr)
 		return

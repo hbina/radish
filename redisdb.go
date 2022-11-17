@@ -104,6 +104,7 @@ func (db *RedisDb) Set(key string, i Item, expiry time.Time) Item {
 	// Empty item is considered a delete operation because
 	// operations on non-existent key is equivalent to zeroth of that
 	// object type.
+	// TODO: Should this be behavior of set or the specific commands?
 	if i.Type() == ValueTypeString {
 		str := i.(*String)
 
@@ -171,16 +172,18 @@ func (db *RedisDb) SetExpiry(key string, ttl time.Time) (time.Time, bool) {
 
 // Deletes a key, returns number of deleted keys.
 func (db *RedisDb) Delete(keys ...string) int {
-	do := func(k string) bool {
-		// value.OnDelete(k, *db)
-		delete(db.storage, k)
-		delete(db.expiringKeys, k)
-		return true
-	}
-
 	var c int
 	for _, k := range keys {
-		if do(k) {
+		_, itemExists := db.storage[k]
+		_, ttlExists := db.expiringKeys[k]
+		delete(db.storage, k)
+		delete(db.expiringKeys, k)
+
+		if itemExists != ttlExists {
+			log.Printf("Invariant failure: %t != %t when checking if key exists in storage and expiringKeys", itemExists, ttlExists)
+		}
+
+		if itemExists && ttlExists {
 			c++
 		}
 	}

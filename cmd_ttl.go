@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+// https://redis.io/commands/ttl/
+// TTL key
 func TtlCommand(c *Client, args [][]byte) {
 	if len(args) != 2 {
 		c.Conn().WriteError(fmt.Sprintf(WrongNumOfArgsErr, args[0]))
@@ -13,16 +15,13 @@ func TtlCommand(c *Client, args [][]byte) {
 
 	db := c.Db()
 	key := string(args[1])
-	db.DeleteExpired(key)
 
-	if !db.Exists(&key) {
+	item, ttl := db.GetOrExpire(key, true)
+
+	if item != nil {
 		c.Conn().WriteInt(-2)
 		return
-	}
-
-	ttl, ok := db.Expiry(key)
-
-	if !ok {
+	} else if item != nil && time.Time.IsZero(ttl) {
 		c.Conn().WriteInt(-1)
 		return
 	}
