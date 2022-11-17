@@ -14,7 +14,7 @@ func MsetnxCommand(c *Client, args [][]byte) {
 	} else if len(args)%2 != 1 {
 		// If the number of arguments (excluding the command name) is not even,
 		// return syntax error
-		c.Conn().WriteError(WrongNumOfArgsErr)
+		c.Conn().WriteError(fmt.Sprintf(WrongNumOfArgsErr, string(args[0])))
 		return
 	}
 
