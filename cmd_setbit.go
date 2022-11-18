@@ -58,11 +58,7 @@ func SetbitCommand(c *Client, args [][]byte) {
 		// Please verify!
 
 		if maybeItem == nil {
-			numOfBytes := byteOffset
-			if bitOffset > 0 {
-				numOfBytes += 1
-			}
-			maybeItem = NewString(string(make([]byte, numOfBytes)))
+			maybeItem = NewString(string(make([]byte, byteOffset+1)))
 		}
 
 		mask := byte(0x80 >> byte(bitOffset))

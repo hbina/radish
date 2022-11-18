@@ -118,13 +118,13 @@ func SetCommand(c *Client, args [][]byte) {
 		}
 	}
 
-	var foundItem Item = nil
+	var foundStr *String = nil
 
 	if shouldGet {
 		item, _ := c.Db().GetOrExpire(key, true)
 		if item != nil {
 			if item.Type() == ValueTypeString {
-				foundItem = item
+				foundStr = item.(*String)
 			} else {
 				c.Conn().WriteError(WrongTypeErr)
 				return
@@ -145,12 +145,12 @@ func SetCommand(c *Client, args [][]byte) {
 	if writeMode != SetWriteMode {
 		// If we are not in default write mode, then we must have written something
 		c.Conn().WriteInt(1)
-	} else if shouldGet && foundItem == nil {
+	} else if shouldGet && foundStr == nil {
 		// If we should be getting something but found nothing then return nil
 		c.Conn().WriteNull()
-	} else if shouldGet && foundItem != nil {
+	} else if shouldGet && foundStr != nil {
 		// We found something and we already checked that its a valid string Item
-		c.Conn().WriteBulkString(*foundItem.Value().(*string))
+		c.Conn().WriteBulkString(foundStr.inner)
 	} else {
 		// Otherwise just print OK
 		c.Conn().WriteString("OK")
