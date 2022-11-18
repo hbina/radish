@@ -2,6 +2,7 @@ package redis
 
 import (
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -26,4 +27,11 @@ func ParseTtlFromTimestamp(arg string, multiplier time.Duration) (time.Time, err
 	}
 	unitTime = int64(float64(unitTime) / (float64(time.Millisecond) / float64(multiplier)))
 	return time.UnixMilli(unitTime), nil
+}
+
+func EscapeString(s string) string {
+	s = strings.ReplaceAll(s, "\r", "\\r")
+	s = strings.ReplaceAll(s, "\n", "\\n")
+	s = strings.ReplaceAll(s, "\t", "\\t")
+	return s
 }
