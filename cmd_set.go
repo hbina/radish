@@ -136,23 +136,28 @@ func SetCommand(c *Client, args [][]byte) {
 	exists := db.Exists(key)
 
 	if writeMode == SetWriteNx && exists || writeMode == SetWriteXx && !exists {
-		c.Conn().WriteInt(0)
+		if shouldGet {
+			if foundStr == nil {
+				c.Conn().WriteNull()
+			} else {
+				c.Conn().WriteBulkString(foundStr.inner)
+			}
+		} else {
+			c.Conn().WriteNull()
+		}
 		return
 	}
 
 	db.Set(key, NewString(value), expire)
 
-	if writeMode != SetWriteMode {
-		// If we are not in default write mode, then we must have written something
-		c.Conn().WriteInt(1)
-	} else if shouldGet && foundStr == nil {
-		// If we should be getting something but found nothing then return nil
-		c.Conn().WriteNull()
-	} else if shouldGet && foundStr != nil {
-		// We found something and we already checked that its a valid string Item
-		c.Conn().WriteBulkString(foundStr.inner)
+	if shouldGet {
+		if foundStr == nil {
+			c.Conn().WriteNull()
+		} else {
+			// We already checked that foundStr is a *String
+			c.Conn().WriteBulkString(foundStr.inner)
+		}
 	} else {
-		// Otherwise just print OK
 		c.Conn().WriteString("OK")
 	}
 }
