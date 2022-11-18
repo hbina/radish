@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"runtime"
 )
 
 var (
@@ -68,7 +69,12 @@ func main() {
 		}
 
 		// Remove the last byte which is the newline
-		inputStr = inputStr[:len(inputStr)-1]
+		// TODO: Check for other runtimes?
+		if runtime.GOOS == "windows" {
+			inputStr = inputStr[:len(inputStr)-2]
+		} else {
+			inputStr = inputStr[:len(inputStr)-1]
+		}
 
 		InfoLogger.Println("arg", inputStr)
 
