@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+// https://redis.io/commands/rpush/
+// RPUSH key element [element ...]
 func RPushCommand(c *Client, args [][]byte) {
 	if len(args) == 0 {
 		c.Conn().WriteError("no argument passed to handler. This should not be possible")
@@ -16,23 +18,22 @@ func RPushCommand(c *Client, args [][]byte) {
 
 	key := string(args[1])
 	db := c.Db()
-	item, _ := db.GetOrExpire(key, true)
+	maybeItem, _ := db.GetOrExpire(key, true)
 
-	if item == nil {
-		item = NewList()
-		db.Set(key, item, time.Time{})
-	} else if item.Type() != ValueTypeList {
+	if maybeItem == nil {
+		maybeItem = NewList()
+	} else if maybeItem.Type() != ValueTypeList {
 		c.Conn().WriteError(WrongTypeErr)
 		return
 	}
 
-	list := item.(*List)
+	list := maybeItem.(*List)
 
-	var length int
-	for j := 2; j < len(args); j++ {
-		v := string(args[j])
-		length = list.RPush(v)
+	for i := 2; i < len(args); i++ {
+		list.RPush(string(args[i]))
 	}
 
-	c.Conn().WriteInt(length)
+	db.Set(key, list, time.Time{})
+
+	c.Conn().WriteInt(list.Len())
 }

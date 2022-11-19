@@ -19,24 +19,26 @@ func GetrangeCommand(c *Client, args [][]byte) {
 	db := c.Db()
 
 	// Parse start index
-	start64, err := strconv.ParseInt(startStr, 10, 32)
+	start64, err := strconv.ParseInt(startStr, 10, 64)
 
 	if err != nil {
-		c.Conn().WriteError("ERR bit offset is not an integer or out of range")
+		c.Conn().WriteError("ERR start is not an integer or out of range")
 		return
 	}
 
+	// TODO: this might be buggy in 32-bit computer
 	start := int(start64)
 
 	// Parse end index
-	end64, err := strconv.ParseInt(endStr, 10, 32)
+	end64, err := strconv.ParseInt(endStr, 10, 64)
 
 	if err != nil {
-		c.Conn().WriteError("ERR bit offset is not an integer or out of range")
+		c.Conn().WriteError("ERR end is not an integer or out of range")
 		return
 	}
 
 	// We need to add 1 because its inclusive on both ends
+	// TODO: this might be buggy in 32-bit computer
 	end := int(end64) + 1
 
 	maybeItem, _ := db.GetOrExpire(key, true)

@@ -115,7 +115,7 @@ func (db *RedisDb) Set(key string, i Item, expiry time.Time) Item {
 	} else if i.Type() == ValueTypeList {
 		list := i.(*List)
 
-		if list.LLen() == 0 {
+		if list.Len() == 0 {
 			db.Delete(key)
 			return nil
 		}

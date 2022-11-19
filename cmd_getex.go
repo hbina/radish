@@ -81,7 +81,7 @@ func GetexCommand(c *Client, args [][]byte) {
 				return
 			}
 
-			// We require 1 more argument for PX
+			// We require 1 more argument for EXAT
 			if len(args) == i {
 				c.Conn().WriteError(SyntaxErr)
 				return

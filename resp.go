@@ -44,6 +44,7 @@ func CreateRespReply(in []byte) (string, []byte) {
 			if lenInt64 < 0 {
 				res.WriteString("(nil)")
 			} else {
+				// TODO: Reuse lenInt for optimization purposes?
 				bulkStr, leftover := TakeBytesUntilClrf(in)
 				in = leftover
 

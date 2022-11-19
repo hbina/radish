@@ -39,8 +39,8 @@ func (l List) OnDelete(key string, db RedisDb) {
 	log.Printf("Deleting %s with key %s from database ID %d\n", l.TypeFancy(), key, db.id)
 }
 
-// LLen returns number of elements.
-func (l *List) LLen() int {
+// Len returns number of elements.
+func (l *List) Len() int {
 	return l.inner.Len()
 }
 
@@ -49,7 +49,7 @@ func (l *List) LPush(values ...string) int {
 	for _, v := range values {
 		l.inner.PushFront(v)
 	}
-	return l.LLen()
+	return l.Len()
 }
 
 // RPush returns the length of the list after the push operation.
@@ -57,7 +57,7 @@ func (l *List) RPush(values ...string) int {
 	for _, v := range values {
 		l.inner.PushBack(v)
 	}
-	return l.LLen()
+	return l.Len()
 }
 
 // LInsert see redis doc
@@ -69,7 +69,7 @@ func (l *List) LInsert(isBefore bool, pivot, value string) int {
 			} else {
 				l.inner.InsertAfter(value, e)
 			}
-			return l.LLen()
+			return l.Len()
 		}
 	}
 	return -1
@@ -159,7 +159,7 @@ func (l *List) LIndex(index int) (string, bool) {
 func (l *List) LRange(start int, end int) []string {
 	values := make([]string, 0)
 	// from index to index
-	from, to := startEndIndexes(start, end, l.LLen())
+	from, to := startEndIndexes(start, end, l.Len())
 	if from > to {
 		return values
 	}
@@ -180,7 +180,7 @@ func (l *List) LRange(start int, end int) []string {
 // LTrim see redis docs - returns true if list is now emptied so the key can be deleted.
 func (l *List) LTrim(start int, end int) bool {
 	// from index to index
-	from, to := startEndIndexes(start, end, l.LLen())
+	from, to := startEndIndexes(start, end, l.Len())
 	if from > to {
 		l.inner.Init()
 		return true
@@ -197,8 +197,8 @@ func (l *List) LTrim(start int, end int) bool {
 		}
 	}
 	// trim after
-	if to < l.LLen() {
-		i := l.LLen()
+	if to < l.Len() {
+		i := l.Len()
 		e := l.inner.Back()
 		for e != nil && i > to {
 			del := e

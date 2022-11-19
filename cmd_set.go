@@ -40,7 +40,7 @@ func SetCommand(c *Client, args [][]byte) {
 	key := string(args[1])
 	value := string(args[2])
 
-	var expire time.Time
+	var newTtl time.Time
 	expireMode := SetExpireMode
 	writeMode := SetWriteMode
 	shouldGet := false
@@ -49,9 +49,6 @@ func SetCommand(c *Client, args [][]byte) {
 	for i := 3; i < len(args); i++ {
 		arg := strings.ToLower(string(args[i]))
 		switch arg {
-		default:
-			c.Conn().WriteError(SyntaxErr)
-			return
 		case "ex":
 			if expireMode != SetExpireMode {
 				c.Conn().WriteError(SyntaxErr)
@@ -72,9 +69,8 @@ func SetCommand(c *Client, args [][]byte) {
 				return
 			}
 
-			expire = ttl
+			newTtl = ttl
 			expireMode = SetExpireEx
-			continue
 		case "px":
 			if expireMode != SetExpireMode {
 				c.Conn().WriteError(SyntaxErr)
@@ -95,26 +91,71 @@ func SetCommand(c *Client, args [][]byte) {
 				return
 			}
 
-			expire = ttl
+			newTtl = ttl
 			expireMode = SetExpirePx
-			continue
 		case "nx":
 			if writeMode != SetWriteMode {
 				c.Conn().WriteError(SyntaxErr)
 				return
 			}
+
 			writeMode = SetWriteNx
-			continue
 		case "xx":
 			if writeMode != SetWriteMode {
 				c.Conn().WriteError(SyntaxErr)
 				return
 			}
+
 			writeMode = SetWriteXx
-			continue
 		case "get":
 			shouldGet = true
-			continue
+		case "exat":
+			if expireMode != SetExpireMode {
+				c.Conn().WriteError(SyntaxErr)
+				return
+			}
+
+			// We require 1 more argument for EXAT
+			if len(args) == i {
+				c.Conn().WriteError(SyntaxErr)
+				return
+			}
+			i++
+
+			ttl, err := ParseTtlFromTimestamp(string(args[i]), time.Second)
+
+			if err != nil || ttl.IsZero() {
+				c.Conn().WriteError(InvalidIntErr)
+				return
+			}
+
+			newTtl = ttl
+			expireMode = SetExpireExat
+		case "pxat":
+			if expireMode != SetExpireMode {
+				c.Conn().WriteError(SyntaxErr)
+				return
+			}
+
+			// We require 1 more argument for EXAT
+			if len(args) == i {
+				c.Conn().WriteError(SyntaxErr)
+				return
+			}
+			i++
+
+			ttl, err := ParseTtlFromTimestamp(string(args[i]), time.Millisecond)
+
+			if err != nil || ttl.IsZero() {
+				c.Conn().WriteError(InvalidIntErr)
+				return
+			}
+
+			newTtl = ttl
+			expireMode = SetExpireExat
+		default:
+			c.Conn().WriteError(SyntaxErr)
+			return
 		}
 	}
 
@@ -148,7 +189,7 @@ func SetCommand(c *Client, args [][]byte) {
 		return
 	}
 
-	db.Set(key, NewString(value), expire)
+	db.Set(key, NewString(value), newTtl)
 
 	if shouldGet {
 		if foundStr == nil {
