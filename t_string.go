@@ -31,3 +31,8 @@ func (s *String) OnDelete(key string, db RedisDb) {
 func (s *String) Len() int {
 	return len(s.inner)
 }
+
+func (s *String) Get(idx int) byte {
+	v := s.inner[idx]
+	return v
+}
