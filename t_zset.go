@@ -14,7 +14,7 @@ func NewZSet() *ZSet {
 	return &ZSet{inner: *New[string, float64, struct{}]()}
 }
 
-func NewZSetFromSortedSet(value SortedSet[string, float64, struct{}]) *ZSet {
+func NewZSetFromSs(value SortedSet[string, float64, struct{}]) *ZSet {
 	return &ZSet{inner: value}
 }
 

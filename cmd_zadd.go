@@ -140,7 +140,7 @@ func ZaddCommand(c *Client, args [][]byte) {
 		}
 	}
 
-	c.Db().Set(key, NewZSetFromSortedSet(set), time.Time{})
+	c.Db().Set(key, NewZSetFromSs(set), time.Time{})
 
 	c.Conn().WriteInt(addedCount)
 }

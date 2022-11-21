@@ -37,12 +37,24 @@ func RestoreCommand(c *Client, args [][]byte) {
 		return
 	}
 
+	isRestore := false
+
 	// Parse the rest of options
 	for i := 4; i < len(args); i++ {
 		arg := strings.ToLower(string(args[i]))
 		switch arg {
 		case "replace":
+			isRestore = true
 		case "absttl":
+			newTtl, err := ParseTtlFromTimestamp(string(args[2]), time.Millisecond)
+
+			// Do not fail on time.Time{}, RESTORE will simply ignore it
+			if err != nil {
+				c.Conn().WriteError(InvalidIntErr)
+				return
+			}
+
+			ttl = newTtl
 		case "idletime":
 		case "freq":
 		default:
@@ -52,43 +64,50 @@ func RestoreCommand(c *Client, args [][]byte) {
 	}
 
 	db := c.Db()
+	exists := false
 
-	if kvp.Type == ValueTypeFancyString {
-		str, ok := kvp.Value.(string)
+	if isRestore {
+		exists = db.Exists(key)
+	}
 
-		if !ok {
-			c.Conn().WriteError(fmt.Sprintf(DeserializationErr, string(args[3])))
-			return
+	if !exists {
+		if kvp.Type == ValueTypeFancyString {
+			str, ok := kvp.Value.(string)
+
+			if !ok {
+				c.Conn().WriteError(fmt.Sprintf(DeserializationErr, string(args[3])))
+				return
+			}
+
+			db.Set(key, NewString(str), ttl)
+		} else if kvp.Type == ValueTypeFancyList {
+			arr, ok := kvp.Value.([]string)
+
+			if !ok {
+				c.Conn().WriteError(fmt.Sprintf(DeserializationErr, string(args[3])))
+				return
+			}
+
+			db.Set(key, NewListFromArr(arr), ttl)
+		} else if kvp.Type == ValueTypeFancySet {
+			set, ok := kvp.Value.(map[string]struct{})
+
+			if !ok {
+				c.Conn().WriteError(fmt.Sprintf(DeserializationErr, string(args[3])))
+				return
+			}
+
+			db.Set(key, NewSetFromMap(set), ttl)
+		} else if kvp.Type == ValueTypeFancyZSet {
+			set, ok := kvp.Value.(SortedSet[string, float64, struct{}])
+
+			if !ok {
+				c.Conn().WriteError(fmt.Sprintf(DeserializationErr, string(args[3])))
+				return
+			}
+
+			db.Set(key, NewZSetFromSs(set), ttl)
 		}
-
-		db.Set(key, NewString(str), ttl)
-	} else if kvp.Type == ValueTypeFancyList {
-		arr, ok := kvp.Value.([]string)
-
-		if !ok {
-			c.Conn().WriteError(fmt.Sprintf(DeserializationErr, string(args[3])))
-			return
-		}
-
-		db.Set(key, NewListFromArr(arr), ttl)
-	} else if kvp.Type == ValueTypeFancySet {
-		set, ok := kvp.Value.(map[string]struct{})
-
-		if !ok {
-			c.Conn().WriteError(fmt.Sprintf(DeserializationErr, string(args[3])))
-			return
-		}
-
-		db.Set(key, NewSetFromMap(set), ttl)
-	} else if kvp.Type == ValueTypeFancyZSet {
-		set, ok := kvp.Value.(SortedSet[string, float64, struct{}])
-
-		if !ok {
-			c.Conn().WriteError(fmt.Sprintf(DeserializationErr, string(args[3])))
-			return
-		}
-
-		db.Set(key, NewZSetFromSortedSet(set), ttl)
 	}
 
 	c.Conn().WriteString("OK")
