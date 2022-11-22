@@ -15,7 +15,7 @@ jobs:
 
       - name: Build
         run: |
-          go get .
+          go mod init test
           go mod tidy
           go build -v
 
