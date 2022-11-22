@@ -6,10 +6,7 @@ import (
 
 // https://redis.io/commands/smembers/
 func SmembersCommand(c *Client, args [][]byte) {
-	if len(args) == 0 {
-		c.Conn().WriteError(ZeroArgumentErr)
-		return
-	} else if len(args) != 2 {
+	if len(args) != 2 {
 		c.Conn().WriteError(fmt.Sprintf(WrongNumOfArgsErr, args[0]))
 		return
 	}

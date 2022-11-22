@@ -7,10 +7,7 @@ import (
 // https://redis.io/commands/smove/
 // SMOVE source destination member
 func SmoveCommand(c *Client, args [][]byte) {
-	if len(args) == 0 {
-		c.Conn().WriteError(ZeroArgumentErr)
-		return
-	} else if len(args) != 4 {
+	if len(args) != 4 {
 		c.Conn().WriteError(fmt.Sprintf(WrongNumOfArgsErr, args[0]))
 		return
 	}

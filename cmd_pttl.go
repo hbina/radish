@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// https://redis.io/commands/pttl/
 func PttlCommand(c *Client, args [][]byte) {
 	if len(args) != 2 {
 		c.Conn().WriteError(fmt.Sprintf(WrongNumOfArgsErr, args[0]))

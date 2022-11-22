@@ -1,5 +1,6 @@
 package redis
 
+// https://redis.io/commands/del/
 func DelCommand(c *Client, args [][]byte) {
 	db := c.Db()
 	keys := make([]string, 0, len(args)-1)

@@ -8,10 +8,7 @@ import (
 // https://redis.io/commands/config-get/
 // https://redis.io/commands/config-set/
 func ConfigCommand(c *Client, args [][]byte) {
-	if len(args) == 0 {
-		c.Conn().WriteError("no argument passed to handler. This should not be possible")
-		return
-	} else if len(args) == 1 {
+	if len(args) < 2 {
 		c.Conn().WriteError(fmt.Sprintf(WrongNumOfArgsErr, args[0]))
 		return
 	}

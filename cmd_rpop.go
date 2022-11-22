@@ -4,6 +4,7 @@ import (
 	"fmt"
 )
 
+// https://redis.io/commands/rpop/
 func RPopCommand(c *Client, args [][]byte) {
 	if len(args) < 2 {
 		c.Conn().WriteError(fmt.Sprintf(WrongNumOfArgsErr, "rpop"))
