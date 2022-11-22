@@ -3,4 +3,4 @@
 .vscode
 go.mod
 go.sum
-cmd/__debug_bin
+*/*/__debug_bin
