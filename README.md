@@ -61,6 +61,7 @@ From this command, we are currently ignoring replication and encoding features.
   - [ ] ...
 - [ ] Tests
   - [x] unit/types/set
+  - [x] unit/types/string
 
 ### TODO beside Roadmap
 
