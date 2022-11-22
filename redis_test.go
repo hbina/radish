@@ -63,7 +63,7 @@ func TestDelCommand(t *testing.T) {
 	assert.NoError(t, err)
 
 	i, err = c.Del("abc").Result()
-	assert.Equal(t, i, int64(1))
+	assert.Equal(t, i, int64(0))
 	assert.NoError(t, err)
 }
 
