@@ -3,12 +3,13 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"go-redis"
 	"log"
 	"net"
 	"os"
 	"os/signal"
 	"runtime"
+
+	redis "github.com/hbina/radish"
 )
 
 var (
