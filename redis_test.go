@@ -11,6 +11,7 @@ import (
 )
 
 var dbId int64 = 0
+var server *Redis = Default()
 var port string = fmt.Sprintf("localhost:%s", "6380")
 
 func CreateTestClient() *redis.Client {
@@ -19,6 +20,10 @@ func CreateTestClient() *redis.Client {
 		DB:   int(atomic.AddInt64(&dbId, 1)),
 	})
 	return c
+}
+
+func init() {
+	go server.Run(":6380")
 }
 
 func TestPingCommand(t *testing.T) {
@@ -63,7 +68,7 @@ func TestDelCommand(t *testing.T) {
 	assert.NoError(t, err)
 
 	i, err = c.Del("abc").Result()
-	assert.Equal(t, i, int64(1))
+	assert.Equal(t, i, int64(0))
 	assert.NoError(t, err)
 }
 

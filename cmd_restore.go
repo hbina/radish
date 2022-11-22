@@ -3,7 +3,6 @@ package redis
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 )
@@ -32,7 +31,6 @@ func RestoreCommand(c *Client, args [][]byte) {
 	err = json.Unmarshal(args[3], &kvp)
 
 	if err != nil {
-		log.Println(err)
 		c.Conn().WriteError(fmt.Sprintf(DeserializationErr, string(args[3])))
 		return
 	}
