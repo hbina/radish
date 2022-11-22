@@ -68,10 +68,6 @@ type Item interface {
 	// used when de-/serializing item from/to disk.
 	Type() uint64
 	TypeFancy() string
-
-	// OnDelete is triggered before the key of the item is deleted.
-	// db is the affected database.
-	OnDelete(key string, db RedisDb)
 }
 
 // NewRedisDb creates a new db.
@@ -195,7 +191,6 @@ func (db *RedisDb) DeleteExpired(keys ...string) int {
 	var c int
 	for _, k := range keys {
 		if db.Expired(k) && db.Delete(k) > 0 {
-			log.Printf("deleting %s", k)
 			c++
 		}
 	}
@@ -270,8 +265,7 @@ func (db *RedisDb) ExpiringKeys() ExpiringKeys {
 }
 
 func (db *RedisDb) Clear() {
-	for k, i := range db.storage {
-		i.OnDelete(k, *db)
+	for k, _ := range db.storage {
 		delete(db.storage, k)
 		delete(db.expiringKeys, k)
 	}

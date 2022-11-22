@@ -38,7 +38,6 @@ func LcsCommand(c *Client, args [][]byte) {
 			len64, err := strconv.ParseInt(string(args[i]), 10, 32)
 
 			if err != nil || len64 < 0 {
-				log.Println(err)
 				c.Conn().WriteError(InvalidIntErr)
 				return
 			}
