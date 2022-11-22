@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	redis "go-redis"
 	"log"
 	"os"
+
+	redis "github.com/hbina/radish"
 )
 
 func main() {
