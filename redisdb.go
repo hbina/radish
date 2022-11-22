@@ -265,7 +265,7 @@ func (db *RedisDb) ExpiringKeys() ExpiringKeys {
 }
 
 func (db *RedisDb) Clear() {
-	for k, _ := range db.storage {
+	for k := range db.storage {
 		delete(db.storage, k)
 		delete(db.expiringKeys, k)
 	}
