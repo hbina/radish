@@ -13,9 +13,24 @@ func CreateRespReply(in []byte) (string, error) {
 		return "", fmt.Errorf("CreateRespReply have %d leftovers ", len(leftover))
 	}
 
+	maxDepth := 0
+	for _, sd := range sds {
+		if sd.depth > maxDepth {
+			maxDepth = sd.depth
+		}
+	}
+
+	depthCount := make([]int, maxDepth)
+
 	// Build the strings
 	for _, sd := range sds {
-		fmt.Println(sd.depth, sd.inner)
+		r := ""
+		for i := 0; i < sd.depth; i++ {
+			r += fmt.Sprintf("%d) ", depthCount[i])
+			depthCount[i]++
+		}
+		r += sd.inner
+		fmt.Println(r)
 	}
 
 	return "", nil
@@ -109,7 +124,6 @@ func implCreateRespReply(in []byte, depth int) ([]SD, []byte) {
 				for idx := 0; idx < int(len64) && len(in) != 0; idx++ {
 					replies, leftover := implCreateRespReply(in, depth+1)
 					res = append(res, replies...)
-					fmt.Println("depth", depth, " took ", EscapeString(string(in)), " got ", replies)
 					in = leftover
 				}
 				return res, in

@@ -66,9 +66,11 @@ func TestCreateRespReplyFromRespArray(t *testing.T) {
 	assert.Empty(t, leftover)
 
 	_, leftover = CreateRespReply([]byte("*0\r\n"))
-
 	assert.Empty(t, leftover)
-	_, leftover = CreateRespReply([]byte("*2\r\n$5\r\nhello\r\n$5\r\nworld\r\n"))
 
+	_, leftover = CreateRespReply([]byte("*2\r\n$5\r\nhello\r\n$5\r\nworld\r\n"))
+	assert.Empty(t, leftover)
+
+	_, leftover = CreateRespReply([]byte("*3\r\n$7\r\nmatches\r\n*2\r\n+hello\r\n+world\r\n$6\r\nwhat??\r\n"))
 	assert.Empty(t, leftover)
 }
