@@ -10,10 +10,7 @@ import (
 // https://redis.io/commands/restore/
 // RESTORE key ttl serialized-value [REPLACE] [ABSTTL] [IDLETIME seconds] [FREQ frequency]
 func RestoreCommand(c *Client, args [][]byte) {
-	if len(args) == 0 {
-		c.Conn().WriteError("no argument passed to handler. This should not be possible")
-		return
-	} else if len(args) < 4 {
+	if len(args) < 4 {
 		c.Conn().WriteError(fmt.Sprintf(WrongNumOfArgsErr, args[0]))
 		return
 	}

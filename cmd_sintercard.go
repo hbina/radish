@@ -10,10 +10,7 @@ import (
 // SREM key member [member ...]
 // TODO: Cleanup this mess. It feels like this shouldn't be as complicated as this?
 func SintercardCommand(c *Client, args [][]byte) {
-	if len(args) == 0 {
-		c.Conn().WriteError(ZeroArgumentErr)
-		return
-	} else if len(args) < 3 {
+	if len(args) < 3 {
 		c.Conn().WriteError(fmt.Sprintf(WrongNumOfArgsErr, args[0]))
 		return
 	}

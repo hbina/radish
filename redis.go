@@ -134,6 +134,11 @@ func createDefault() *Redis {
 		onClose: func(c *Client, err error) {
 		},
 		handler: func(c *Client, cmd redcon.Command) {
+			if len(cmd.Args) == 0 {
+				c.Conn().WriteError(ZeroArgumentErr)
+				return
+			}
+
 			// TODO: Check that args is not empty
 			// TODO: Remove the first argument from argument to command handlers
 			mu.Lock()

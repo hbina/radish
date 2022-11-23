@@ -19,13 +19,10 @@ const (
 	ZaddExpireXx
 )
 
-// https://redis.io/commands/sadd/
+// https://redis.io/commands/zadd/
 // ZADD key [NX | XX] [GT | LT] [CH] [INCR] score member [score member ...]
 func ZaddCommand(c *Client, args [][]byte) {
-	if len(args) == 0 {
-		c.Conn().WriteError(ZeroArgumentErr)
-		return
-	} else if len(args) < 3 || (len(args)-2)%2 != 0 {
+	if len(args) < 3 || (len(args)-2)%2 != 0 {
 		c.Conn().WriteError(fmt.Sprintf(WrongNumOfArgsErr, args[0]))
 		return
 	}

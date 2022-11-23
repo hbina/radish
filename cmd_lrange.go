@@ -5,9 +5,10 @@ import (
 	"strconv"
 )
 
+// https://redis.io/commands/lrange/
 func LRangeCommand(c *Client, args [][]byte) {
 	if len(args) < 3 {
-		c.Conn().WriteError(fmt.Sprintf(WrongNumOfArgsErr, "lrange"))
+		c.Conn().WriteError(fmt.Sprintf(WrongNumOfArgsErr, args[0]))
 		return
 	}
 

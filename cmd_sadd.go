@@ -7,10 +7,7 @@ import (
 
 // https://redis.io/commands/sadd/
 func SaddCommand(c *Client, args [][]byte) {
-	if len(args) == 0 {
-		c.Conn().WriteError(ZeroArgumentErr)
-		return
-	} else if len(args) < 3 {
+	if len(args) < 3 {
 		c.Conn().WriteError(fmt.Sprintf(WrongNumOfArgsErr, args[0]))
 		return
 	}
