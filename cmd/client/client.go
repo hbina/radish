@@ -8,7 +8,6 @@ import (
 	"net"
 	"os"
 	"os/signal"
-	"runtime"
 )
 
 var (
@@ -70,7 +69,7 @@ func main() {
 
 		// Remove the last byte which is the newline
 		// TODO: Check for other runtimes?
-		if runtime.GOOS == "windows" {
+		if redis.IsWindows() {
 			inputStr = inputStr[:len(inputStr)-2]
 		} else {
 			inputStr = inputStr[:len(inputStr)-1]
@@ -113,10 +112,10 @@ func main() {
 			os.Exit(1)
 		}
 
-		res, leftover := redis.CreateRespReply(respOutput[:readCount])
+		res, err := redis.CreateRespReply(respOutput[:readCount])
 
-		if len(leftover) != 0 {
-			InfoLogger.Println("CreateRespReply have leftover", leftover)
+		if err != nil {
+			InfoLogger.Println("CreateRespReply have leftover", err.Error())
 		}
 
 		fmt.Println(res)

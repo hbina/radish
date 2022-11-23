@@ -1,6 +1,7 @@
 package redis
 
 import (
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -34,4 +35,8 @@ func EscapeString(s string) string {
 	s = strings.ReplaceAll(s, "\n", "\\n")
 	s = strings.ReplaceAll(s, "\t", "\\t")
 	return s
+}
+
+func IsWindows() bool {
+	return runtime.GOOS == "windows"
 }

@@ -6,78 +6,118 @@ import (
 	"strings"
 )
 
-func CreateRespReply(in []byte) (string, []byte) {
-	var res strings.Builder
+func CreateRespReply(in []byte) (string, error) {
+	sds, leftover := implCreateRespReply(in, 0)
 
+	if len(leftover) != 0 {
+		return "", fmt.Errorf("CreateRespReply have %d leftovers ", len(leftover))
+	}
+
+	// Build the strings
+	for _, sd := range sds {
+		fmt.Println(sd.depth, sd.inner)
+	}
+
+	return "", nil
+}
+
+type SD struct {
+	inner string
+	depth int
+}
+
+func getSdErr(depth int) ([]SD, []byte) {
+	return []SD{{
+		inner: "",
+		depth: depth,
+	}}, []byte{}
+}
+
+func getSdFromStr(inner string, depth int) []SD {
+	return []SD{{
+		inner: inner,
+		depth: depth,
+	}}
+}
+
+func implCreateRespReply(in []byte, depth int) ([]SD, []byte) {
 	if len(in) == 0 {
-		return "", []byte{}
+		return getSdErr(depth)
 	} else {
 		currByte := in[0]
 		if currByte == '+' {
+			// Simple strings
 			str, leftover := TakeBytesUntilClrf(in[1:])
 			in = leftover
-			res.WriteString(string(str))
+			res := fmt.Sprintf("\"%s\"", string(str))
+			return getSdFromStr(res, depth), in
 		} else if currByte == '-' {
+			// Error strings
 			str, leftover := TakeBytesUntilClrf(in[1:])
 			in = leftover
-			res.WriteString(string(str))
+			res := fmt.Sprintf("\"%s\"", string(str))
+			return getSdFromStr(res, depth), in
 		} else if currByte == ':' {
+			// Integers
 			str, leftover := TakeBytesUntilClrf(in[1:])
 			in = leftover
 			strInt64, err := strconv.ParseInt(string(str), 10, 32)
 
 			if err != nil {
-				return "", []byte{}
+				return getSdErr(depth)
 			}
 
-			res.WriteString(fmt.Sprint(int(strInt64)))
+			res := fmt.Sprintf("(integer) %d", strInt64)
+			return getSdFromStr(res, depth), in
 		} else if currByte == '$' {
+			// Bulk strings
 			lenStr, leftover := TakeBytesUntilClrf(in[1:])
+			lenInt64, err := strconv.ParseInt(string(lenStr), 10, 32)
 			in = leftover
 
-			lenInt64, err := strconv.ParseInt(string(lenStr), 10, 32)
-
 			if err != nil {
-				return "", []byte{}
+				return getSdErr(depth)
 			}
 
 			if lenInt64 < 0 {
-				res.WriteString("(nil)")
+				return getSdFromStr("(nil)", depth), in
 			} else {
 				// TODO: Reuse lenInt for optimization purposes?
 				bulkStr, leftover := TakeBytesUntilClrf(in)
 				in = leftover
 
-				res.WriteString(string(bulkStr))
+				res := fmt.Sprintf("\"%s\"", string(bulkStr))
+				return getSdFromStr(res, depth), in
 			}
 		} else if currByte == '*' {
+			// Arrays
+			fmt.Println("depth", depth, " from ", EscapeString(string(in)))
 			lenStr, leftover := TakeBytesUntilClrf(in[1:])
+			len64, err := strconv.ParseInt(string(lenStr), 10, 32)
 			in = leftover
 
-			lenInt64, err := strconv.ParseInt(string(lenStr), 10, 32)
-
 			if err != nil {
-				return "", []byte{}
+				return getSdErr(depth)
 			}
 
-			if lenInt64 < 0 {
-				return "", []byte{}
-			} else if lenInt64 == 0 {
-				res.WriteString("(empty)")
+			if len64 < 0 {
+				return getSdErr(depth)
+			} else if len64 == 0 {
+				return getSdFromStr("(empty)", depth), in
 			} else {
-				for idx := 0; idx < int(lenInt64) && len(in) != 0; idx++ {
-					reply, leftover := CreateRespReply(in)
+				res := make([]SD, 0)
+				for idx := 0; idx < int(len64) && len(in) != 0; idx++ {
+					replies, leftover := implCreateRespReply(in, depth+1)
+					res = append(res, replies...)
+					fmt.Println("depth", depth, " took ", EscapeString(string(in)), " got ", replies)
 					in = leftover
-					res.WriteString(fmt.Sprintf("%d) \"%s\"", idx+1, EscapeString(reply)))
-					if idx+1 < int(lenInt64) && len(in) != 0 {
-						res.WriteByte('\n')
-					}
 				}
+				return res, in
 			}
 		}
 	}
 
-	return res.String(), in
+	return getSdErr(depth)
 }
 
 func ParseRespString(in []byte) (string, []byte, bool) {
