@@ -40,3 +40,14 @@ func EscapeString(s string) string {
 func IsWindows() bool {
 	return runtime.GOOS == "windows"
 }
+
+func CollectArgs(args [][]byte) string {
+	result := ""
+	for i, arg := range args {
+		result += string(arg)
+		if i != len(args)-1 {
+			result += " "
+		}
+	}
+	return result
+}

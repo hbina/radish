@@ -1,7 +1,6 @@
 package redis
 
 import (
-	"log"
 	"math"
 	"time"
 )
@@ -62,9 +61,6 @@ func (e *Expirer) cleanupExpiredKeys() {
 		for k := range db.ExpiringKeys() {
 			count += db.DeleteExpired(k)
 		}
-	}
-	if count > 0 {
-		log.Printf("deleted %d keys from last cleanup job\n", count)
 	}
 }
 

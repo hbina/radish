@@ -1,7 +1,6 @@
 package redis
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -63,7 +62,13 @@ func TestDisplayRespReply(t *testing.T) {
 
 func TestCreateRespReplyFromRespArray(t *testing.T) {
 	// Arrays
-	res, leftover := CreateRespReply([]byte("*2\r\n$7\r\nmatches\r\n*2\r\n+hello\r\n+world\r\n"))
-	fmt.Println(res)
+	_, leftover := CreateRespReply([]byte("*2\r\n$7\r\nmatches\r\n*2\r\n+hello\r\n+world\r\n"))
+	assert.Empty(t, leftover)
+
+	_, leftover = CreateRespReply([]byte("*0\r\n"))
+
+	assert.Empty(t, leftover)
+	_, leftover = CreateRespReply([]byte("*2\r\n$5\r\nhello\r\n$5\r\nworld\r\n"))
+
 	assert.Empty(t, leftover)
 }

@@ -1,9 +1,5 @@
 package redis
 
-import (
-	"log"
-)
-
 var _ Item = (*ZSet)(nil)
 
 type ZSet struct {
@@ -28,10 +24,6 @@ func (l ZSet) Type() uint64 {
 
 func (l ZSet) TypeFancy() string {
 	return ValueTypeFancyZSet
-}
-
-func (s ZSet) OnDelete(key string, db RedisDb) {
-	log.Printf("Deleting %s with key %s from database ID %d\n", s.TypeFancy(), key, db.id)
 }
 
 func (s ZSet) Len() int {

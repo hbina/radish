@@ -2,7 +2,6 @@ package redis
 
 import (
 	"fmt"
-	"log"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -123,17 +122,6 @@ func Default() *Redis {
 	return defaultRedis
 }
 
-func collectArgs(args [][]byte) string {
-	result := ""
-	for i, arg := range args {
-		result += string(arg)
-		if i != len(args)-1 {
-			result += " "
-		}
-	}
-	return result
-}
-
 // createDefault creates a new default redis.
 func createDefault() *Redis {
 	// initialize default redis server
@@ -150,7 +138,6 @@ func createDefault() *Redis {
 			// TODO: Remove the first argument from argument to command handlers
 			mu.Lock()
 			defer mu.Unlock()
-			log.Println(collectArgs(cmd.Args))
 			cmdl := strings.ToLower(string(cmd.Args[0]))
 			commandHandler := c.Redis().CommandHandlerFn(cmdl)
 			if commandHandler != nil {

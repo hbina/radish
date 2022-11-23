@@ -1,7 +1,6 @@
 package redis
 
 import (
-	"log"
 	"math/rand"
 )
 
@@ -29,10 +28,6 @@ func (l *Set) Type() uint64 {
 
 func (l *Set) TypeFancy() string {
 	return ValueTypeFancySet
-}
-
-func (s *Set) OnDelete(key string, db RedisDb) {
-	log.Printf("Deleting %s with key %s from database ID %d\n", s.TypeFancy(), key, db.id)
 }
 
 func (s *Set) AddMember(keys ...string) {
