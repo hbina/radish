@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"os"
@@ -22,8 +23,6 @@ func main() {
 
 	osArgs := os.Args[:]
 
-	InfoLogger.Println(osArgs)
-
 	// Only positional arguments right now
 	if len(osArgs) < 2 {
 		InfoLogger.Println("Please provide the port")
@@ -31,7 +30,6 @@ func main() {
 	}
 
 	port := osArgs[1]
-	// strEcho := "*1\r\n$4\r\nPING\r\n"
 	servAddr := fmt.Sprintf("localhost:%s", port)
 	tcpAddr, err := net.ResolveTCPAddr("tcp", servAddr)
 
@@ -77,23 +75,17 @@ func main() {
 			inputStr = inputStr[:len(inputStr)-1]
 		}
 
-		InfoLogger.Println("arg", inputStr)
-
 		if len(inputStr) == 0 {
 			continue
 		}
 
 		args, valid := redis.SplitStringIntoArgs(inputStr)
 
-		InfoLogger.Println("args", args)
-
 		if !valid || len(args) == 0 {
 			continue
 		}
 
 		respInput := redis.ConvertCommandArgToResp(args)
-
-		InfoLogger.Println("respStr", redis.EscapeString(respInput))
 
 		_, err = tcpConn.Write([]byte(respInput))
 
@@ -102,24 +94,38 @@ func main() {
 			os.Exit(1)
 		}
 
-		respOutput := make([]byte, 1024)
+		response := make([]byte, 0)
+		received := false
 
-		// TODO: Fix this so that it actually reads all the output by looping it until EOF
-		readCount, err := tcpConn.Read(respOutput)
+		for {
+			buffer := make([]byte, 8)
+			readCount, err := tcpConn.Read(buffer)
 
-		InfoLogger.Printf("respOutput '%s'", redis.EscapeString(string(respOutput)))
+			if err != nil {
+				if err != io.EOF {
+					InfoLogger.Println("Read from server failed:", err.Error())
+					os.Exit(1)
+				}
+				break
+			}
 
-		if err != nil {
-			InfoLogger.Println("Write to server failed:", err.Error())
-			os.Exit(1)
+			// TODO: Not entirely sure what to put here...
+			if readCount == 0 {
+				continue
+			} else {
+				received = true
+			}
+
+			buffer = buffer[:readCount]
+
+			response = append(response, buffer...)
+
+			responseDisplay, leftover := redis.StringifyRespBytes(response)
+
+			if len(leftover) == 0 && received && responseDisplay != "" {
+				fmt.Println(responseDisplay)
+				break
+			}
 		}
-
-		res, leftover := redis.CreateRespReply(respOutput[:readCount])
-
-		if len(leftover) != 0 {
-			InfoLogger.Println("CreateRespReply have leftover", leftover)
-		}
-
-		fmt.Println(res)
 	}
 }
