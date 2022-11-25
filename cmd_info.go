@@ -1,6 +1,12 @@
 package redis
 
+import "strings"
+
 // https://redis.io/commands/info/
 func InfoCommand(c *Client, args [][]byte) {
-	c.Conn().WriteBulkString("OK")
+	// TODO: For now it only returns stub values
+	var str strings.Builder
+	str.WriteString("redis_version:255.255.255\n")
+	str.WriteString("redis_git_sha1:f36eb5a1")
+	c.Conn().WriteBulkString(str.String())
 }

@@ -8,61 +8,174 @@ import (
 
 func TestTakeBytesUntilClrf(t *testing.T) {
 	{
-		ok := []byte("+OK\r\n")
-		str, leftover := TakeBytesUntilClrf(ok)
-		assert.Equal(t, str, []byte("+OK"))
+		in := []byte("+OK\r\n")
+		str, leftover, ok := TakeBytesUntilClrf(in)
+		assert.True(t, ok)
+		assert.Equal(t, []byte("+OK"), str)
 		assert.Empty(t, leftover)
 	}
 	{
-		ok := []byte("-Error message\r\n")
-		str, leftover := TakeBytesUntilClrf(ok)
-		assert.Equal(t, str, []byte("-Error message"))
+		in := []byte("-Error message\r\n")
+		str, leftover, ok := TakeBytesUntilClrf(in)
+		assert.True(t, ok)
+		assert.Equal(t, []byte("-Error message"), str)
+		assert.Empty(t, leftover)
+	}
+	{
+		in := []byte("\r\n")
+		str, leftover, ok := TakeBytesUntilClrf(in)
+		assert.True(t, ok)
+		assert.Equal(t, []byte(""), str)
+		assert.Empty(t, leftover)
+	}
+	{
+		in := []byte("\n")
+		str, leftover, ok := TakeBytesUntilClrf(in)
+		assert.False(t, ok)
+		assert.Equal(t, []byte("\n"), str)
+		assert.Empty(t, leftover)
+	}
+	{
+		in := []byte("\r")
+		str, leftover, ok := TakeBytesUntilClrf(in)
+		assert.False(t, ok)
+		assert.Equal(t, []byte("\r"), str)
+		assert.Empty(t, leftover)
+	}
+	{
+		in := []byte("-Error message\n")
+		str, leftover, ok := TakeBytesUntilClrf(in)
+		assert.False(t, ok)
+		assert.Equal(t, []byte("-Error message\n"), str)
 		assert.Empty(t, leftover)
 	}
 }
 
-func TestDisplayRespReply(t *testing.T) {
-	// Simple strings
-	res, leftover := CreateRespReply([]byte("+OK\r\n"))
-	assert.Equal(t, "OK", res)
+func TestStringifyGoodRespString(t *testing.T) {
+	res, leftover := StringifyRespBytes([]byte("+OK\r\n"))
+	assert.Equal(t, "\"OK\"", res)
 	assert.Empty(t, leftover)
+}
 
-	// Errors
+func TestStringifyBadRespString(t *testing.T) {
+	res, leftover := StringifyRespBytes([]byte("+OK\n"))
+	assert.Empty(t, res)
+	assert.Equal(t, []byte("+OK\n"), leftover)
+}
 
-	res, leftover = CreateRespReply([]byte("-Error message\r\n"))
-	assert.Equal(t, "Error message", res)
+func TestStringifyGoodRespError(t *testing.T) {
+	res, leftover := StringifyRespBytes([]byte("-Error message\r\n"))
+	assert.Equal(t, "\"Error message\"", res)
 	assert.Empty(t, leftover)
+}
 
+func TestStringifyBadRespError(t *testing.T) {
+	res, leftover := StringifyRespBytes([]byte("-Error message\r"))
+	assert.Empty(t, res)
+	assert.Equal(t, []byte("-Error message\r"), leftover)
+}
+
+func TestStringifyGoodRespInteger(t *testing.T) {
 	// Integers
-	res, leftover = CreateRespReply([]byte(":1\r\n"))
-	assert.Equal(t, "1", res)
+	res, leftover := StringifyRespBytes([]byte(":1\r\n"))
+	assert.Equal(t, "(integer) 1", res)
 	assert.Empty(t, leftover)
-	res, leftover = CreateRespReply([]byte(":-100\r\n"))
-	assert.Equal(t, "-100", res)
+	res, leftover = StringifyRespBytes([]byte(":-100\r\n"))
+	assert.Equal(t, "(integer) -100", res)
 	assert.Empty(t, leftover)
-	res, leftover = CreateRespReply([]byte(":32\r\n"))
-	assert.Equal(t, "32", res)
+	res, leftover = StringifyRespBytes([]byte(":32\r\n"))
+	assert.Equal(t, "(integer) 32", res)
 	assert.Empty(t, leftover)
-	res, leftover = CreateRespReply([]byte(":-0\r\n"))
-	assert.Equal(t, "0", res)
+	res, leftover = StringifyRespBytes([]byte(":-0\r\n"))
+	assert.Equal(t, "(integer) 0", res)
 	assert.Empty(t, leftover)
+}
 
-	// Bulk strings
-	res, leftover = CreateRespReply([]byte("$5\r\nhello\r\n"))
-	assert.Equal(t, "hello", res)
+func TestStringifyBadRespInteger(t *testing.T) {
+	// Integers
+	res, leftover := StringifyRespBytes([]byte(":1ddd\r\n"))
+	assert.Empty(t, res)
+	assert.Equal(t, []byte(":1ddd\r\n"), leftover)
+
+	res, leftover = StringifyRespBytes([]byte(":-1d00\r\n"))
+	assert.Empty(t, res)
+	assert.Equal(t, []byte(":-1d00\r\n"), leftover)
+
+	res, leftover = StringifyRespBytes([]byte(":v32\r\n"))
+	assert.Empty(t, res)
+	assert.Equal(t, []byte(":v32\r\n"), leftover)
+
+	res, leftover = StringifyRespBytes([]byte(":-v0\r\n"))
+	assert.Empty(t, res)
+	assert.Equal(t, []byte(":-v0\r\n"), leftover)
+}
+
+func TestStringifyRespGoodBulkString(t *testing.T) {
+	res, leftover := StringifyRespBytes([]byte("$5\r\nhello\r\n"))
+	assert.Equal(t, "\"hello\"", res)
 	assert.Empty(t, leftover)
-	res, leftover = CreateRespReply([]byte("$0\r\n\r\n"))
-	assert.Equal(t, "", res)
+	res, leftover = StringifyRespBytes([]byte("$0\r\n\r\n"))
+	assert.Equal(t, "\"\"", res)
 	assert.Empty(t, leftover)
-	res, leftover = CreateRespReply([]byte("$-1\r\n"))
+	res, leftover = StringifyRespBytes([]byte("$-1\r\n"))
 	assert.Equal(t, "(nil)", res)
 	assert.Empty(t, leftover)
+}
 
-	// Arrays
-	_, leftover = CreateRespReply([]byte("*0\r\n"))
-	// fmt.Println(res)
+func TestStringifyRespBadBulkString(t *testing.T) {
+	res, leftover := StringifyRespBytes([]byte("$5\r\nlo\r\n"))
+	assert.Empty(t, res)
+	assert.Equal(t, []byte("$5\r\nlo\r\n"), leftover)
+
+	res, leftover = StringifyRespBytes([]byte("$0\r\nddd\r\n"))
+	assert.Empty(t, res)
+	assert.Equal(t, []byte("$0\r\nddd\r\n"), leftover)
+
+	res, leftover = StringifyRespBytes([]byte("$2\r\nddd\r\n"))
+	assert.Empty(t, res)
+	assert.Equal(t, []byte("$2\r\nddd\r\n"), leftover)
+}
+
+func TestStringifyGoodRespArray(t *testing.T) {
+	res, leftover := StringifyRespBytes([]byte("*0\r\n"))
+	assert.Equal(t, "(empty)", res)
 	assert.Empty(t, leftover)
-	_, leftover = CreateRespReply([]byte("*2\r\n$5\r\nhello\r\n$5\r\nworld\r\n"))
-	// fmt.Println(res)
+
+	res, leftover = StringifyRespBytes([]byte("*2\r\n$5\r\nhello\r\n$5\r\nworld\r\n"))
+	assert.Equal(t, "1) \"hello\"\n2) \"world\"", res)
+	assert.Empty(t, leftover)
+
+	res, leftover = StringifyRespBytes([]byte("*2\r\n+hello\r\n*2\r\n+world\r\n+good\r\n"))
+	assert.Equal(t, "1) \"hello\"\n2) 1) \"world\"\n   2) \"good\"", res)
+	assert.Empty(t, leftover)
+
+	res, leftover = StringifyRespBytes([]byte("*3\r\n+a\r\n*2\r\n*2\r\n+b\r\n+c\r\n+d\r\n+e\r\n"))
+	assert.Equal(t, "1) \"a\"\n2) 1) 1) \"b\"\n      2) \"c\"\n   2) \"d\"\n3) \"e\"", res)
+	assert.Empty(t, leftover)
+
+	res, leftover = StringifyRespBytes([]byte("*4\r\n$7\r\nmatches\r\n*4\r\n*2\r\n*2\r\n:3\r\n:4\r\n*2\r\n:12\r\n:13\r\n*2\r\n*2\r\n:2\r\n:2\r\n*2\r\n:8\r\n:8\r\n*2\r\n*2\r\n:1\r\n:1\r\n*2\r\n:4\r\n:4\r\n*2\r\n*2\r\n:0\r\n:0\r\n*2\r\n:0\r\n:0\r\n$3\r\nlen\r\n:5\r\n"))
+	assert.Equal(t, "1) \"matches\"\n2) 1) 1) 1) (integer) 3\n         2) (integer) 4\n      2) 1) (integer) 12\n         2) (integer) 13\n   2) 1) 1) (integer) 2\n         2) (integer) 2\n      2) 1) (integer) 8\n         2) (integer) 8\n   3) 1) 1) (integer) 1\n         2) (integer) 1\n      2) 1) (integer) 4\n         2) (integer) 4\n   4) 1) 1) (integer) 0\n         2) (integer) 0\n      2) 1) (integer) 0\n         2) (integer) 0\n3) \"len\"\n4) (integer) 5", res)
+	assert.Empty(t, leftover)
+}
+
+func TestStringifyBadRespArray(t *testing.T) {
+	res, leftover := StringifyRespBytes([]byte("*3\r\n"))
+	assert.Empty(t, res)
+	assert.Equal(t, []byte("*3\r\n"), leftover)
+
+	res, leftover = StringifyRespBytes([]byte("*2\r\n$5\r\nhlo\r\n$5\r\nworld\r\n"))
+	assert.Empty(t, res)
+	assert.Equal(t, []byte("*2\r\n$5\r\nhlo\r\n$5\r\nworld\r\n"), leftover)
+
+	res, leftover = StringifyRespBytes([]byte("*2\r\n+hello\r\n*2\r\n+world\r\n+good\r\n"))
+	assert.Equal(t, "1) \"hello\"\n2) 1) \"world\"\n   2) \"good\"", res)
+	assert.Empty(t, leftover)
+
+	res, leftover = StringifyRespBytes([]byte("*3\r\n+a\r\n*2\r\n*2\r\n+b\r\n+c\r\n+d\r\n+e\r\n"))
+	assert.Equal(t, "1) \"a\"\n2) 1) 1) \"b\"\n      2) \"c\"\n   2) \"d\"\n3) \"e\"", res)
+	assert.Empty(t, leftover)
+
+	res, leftover = StringifyRespBytes([]byte("*4\r\n$7\r\nmatches\r\n*4\r\n*2\r\n*2\r\n:3\r\n:4\r\n*2\r\n:12\r\n:13\r\n*2\r\n*2\r\n:2\r\n:2\r\n*2\r\n:8\r\n:8\r\n*2\r\n*2\r\n:1\r\n:1\r\n*2\r\n:4\r\n:4\r\n*2\r\n*2\r\n:0\r\n:0\r\n*2\r\n:0\r\n:0\r\n$3\r\nlen\r\n:5\r\n"))
+	assert.Equal(t, "1) \"matches\"\n2) 1) 1) 1) (integer) 3\n         2) (integer) 4\n      2) 1) (integer) 12\n         2) (integer) 13\n   2) 1) 1) (integer) 2\n         2) (integer) 2\n      2) 1) (integer) 8\n         2) (integer) 8\n   3) 1) 1) (integer) 1\n         2) (integer) 1\n      2) 1) (integer) 4\n         2) (integer) 4\n   4) 1) 1) (integer) 0\n         2) (integer) 0\n      2) 1) (integer) 0\n         2) (integer) 0\n3) \"len\"\n4) (integer) 5", res)
 	assert.Empty(t, leftover)
 }
