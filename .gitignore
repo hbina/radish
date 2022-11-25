@@ -1,6 +1,5 @@
 .DS_Store
 .idea
 .vscode
-go.mod
 go.sum
 */*/__debug_bin
