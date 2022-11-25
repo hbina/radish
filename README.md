@@ -67,6 +67,7 @@ Or if you want to only execute a certain test, you can do,
 - [ ] Tests
   - [x] unit/types/set
   - [x] unit/types/string
+  - [x] unit/printver
 
 ### TODO beside Roadmap
 
