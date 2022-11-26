@@ -67,16 +67,25 @@ func main() {
 			continue
 		}
 
-		// Remove the last byte which is the newline
-		// TODO: Check for other runtimes?
-		if runtime.GOOS == "windows" {
-			inputStr = inputStr[:len(inputStr)-2]
-		} else {
-			inputStr = inputStr[:len(inputStr)-1]
-		}
-
 		if len(inputStr) == 0 {
 			continue
+		}
+
+		// Remove the last byte which is the newline
+		// TODO: Check for other runtimes?
+		// TODO: Validate the range here
+		if runtime.GOOS == "windows" {
+			if len(inputStr) <= 2 {
+				continue
+			}
+
+			inputStr = inputStr[:len(inputStr)-2]
+		} else {
+			if len(inputStr) <= 1 {
+				continue
+			}
+
+			inputStr = inputStr[:len(inputStr)-1]
 		}
 
 		args, valid := redis.SplitStringIntoArgs(inputStr)
@@ -94,11 +103,11 @@ func main() {
 			os.Exit(1)
 		}
 
-		response := make([]byte, 0)
+		response := make([]byte, 0, 1024)
 		received := false
 
 		for {
-			buffer := make([]byte, 8)
+			buffer := make([]byte, 1024)
 			readCount, err := tcpConn.Read(buffer)
 
 			if err != nil {

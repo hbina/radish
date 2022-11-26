@@ -270,10 +270,16 @@ func TakeBytesUntilClrf(in []byte) ([]byte, []byte, bool) {
 	}
 }
 
+const (
+	quoteModeNone = iota
+	quoteModeSingle
+	quoteModeDouble
+)
+
 func SplitStringIntoArgs(s string) ([]string, bool) {
 	res := []string{}
 	var currStr strings.Builder
-	inQuote := false
+	inQuote := quoteModeNone
 
 	for idx := 0; idx < len(s); idx++ {
 		currChar := s[idx]
@@ -281,7 +287,7 @@ func SplitStringIntoArgs(s string) ([]string, bool) {
 		if currChar == '\\' {
 			// we are escaping something
 			if hasNext {
-				nextChar := s[idx]
+				nextChar := s[idx+1]
 				currStr.WriteByte(currChar)
 				currStr.WriteByte(currChar)
 				currStr.WriteByte(nextChar)
@@ -290,8 +296,22 @@ func SplitStringIntoArgs(s string) ([]string, bool) {
 				return res, false
 			}
 		} else if currChar == '"' {
-			inQuote = !inQuote
-		} else if currChar == ' ' && !inQuote {
+			if inQuote == quoteModeDouble {
+				inQuote = quoteModeNone
+			} else if inQuote == quoteModeSingle {
+				currStr.WriteByte('"')
+			} else {
+				inQuote = quoteModeDouble
+			}
+		} else if currChar == '\'' {
+			if inQuote == quoteModeSingle {
+				inQuote = quoteModeNone
+			} else if inQuote == quoteModeDouble {
+				currStr.WriteByte('\'')
+			} else {
+				inQuote = quoteModeSingle
+			}
+		} else if currChar == ' ' && inQuote == quoteModeNone {
 			res = append(res, currStr.String())
 			currStr.Reset()
 		} else {
