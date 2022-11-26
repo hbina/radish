@@ -2,6 +2,7 @@ package redis
 
 import (
 	"fmt"
+	"net"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -198,4 +199,29 @@ func TestRestoreCommand(t *testing.T) {
 	s, err = c.Restore("foo", time.Duration(0), s).Result()
 	assert.Equal(t, "BUSYKEY Target key name already exists.", err.Error())
 	assert.Empty(t, s)
+}
+
+func TestBadRespCommand(t *testing.T) {
+	tcpAddr, err := net.ResolveTCPAddr("tcp", "localhost:6380")
+	assert.NoError(t, err)
+
+	tcpConn, err := net.DialTCP("tcp", nil, tcpAddr)
+	assert.NoError(t, err)
+
+	writeCount, err := tcpConn.Write([]byte("*-10\r\n"))
+	assert.NoError(t, err)
+	assert.Equal(t, 6, writeCount)
+
+	c := CreateTestClient()
+
+	s, err := c.Set("foo", "bar", 0).Result()
+	assert.NoError(t, err)
+	assert.Equal(t, "OK", s)
+
+	s, err = c.Get("foo").Result()
+	assert.NoError(t, err)
+	assert.Equal(t, "bar", s)
+
+	err = tcpConn.Close()
+	assert.NoError(t, err)
 }
