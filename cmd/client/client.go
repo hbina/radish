@@ -104,7 +104,6 @@ func main() {
 		}
 
 		response := make([]byte, 0, 1024)
-		received := false
 
 		for {
 			buffer := make([]byte, 1024)
@@ -118,20 +117,14 @@ func main() {
 				break
 			}
 
-			// TODO: Not entirely sure what to put here...
-			if readCount == 0 {
-				continue
-			} else {
-				received = true
-			}
-
 			buffer = buffer[:readCount]
 
 			response = append(response, buffer...)
 
-			responseDisplay, leftover := redis.StringifyRespBytes(response)
+			responseDisplay, ok := redis.StringifyRespBytes(response)
 
-			if len(leftover) == 0 && received && responseDisplay != "" {
+			if ok {
+				fmt.Println(redis.EscapeString(string(response)))
 				fmt.Println(responseDisplay)
 				break
 			}

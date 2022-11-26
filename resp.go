@@ -6,15 +6,32 @@ import (
 	"strings"
 )
 
-func StringifyRespBytes(in []byte) (string, []byte) {
-	res, leftover := convertBytesToRespType(in)
-	return stringifyRespType(res, 0), leftover
+func StringifyRespBytes(in []byte) (string, bool) {
+	resp, leftover := convertBytesToRespType(in)
+
+	if len(leftover) != 0 || resp == nil {
+		return "", false
+	}
+
+	inList := false
+
+	if resp.TypeId() == "array" {
+		inList = true
+	}
+
+	str, ok := stringifyRespType(resp, 0, inList)
+
+	if !ok {
+		return "", false
+	}
+
+	return str, true
 }
 
 type RespType interface {
 	TypeId() string
 	Value() interface{}
-	RequiredWidth() int
+	Width() int
 }
 
 type RespString struct {
@@ -29,7 +46,23 @@ func (rs *RespString) Value() interface{} {
 	return string(rs.inner)
 }
 
-func (rs *RespString) RequiredWidth() int {
+func (rs *RespString) Width() int {
+	return 0
+}
+
+type RespBulkString struct {
+	inner []byte
+}
+
+func (rs *RespBulkString) TypeId() string {
+	return "bulk-string"
+}
+
+func (rs *RespBulkString) Value() interface{} {
+	return string(rs.inner)
+}
+
+func (rs *RespBulkString) Width() int {
 	return 0
 }
 
@@ -45,7 +78,7 @@ func (rs *RespInteger) Value() interface{} {
 	return rs.inner
 }
 
-func (rs *RespInteger) RequiredWidth() int {
+func (rs *RespInteger) Width() int {
 	return 0
 }
 
@@ -60,7 +93,7 @@ func (rs *RespNil) Value() interface{} {
 	return "(nil)"
 }
 
-func (rs *RespNil) RequiredWidth() int {
+func (rs *RespNil) Width() int {
 	return 0
 }
 
@@ -77,7 +110,7 @@ func (rs *RespArray) Value() interface{} {
 }
 
 // TODO: Do we actually need this?
-func (rs *RespArray) RequiredWidth() int {
+func (rs *RespArray) Width() int {
 	ourWidth := 0
 	currLen := len(rs.inner)
 
@@ -89,15 +122,19 @@ func (rs *RespArray) RequiredWidth() int {
 	return ourWidth
 }
 
-func stringifyRespType(res RespType, width int) string {
+func stringifyRespType(res RespType, width int, inList bool) (string, bool) {
 	if res == nil {
-		return ""
+		return "", false
+	} else if res.TypeId() == "bulk-string" || (res.TypeId() == "string" && inList) {
+		// This complicated boolean is here because strings in element of a list is also
+		// double-quoted
+		return fmt.Sprintf("\"%s\"", res.Value().(string)), true
 	} else if res.TypeId() == "string" {
-		return fmt.Sprintf("\"%s\"", res.Value().(string))
+		return res.Value().(string), true
 	} else if res.TypeId() == "integer" {
-		return fmt.Sprintf("(integer) %d", res.Value().(int))
+		return fmt.Sprintf("(integer) %d", res.Value().(int)), true
 	} else if res.TypeId() == "nil" {
-		return res.Value().(string)
+		return res.Value().(string), true
 	} else if res.TypeId() == "array" {
 		var str strings.Builder
 		arr := res.Value().([]RespType)
@@ -112,22 +149,28 @@ func stringifyRespType(res RespType, width int) string {
 		}
 
 		if len(arr) == 0 {
-			return "(empty)"
+			return "(empty)", true
 		} else {
 			for i, v := range arr {
+				s, ok := stringifyRespType(v, res.Width()+width, true)
+
+				if !ok {
+					return "", false
+				}
+
 				if i == 0 {
-					str.WriteString(fmt.Sprintf("%d) %s\n", i+1, stringifyRespType(v, res.RequiredWidth()+width)))
+					str.WriteString(fmt.Sprintf("%d) %s\n", i+1, s))
 				} else if i == len(arr)-1 {
-					str.WriteString(fmt.Sprintf("%s%d) %s", padding.String(), i+1, stringifyRespType(v, res.RequiredWidth()+width)))
+					str.WriteString(fmt.Sprintf("%s%d) %s", padding.String(), i+1, s))
 				} else {
-					str.WriteString(fmt.Sprintf("%s%d) %s\n", padding.String(), i+1, stringifyRespType(v, res.RequiredWidth()+width)))
+					str.WriteString(fmt.Sprintf("%s%d) %s\n", padding.String(), i+1, s))
 				}
 			}
-			return str.String()
+			return str.String(), true
 		}
 	}
 
-	return ""
+	return "", false
 }
 
 func convertBytesToRespType(input []byte) (RespType, []byte) {
@@ -188,7 +231,7 @@ func convertBytesToRespType(input []byte) (RespType, []byte) {
 				} else {
 					if leftover[lenInt64] == '\r' && leftover[lenInt64+1] == '\n' {
 
-						rs := RespString{
+						rs := RespBulkString{
 							inner: leftover[:lenInt64],
 						}
 
