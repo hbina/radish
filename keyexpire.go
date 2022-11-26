@@ -58,9 +58,7 @@ func (e *Expirer) cleanupExpiredKeys() {
 	e.Redis().mu.Lock()
 	defer e.Redis().mu.Unlock()
 	for _, db := range e.Redis().RedisDbs() {
-		for k := range db.ExpiringKeys() {
-			count += db.DeleteExpired(k)
-		}
+		count += db.DeleteExpiredKeys()
 	}
 }
 

@@ -67,16 +67,25 @@ func main() {
 			continue
 		}
 
-		// Remove the last byte which is the newline
-		// TODO: Check for other runtimes?
-		if runtime.GOOS == "windows" {
-			inputStr = inputStr[:len(inputStr)-2]
-		} else {
-			inputStr = inputStr[:len(inputStr)-1]
-		}
-
 		if len(inputStr) == 0 {
 			continue
+		}
+
+		// Remove the last byte which is the newline
+		// TODO: Check for other runtimes?
+		// TODO: Validate the range here
+		if runtime.GOOS == "windows" {
+			if len(inputStr) <= 2 {
+				continue
+			}
+
+			inputStr = inputStr[:len(inputStr)-2]
+		} else {
+			if len(inputStr) <= 1 {
+				continue
+			}
+
+			inputStr = inputStr[:len(inputStr)-1]
 		}
 
 		args, valid := redis.SplitStringIntoArgs(inputStr)
@@ -94,11 +103,10 @@ func main() {
 			os.Exit(1)
 		}
 
-		response := make([]byte, 0)
-		received := false
+		response := make([]byte, 0, 1024)
 
 		for {
-			buffer := make([]byte, 8)
+			buffer := make([]byte, 1024)
 			readCount, err := tcpConn.Read(buffer)
 
 			if err != nil {
@@ -109,20 +117,14 @@ func main() {
 				break
 			}
 
-			// TODO: Not entirely sure what to put here...
-			if readCount == 0 {
-				continue
-			} else {
-				received = true
-			}
-
 			buffer = buffer[:readCount]
 
 			response = append(response, buffer...)
 
-			responseDisplay, leftover := redis.StringifyRespBytes(response)
+			responseDisplay, ok := redis.StringifyRespBytes(response)
 
-			if len(leftover) == 0 && received && responseDisplay != "" {
+			if ok {
+				fmt.Println(redis.EscapeString(string(response)))
 				fmt.Println(responseDisplay)
 				break
 			}
