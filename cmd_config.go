@@ -17,7 +17,7 @@ func ConfigCommand(c *Client, args [][]byte) {
 
 	if strings.ToLower(subcommand) == "get" {
 		if len(args) < 3 {
-			c.Conn().WriteError(fmt.Sprintf("Unknown subcommand or wrong number of arguments for '%s'. Try CONFIG HELP.", string(args[1])))
+			c.Conn().WriteError(fmt.Sprintf(WrongNumOfArgsErr, string(args[0])))
 			return
 		}
 

@@ -23,6 +23,9 @@ func PttlCommand(c *Client, args [][]byte) {
 
 	ttl, ok := db.Expiry(key)
 
+	// This is likely a bug because we always write to TTL.
+	// So this will only fail if the key itself does not exist.
+	// We should instead check if ttl is zero.
 	if !ok {
 		c.Conn().WriteInt(-1)
 		return

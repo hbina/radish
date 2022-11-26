@@ -6,11 +6,6 @@ import (
 )
 
 const (
-	keysMapSize           = 32
-	redisDbMapSizeDefault = 3
-)
-
-const (
 	ValueTypeList = iota
 	ValueTypeString
 	ValueTypeSet
@@ -39,24 +34,19 @@ type RedisDb struct {
 	id DatabaseId
 
 	// All storage in this db.
-	storage KeyValue
+	storage map[string]Item
 
-	// Keys with expire timestamp.
-	expiringKeys ExpiringKeys
+	// TTL of each keys
+	ttl map[string]time.Time
 
-	// TODO long long avg_ttl;          /* Average TTL, just for stats */
+	// TODO: Some statistics about the database that might be useful
+	// when we have eviction policies and stuff like that.
 
 	redis *Redis
 }
 
 // Database id
 type DatabaseId uint64
-
-// Key-Item map
-type KeyValue map[string]Item
-
-// Keys with expire timestamp.
-type ExpiringKeys map[string]time.Time
 
 // The item interface. An item is the value of a key.
 type Item interface {
@@ -73,10 +63,10 @@ type Item interface {
 // NewRedisDb creates a new db.
 func NewRedisDb(id DatabaseId, r *Redis) *RedisDb {
 	return &RedisDb{
-		id:           id,
-		redis:        r,
-		storage:      make(KeyValue, keysMapSize),
-		expiringKeys: make(ExpiringKeys, keysMapSize),
+		id:      id,
+		redis:   r,
+		storage: make(map[string]Item, 0),
+		ttl:     make(map[string]time.Time, 0),
 	}
 }
 
@@ -96,7 +86,7 @@ func (db *RedisDb) Id() DatabaseId {
 }
 
 // Sets a key with an item which can have an expiration time.
-func (db *RedisDb) Set(key string, i Item, expiry time.Time) Item {
+func (db *RedisDb) Set(key string, i Item, ttl time.Time) Item {
 	// Empty item is considered a delete operation because
 	// operations on non-existent key is equivalent to zeroth of that
 	// object type.
@@ -132,8 +122,10 @@ func (db *RedisDb) Set(key string, i Item, expiry time.Time) Item {
 	}
 
 	old, exists := db.storage[key]
+
+	// Insert new value to a key will overwrite everything about it
 	db.storage[key] = i
-	db.expiringKeys[key] = expiry // Always overwrite expiring keys
+	db.ttl[key] = ttl
 
 	if exists {
 		return old
@@ -150,18 +142,18 @@ func (db *RedisDb) Get(key string) Item {
 
 // GetExpiry returns the item by the key or nil if key does not exists.
 func (db *RedisDb) GetExpiry(key string) (time.Time, bool) {
-	v, e := db.expiringKeys[key]
+	v, e := db.ttl[key]
 	return v, e
 }
 
 // SetExpiry sets the expiry of a key
 func (db *RedisDb) SetExpiry(key string, ttl time.Time) (time.Time, bool) {
 	if time.Time.IsZero(ttl) {
-		delete(db.expiringKeys, key)
+		delete(db.ttl, key)
 		return time.Time{}, false
 	} else {
-		old, exists := db.expiringKeys[key]
-		db.expiringKeys[key] = ttl
+		old, exists := db.ttl[key]
+		db.ttl[key] = ttl
 		return old, exists
 	}
 }
@@ -171,9 +163,9 @@ func (db *RedisDb) Delete(keys ...string) int {
 	var c int
 	for _, k := range keys {
 		_, itemExists := db.storage[k]
-		_, ttlExists := db.expiringKeys[k]
+		_, ttlExists := db.ttl[k]
 		delete(db.storage, k)
-		delete(db.expiringKeys, k)
+		delete(db.ttl, k)
 
 		if itemExists != ttlExists {
 			log.Printf("Invariant failure: %t != %t when checking if key exists in storage and expiringKeys", itemExists, ttlExists)
@@ -210,7 +202,7 @@ func (db *RedisDb) GetOrExpire(key string, deleteIfExpired bool) (Item, time.Tim
 		}
 		return nil, time.Time{}
 	}
-	return value, db.expiringKeys[key]
+	return value, db.ttl[key]
 }
 
 // IsEmpty checks if db is empty.
@@ -220,7 +212,7 @@ func (db *RedisDb) IsEmpty() bool {
 
 // HasExpiringKeys checks if db has any expiring keys.
 func (db *RedisDb) HasExpiringKeys() bool {
-	return len(db.expiringKeys) != 0
+	return len(db.ttl) != 0
 }
 
 // Exists return whether or not a key exists.
@@ -233,7 +225,7 @@ func (db *RedisDb) Exists(key string) bool {
 
 // Check if key has an expiry set.
 func (db *RedisDb) Expires(key string) bool {
-	_, ok := db.expiringKeys[key]
+	_, ok := db.ttl[key]
 	return ok
 }
 
@@ -250,24 +242,23 @@ func (db *RedisDb) Expired(key string) bool {
 
 // Expiry gets the expiry of the key has one.
 func (db *RedisDb) Expiry(key string) (time.Time, bool) {
-	val, ok := db.expiringKeys[key]
+	val, ok := db.ttl[key]
 	return val, ok
 }
 
-// Keys gets all keys in this db.
-func (db *RedisDb) Keys() KeyValue {
-	return db.storage
-}
-
-// ExpiringKeys gets keys with an expiry set and their timeout.
-func (db *RedisDb) ExpiringKeys() ExpiringKeys {
-	return db.expiringKeys
+// DeleteExpiredKeys will delete all the keys that have expired TTL.
+func (db *RedisDb) DeleteExpiredKeys() int {
+	count := 0
+	for k := range db.ttl {
+		count += db.DeleteExpired(k)
+	}
+	return count
 }
 
 func (db *RedisDb) Clear() {
 	for k := range db.storage {
 		delete(db.storage, k)
-		delete(db.expiringKeys, k)
+		delete(db.ttl, k)
 	}
 }
 

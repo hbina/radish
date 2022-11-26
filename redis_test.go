@@ -184,3 +184,18 @@ func TestSrandMember(t *testing.T) {
 	}
 
 }
+
+func TestRestoreCommand(t *testing.T) {
+	c := CreateTestClient()
+
+	s, err := c.Set("foo", "bar", time.Duration(0)).Result()
+	assert.NoError(t, err)
+	assert.Equal(t, "OK", s)
+
+	s, err = c.Dump("foo").Result()
+	assert.NoError(t, err)
+
+	s, err = c.Restore("foo", time.Duration(0), s).Result()
+	assert.Equal(t, "BUSYKEY Target key name already exists.", err.Error())
+	assert.Empty(t, s)
+}

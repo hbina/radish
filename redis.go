@@ -156,7 +156,7 @@ func createDefault() *Redis {
 		},
 		commands: make(Commands, 0),
 	}
-	r.redisDbs = make(map[DatabaseId]*RedisDb, redisDbMapSizeDefault)
+	r.redisDbs = make(map[DatabaseId]*RedisDb, 0)
 	r.RedisDb(0) // initializes default db 0
 	r.keyExpirer = KeyExpirer(NewKeyExpirer(r))
 
@@ -230,6 +230,7 @@ func createDefault() *Redis {
 
 	// NOTE: Taken by dumping from `CONFIG GET *`.
 	// Is meaningless for the moment.
+	// TODO: Implement parser for redis.conf and remove this.
 	r.configDb = map[string]string{
 		"rdbchecksum":                     "yes",
 		"daemonize":                       "no",
