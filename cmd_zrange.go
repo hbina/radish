@@ -39,6 +39,7 @@ func ZrangeCommand(c *Client, args [][]byte) {
 	// Parse options
 	sortByLex := false
 	sortByScore := false
+	withScores := false
 	reverse := false
 	offset := 0
 	limit := 0
@@ -102,6 +103,10 @@ func ZrangeCommand(c *Client, args [][]byte) {
 
 				limit = int(newLimit)
 			}
+		case "withscores":
+			{
+				withScores = true
+			}
 		}
 	}
 
@@ -118,12 +123,21 @@ func ZrangeCommand(c *Client, args [][]byte) {
 
 	set := maybeSet.Value().(SortedSet[string, float64, struct{}])
 
-	res := set.GetRangeByRank(start+1, stop, false, false)
+	res := set.GetRangeByIndex(start, stop, reverse, false)
 
-	c.Conn().WriteArray(len(res))
+	if withScores {
+		c.Conn().WriteArray(len(res) * 2)
 
-	for _, ssn := range res {
-		c.Conn().WriteBulkString(ssn.key)
+		for _, ssn := range res {
+			c.Conn().WriteBulkString(ssn.key)
+			c.Conn().WriteBulkString(fmt.Sprint(ssn.score))
+		}
+	} else {
+		c.Conn().WriteArray(len(res))
+
+		for _, ssn := range res {
+			c.Conn().WriteBulkString(ssn.key)
+		}
 	}
 
 	fmt.Println(reverse, offset, limit, set)
