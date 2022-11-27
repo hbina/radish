@@ -13,7 +13,7 @@ import (
 
 var dbId int64 = 0
 var server *Redis = Default()
-var port string = fmt.Sprintf("localhost:%s", "6380")
+var port string = fmt.Sprintf("localhost:%s", "6381")
 
 func CreateTestClient() *redis.Client {
 	c := redis.NewClient(&redis.Options{
@@ -24,7 +24,7 @@ func CreateTestClient() *redis.Client {
 }
 
 func init() {
-	go server.Run(":6380")
+	go server.Run(":6381")
 }
 
 func TestPingCommand(t *testing.T) {
@@ -224,4 +224,52 @@ func TestBadRespCommand(t *testing.T) {
 
 	err = tcpConn.Close()
 	assert.NoError(t, err)
+}
+
+func TestZaddCommad(t *testing.T) {
+
+	// ZADD CH option changes return value to all changed elements
+	{
+		c := CreateTestClient()
+		_, err := c.Del("ztmp").Result()
+		assert.NoError(t, err)
+
+		_, err = c.ZAdd("ztmp", redis.Z{
+			Score:  10,
+			Member: "x",
+		}, redis.Z{
+			Score:  20,
+			Member: "y",
+		}, redis.Z{
+			Score:  30,
+			Member: "z",
+		}).Result()
+		assert.NoError(t, err)
+
+		s, err := c.ZAdd("ztmp", redis.Z{
+			Score:  11,
+			Member: "x",
+		}, redis.Z{
+			Score:  21,
+			Member: "y",
+		}, redis.Z{
+			Score:  30,
+			Member: "z",
+		}).Result()
+		assert.NoError(t, err)
+		assert.Equal(t, int64(0), s)
+
+		s, err = c.ZAddCh("ztmp", redis.Z{
+			Score:  12,
+			Member: "x",
+		}, redis.Z{
+			Score:  22,
+			Member: "y",
+		}, redis.Z{
+			Score:  30,
+			Member: "z",
+		}).Result()
+		assert.NoError(t, err)
+		assert.Equal(t, int64(2), s)
+	}
 }
