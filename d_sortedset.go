@@ -149,6 +149,7 @@ func (ss *SortedSet[K, S, V]) insertNode(score S, key K, value V) *SortedSetNode
 
 	// Update span and forward metadata of current nodes and nodes to be updated
 	for i := 0; i < level; i++ {
+		// Rewire the pointers around
 		x.level[i].forward = update[i].level[i].forward
 		update[i].level[i].forward = x
 
@@ -447,14 +448,15 @@ func (ss *SortedSet[K, S, V]) GetRangeByScore(start S, end S, options *GetByScor
 	return nodes
 }
 
-// sanitizeIndexes return start, end, and reverse flag
-func (ss *SortedSet[K, S, V]) sanitizeIndexes(start int, end int) (int, int, bool) {
+// RecalibrateRank returns the calibrated start and end rank.
+func (ss *SortedSet[K, S, V]) RecalibrateRank(start int, end int, reverse bool) (int, int) {
 	if start < 0 {
 		start = ss.length + start + 1
 	}
 	if end < 0 {
 		end = ss.length + end + 1
 	}
+
 	if start <= 0 {
 		start = 1
 	}
@@ -462,14 +464,22 @@ func (ss *SortedSet[K, S, V]) sanitizeIndexes(start int, end int) (int, int, boo
 		end = 1
 	}
 
-	reverse := start > end
-	if reverse { // swap start and end
-		start, end = end, start
+	if start > ss.Len() {
+		start = ss.Len()
 	}
-	return start, end, reverse
+
+	if end > ss.Len() {
+		end = ss.Len()
+	}
+
+	if reverse {
+		start, end = ss.Len()-end+1, ss.Len()-start+1
+	}
+	return start, end
 }
 
-// If remove is true, the returned nodes are removed
+// findNodeByIter returns the node at the given rank (which is 1-based index).
+// Can also remove the node is asked.
 //
 // Time complexity: O(log(N)) with high probability
 func (ss *SortedSet[K, S, V]) findNodeByRank(start int, remove bool) (traversed int, x *SortedSetNode[K, S, V], update [SKIPLIST_MAXLEVEL]*SortedSetNode[K, S, V]) {
@@ -491,15 +501,19 @@ func (ss *SortedSet[K, S, V]) findNodeByRank(start int, remove bool) (traversed 
 	return
 }
 
-// Get nodes within specific rank range [start, end].
+// GetRangeByRank returns array of nodes within specific rank range [start, end].
 // Note that the rank is 1-based index.
 //
 // If start is greater than end, the returned array is in reserved order.
 // If remove is true, the returned nodes are removed
 //
 // Time complexity: O(log(N)) with high probability
-func (ss *SortedSet[K, S, V]) GetRangeByRank(start int, end int, remove bool) []*SortedSetNode[K, S, V] {
-	start, end, reverse := ss.sanitizeIndexes(start, end)
+func (ss *SortedSet[K, S, V]) GetRangeByRank(start int, end int, reverse bool, remove bool) []*SortedSetNode[K, S, V] {
+	start, end = ss.RecalibrateRank(start, end, reverse)
+
+	if start > end {
+		return []*SortedSetNode[K, S, V]{}
+	}
 
 	var nodes []*SortedSetNode[K, S, V]
 
@@ -537,7 +551,7 @@ func (ss *SortedSet[K, S, V]) GetRangeByRank(start int, end int, remove bool) []
 //
 // Time complexity: O(log(N))
 func (ss *SortedSet[K, S, V]) GetByRank(rank int, remove bool) *SortedSetNode[K, S, V] {
-	nodes := ss.GetRangeByRank(rank, rank, remove)
+	nodes := ss.GetRangeByRank(rank, rank, false, remove)
 	if len(nodes) == 1 {
 		return nodes[0]
 	}
@@ -586,12 +600,12 @@ func (ss *SortedSet[K, S, V]) FindRankOfKey(key K) int {
 // Note that the rank is 1-based integer. Rank 1 means the first node; Rank -1 means the last node;
 // If start is greater than end, apply fn in reserved order
 // If fn is nil, ss function return without doing anything
-func (ss *SortedSet[K, S, V]) IterRangeByRank(start int, end int, fn func(key K, value V) bool) {
+func (ss *SortedSet[K, S, V]) IterRangeByRank(start int, end int, reverse bool, fn func(key K, value V) bool) {
 	if fn == nil {
 		return
 	}
 
-	start, end, reverse := ss.sanitizeIndexes(start, end)
+	start, end = ss.RecalibrateRank(start, end, reverse)
 	traversed, x, _ := ss.findNodeByRank(start, false)
 	var nodes []*SortedSetNode[K, S, V]
 

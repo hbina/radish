@@ -22,9 +22,9 @@ func checkIterByRankRange(t *testing.T, ss *SortedSet[string, int64, string], st
 	var keys []string
 
 	// check nil callback should do nothing
-	ss.IterRangeByRank(start, end, nil)
+	ss.IterRangeByRank(start, end, false, nil)
 
-	ss.IterRangeByRank(start, end, func(key string, _ string) bool {
+	ss.IterRangeByRank(start, end, false, func(key string, _ string) bool {
 		keys = append(keys, key)
 		return true
 	})
@@ -44,7 +44,7 @@ func checkIterByRankRange(t *testing.T, ss *SortedSet[string, int64, string], st
 	// reset data
 	keys = []string{}
 	var i int
-	ss.IterRangeByRank(start, end, func(key string, _ string) bool {
+	ss.IterRangeByRank(start, end, false, func(key string, _ string) bool {
 		keys = append(keys, key)
 		i++
 		// return early
@@ -63,7 +63,7 @@ func checkIterByRankRange(t *testing.T, ss *SortedSet[string, int64, string], st
 
 func checkRankRangeIterAndOrder(t *testing.T, sortedset *SortedSet[string, int64, string], start int, end int, remove bool, expectedOrder []string) {
 	checkIterByRankRange(t, sortedset, start, end, expectedOrder)
-	nodes := sortedset.GetRangeByRank(start, end, remove)
+	nodes := sortedset.GetRangeByRank(start, end, false, remove)
 	checkOrder(t, nodes, expectedOrder)
 }
 
@@ -224,11 +224,58 @@ func TestSortedSet(t *testing.T) {
 
 	assert.Equal(t, 7, ss.Len())
 
-	rn := ss.GetRangeByRank(4, 4, true)
+	rn := ss.GetRangeByRank(4, 4, false, true)
 	assert.Equal(t, 1, len(rn))
 
 	r := rn[0]
 	assert.Equal(t, "d", r.key)
 	assert.Equal(t, 4, r.score)
 	assert.Equal(t, struct{}{}, r.value)
+}
+
+func TestRecalibrateIndex(t *testing.T) {
+	ss := NewSortedSet[string, int, struct{}]()
+
+	ss.AddOrUpdate("a", 1, struct{}{})
+	ss.AddOrUpdate("b", 2, struct{}{})
+	ss.AddOrUpdate("c", 3, struct{}{})
+	ss.AddOrUpdate("d", 4, struct{}{})
+	ss.AddOrUpdate("e", 5, struct{}{})
+	ss.AddOrUpdate("f", 6, struct{}{})
+	ss.AddOrUpdate("g", 7, struct{}{})
+
+	start, end := ss.RecalibrateRank(1, 7, false)
+	assert.Equal(t, 1, start)
+	assert.Equal(t, 7, end)
+	start, end = ss.RecalibrateRank(1, 7, true)
+	assert.Equal(t, 1, start)
+	assert.Equal(t, 7, end)
+
+	start, end = ss.RecalibrateRank(1, 3, false)
+	assert.Equal(t, 1, start)
+	assert.Equal(t, 3, end)
+	start, end = ss.RecalibrateRank(1, 3, true)
+	assert.Equal(t, 5, start)
+	assert.Equal(t, 7, end)
+
+	start, end = ss.RecalibrateRank(2, 5, false)
+	assert.Equal(t, 2, start)
+	assert.Equal(t, 5, end)
+	start, end = ss.RecalibrateRank(2, 5, true)
+	assert.Equal(t, 3, start)
+	assert.Equal(t, 6, end)
+
+	start, end = ss.RecalibrateRank(-3, -1, false)
+	assert.Equal(t, 5, start)
+	assert.Equal(t, 7, end)
+	start, end = ss.RecalibrateRank(-3, -1, true)
+	assert.Equal(t, 1, start)
+	assert.Equal(t, 3, end)
+
+	start, end = ss.RecalibrateRank(4, 3, false)
+	assert.Equal(t, 4, start)
+	assert.Equal(t, 3, end)
+	start, end = ss.RecalibrateRank(4, 3, true)
+	assert.Equal(t, 5, start)
+	assert.Equal(t, 4, end)
 }

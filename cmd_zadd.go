@@ -2,6 +2,7 @@ package redis
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -14,15 +15,15 @@ const (
 )
 
 const (
-	ZaddExpireMode = iota
-	ZaddExpireNx
-	ZaddExpireXx
+	ZaddInsertMode = iota
+	ZaddInsertNx
+	ZaddInsertXx
 )
 
 // https://redis.io/commands/zadd/
 // ZADD key [NX | XX] [GT | LT] [CH] [INCR] score member [score member ...]
 func ZaddCommand(c *Client, args [][]byte) {
-	if len(args) < 3 || (len(args)-2)%2 != 0 {
+	if len(args) < 4 {
 		c.Conn().WriteError(fmt.Sprintf(WrongNumOfArgsErr, args[0]))
 		return
 	}
@@ -32,7 +33,7 @@ func ZaddCommand(c *Client, args [][]byte) {
 	// Parse options
 	optionCount := 0
 	compareMode := ZaddCompareMode
-	expireMode := ZaddExpireMode
+	insertMode := ZaddInsertMode
 	chEnabled := false
 	incrEnabled := false
 
@@ -42,20 +43,20 @@ func ZaddCommand(c *Client, args [][]byte) {
 		switch arg {
 		case "xx":
 			{
-				if expireMode != ZaddExpireMode {
+				if insertMode != ZaddInsertMode {
 					c.Conn().WriteError(SyntaxErr)
 					return
 				}
-				expireMode = ZaddExpireXx
+				insertMode = ZaddInsertXx
 				optionCount++
 			}
 		case "nx":
 			{
-				if expireMode != ZaddExpireMode {
+				if insertMode != ZaddInsertMode {
 					c.Conn().WriteError(SyntaxErr)
 					return
 				}
-				expireMode = ZaddExpireNx
+				insertMode = ZaddInsertNx
 				optionCount++
 			}
 		case "gt":
@@ -89,14 +90,25 @@ func ZaddCommand(c *Client, args [][]byte) {
 		}
 	}
 
+	if len(args)-(optionCount+2) == 0 {
+		c.Conn().WriteError(WrongNumOfArgsErr)
+		return
+	}
+
+	if (len(args)-(optionCount+2))%2 == 1 {
+		c.Conn().WriteError(SyntaxErr)
+		return
+	}
+
 	// Validate that all the scores are valid floats
 	for i := 2 + optionCount; i < len(args); i += 2 {
-		_, err := strconv.ParseFloat(string(args[i]), 64)
-		if err != nil {
+		score, err := strconv.ParseFloat(string(args[i]), 64)
+		if err != nil || math.IsNaN(score) {
 			c.Conn().WriteError(InvalidFloatErr)
 			return
 		}
 	}
+
 	// Redis does not support multiple score-element pair when doing INCR option
 	// for some reasons...
 	if incrEnabled && len(args)-optionCount-2 > 2 {
@@ -118,14 +130,14 @@ func ZaddCommand(c *Client, args [][]byte) {
 	set := maybeSet.Value().(SortedSet[string, float64, struct{}])
 
 	addedCount := 0
-	for i := 2; i < len(args); i += 2 {
+	for i := 2 + optionCount; i+1 < len(args); i += 2 {
 		// We already validated all scores to be valid
 		score, _ := strconv.ParseFloat(string(args[i]), 64)
 		member := string(args[i+1])
 		old := set.GetByKey(member)
 
-		if (old == nil && expireMode == ZaddExpireNx) ||
-			(old != nil && expireMode == ZaddExpireXx) ||
+		if (old != nil && insertMode == ZaddInsertNx) ||
+			(old == nil && insertMode == ZaddInsertXx) ||
 			(old != nil && compareMode == ZaddCompareGt && score <= old.Score()) ||
 			(old != nil && compareMode == ZaddCompareLt && score >= old.Score()) {
 			continue
