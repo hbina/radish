@@ -202,7 +202,7 @@ func TestRestoreCommand(t *testing.T) {
 }
 
 func TestBadRespCommand(t *testing.T) {
-	tcpAddr, err := net.ResolveTCPAddr("tcp", "localhost:6380")
+	tcpAddr, err := net.ResolveTCPAddr("tcp", "localhost:6381")
 	assert.NoError(t, err)
 
 	tcpConn, err := net.DialTCP("tcp", nil, tcpAddr)
@@ -271,5 +271,68 @@ func TestZaddCommad(t *testing.T) {
 		}).Result()
 		assert.NoError(t, err)
 		assert.Equal(t, int64(2), s)
+	}
+
+	// ZRANGE basics
+	{
+		c := CreateTestClient()
+		_, err := c.Del("ztmp").Result()
+		assert.NoError(t, err)
+
+		_, err = c.ZAdd("ztmp", redis.Z{
+			Score:  1,
+			Member: "a",
+		}, redis.Z{
+			Score:  2,
+			Member: "b",
+		}, redis.Z{
+			Score:  3,
+			Member: "c",
+		}, redis.Z{
+			Score:  4,
+			Member: "d",
+		}).Result()
+		assert.NoError(t, err)
+
+		res, err := c.ZRange("ztmp", 0, -1).Result()
+		assert.NoError(t, err)
+		assert.Equal(t, []string{"a", "b", "c", "d"}, res)
+
+		res, err = c.ZRange("ztmp", 0, -2).Result()
+		assert.NoError(t, err)
+		assert.Equal(t, []string{"a", "b", "c"}, res)
+
+		res, err = c.ZRange("ztmp", 1, -1).Result()
+		assert.NoError(t, err)
+		assert.Equal(t, []string{"b", "c", "d"}, res)
+
+		res, err = c.ZRange("ztmp", 1, -2).Result()
+		assert.NoError(t, err)
+		assert.Equal(t, []string{"b", "c"}, res)
+
+		res, err = c.ZRange("ztmp", -2, -1).Result()
+		assert.NoError(t, err)
+		assert.Equal(t, []string{"c", "d"}, res)
+
+		res, err = c.ZRange("ztmp", -2, -2).Result()
+		assert.NoError(t, err)
+		assert.Equal(t, []string{"c"}, res)
+
+		// out of range start index
+		res, err = c.ZRange("ztmp", -5, 2).Result()
+		assert.NoError(t, err)
+		assert.Equal(t, []string{"a", "b", "c"}, res)
+
+		res, err = c.ZRange("ztmp", -5, 1).Result()
+		assert.NoError(t, err)
+		assert.Equal(t, []string{"a", "b"}, res)
+
+		res, err = c.ZRange("ztmp", 5, -1).Result()
+		assert.NoError(t, err)
+		assert.Equal(t, []string{}, res)
+
+		res, err = c.ZRange("ztmp", 5, -2).Result()
+		assert.NoError(t, err)
+		assert.Equal(t, []string{}, res)
 	}
 }

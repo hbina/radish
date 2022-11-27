@@ -453,19 +453,13 @@ func (ss *SortedSet[K, S, V]) RecalibrateRank(start int, end int, reverse bool) 
 	if start < 0 {
 		start = ss.length + start + 1
 	}
+
 	if end < 0 {
 		end = ss.length + end + 1
 	}
 
 	if start <= 0 {
 		start = 1
-	}
-	if end <= 0 {
-		end = 1
-	}
-
-	if start > ss.Len() {
-		start = ss.Len()
 	}
 
 	if end > ss.Len() {
@@ -475,6 +469,31 @@ func (ss *SortedSet[K, S, V]) RecalibrateRank(start int, end int, reverse bool) 
 	if reverse {
 		start, end = ss.Len()-end+1, ss.Len()-start+1
 	}
+
+	return start, end
+}
+
+// RecalibrateIndex returns the calibrated start and end rank.
+func (ss *SortedSet[K, S, V]) RecalibrateIndex(start int, end int, reverse bool) (int, int) {
+	if start < 0 {
+		start = ss.length + start
+	}
+	if end < 0 {
+		end = ss.length + end
+	}
+
+	if start <= 0 {
+		start = 0
+	}
+
+	if end > ss.Len() {
+		end = ss.Len()
+	}
+
+	if reverse {
+		start, end = ss.Len()-end, ss.Len()-start
+	}
+
 	return start, end
 }
 
@@ -541,6 +560,20 @@ func (ss *SortedSet[K, S, V]) GetRangeByRank(start int, end int, reverse bool, r
 	}
 
 	return nodes
+}
+
+// GetRangeByIndex returns array of nodes within specific index range [start, end).
+//
+// If start is greater than end, the returned array is in reserved order.
+// If remove is true, the returned nodes are removed
+//
+// Time complexity: O(log(N)) with high probability
+func (ss *SortedSet[K, S, V]) GetRangeByIndex(start int, end int, reverse bool, remove bool) []*SortedSetNode[K, S, V] {
+	start, end = ss.RecalibrateIndex(start, end, reverse)
+	start += 1
+	end += 1
+
+	return ss.GetRangeByRank(start, end, reverse, remove)
 }
 
 // Get node by rank.
