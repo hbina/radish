@@ -7,7 +7,7 @@ type ZSet struct {
 }
 
 func NewZSet() *ZSet {
-	return &ZSet{inner: *New[string, float64, struct{}]()}
+	return &ZSet{inner: *NewSortedSet[string, float64, struct{}]()}
 }
 
 func NewZSetFromSs(value SortedSet[string, float64, struct{}]) *ZSet {
@@ -27,5 +27,5 @@ func (l ZSet) TypeFancy() string {
 }
 
 func (s ZSet) Len() int {
-	return s.inner.GetCount()
+	return s.inner.Len()
 }

@@ -226,6 +226,7 @@ func createDefault() *Redis {
 		NewCommand("setrange", SetrangeCommand),
 		NewCommand("getrange", GetrangeCommand),
 		NewCommand("lcs", LcsCommand),
+		NewCommand("zrange", ZrangeCommand),
 	})
 
 	// NOTE: Taken by dumping from `CONFIG GET *`.
