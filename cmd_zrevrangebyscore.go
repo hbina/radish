@@ -6,9 +6,9 @@ import (
 	"strings"
 )
 
-// https://redis.io/commands/zrange/
-// ZRANGE key start stop [BYSCORE | BYLEX] [REV] [LIMIT offset count] [WITHSCORES]
-func ZrangeCommand(c *Client, args [][]byte) {
+// https://redis.io/commands/zrevrangebyscore/
+// ZREVRANGEBYSCORE key min max [WITHSCORES] [LIMIT offset count]
+func ZrevrangebyscoreCommand(c *Client, args [][]byte) {
 	if len(args) < 4 {
 		c.Conn().WriteError(fmt.Sprintf(WrongNumOfArgsErr, args[0]))
 		return
@@ -18,16 +18,14 @@ func ZrangeCommand(c *Client, args [][]byte) {
 	startStr := string(args[2])
 	stopStr := string(args[3])
 
-	start, stop, err := ParseIntRange(startStr, stopStr)
+	start, startExclusive, stop, stopExclusive, err := ParseFloatRange(startStr, stopStr)
 
 	if err != nil {
-		c.Conn().WriteError(InvalidIntErr)
+		c.Conn().WriteError(InvalidFloatErr)
 		return
 	}
 
 	// Parse options
-	sortByLex := false
-	sortByScore := false
 	withScores := false
 	reverse := false
 	offset := 0
@@ -41,26 +39,6 @@ func ZrangeCommand(c *Client, args [][]byte) {
 			{
 				c.Conn().WriteError(SyntaxErr)
 				return
-			}
-		case "byscore":
-			{
-				if sortByLex {
-					c.Conn().WriteError(SyntaxErr)
-					return
-				}
-				sortByScore = true
-			}
-		case "bylex":
-			{
-				if sortByScore {
-					c.Conn().WriteError(SyntaxErr)
-					return
-				}
-				sortByLex = true
-			}
-		case "rev":
-			{
-				reverse = true
 			}
 		case "limit":
 			{
@@ -112,7 +90,13 @@ func ZrangeCommand(c *Client, args [][]byte) {
 
 	set := maybeSet.Value().(SortedSet[string, float64, struct{}])
 
-	res := set.GetRangeByIndex(start, stop, reverse, false)
+	res := set.GetRangeByScore(start, stop, &GetByScoreRangeOptions{
+		Reverse:      false,
+		Offset:       offset,
+		Limit:        limit,
+		ExcludeStart: startExclusive,
+		ExcludeEnd:   stopExclusive,
+	})
 
 	if withScores {
 		c.Conn().WriteArray(len(res) * 2)

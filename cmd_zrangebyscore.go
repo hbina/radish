@@ -18,23 +18,15 @@ func ZrangebyscoreCommand(c *Client, args [][]byte) {
 	startStr := string(args[2])
 	stopStr := string(args[3])
 
-	start, err := strconv.ParseFloat(startStr, 64)
+	start, startExclusive, stop, stopExclusive, err := ParseFloatRange(startStr, stopStr)
 
 	if err != nil {
-		c.Conn().WriteError(InvalidIntErr)
-		return
-	}
-
-	stop, err := strconv.ParseFloat(stopStr, 64)
-
-	if err != nil {
-		c.Conn().WriteError(InvalidIntErr)
+		c.Conn().WriteError(InvalidFloatErr)
 		return
 	}
 
 	// Parse options
 	withScores := false
-	reverse := false
 	offset := 0
 	limit := 0
 
@@ -98,9 +90,11 @@ func ZrangebyscoreCommand(c *Client, args [][]byte) {
 	set := maybeSet.Value().(SortedSet[string, float64, struct{}])
 
 	res := set.GetRangeByScore(start, stop, &GetByScoreRangeOptions{
+		Reverse:      false,
+		Offset:       offset,
 		Limit:        limit,
-		ExcludeStart: false,
-		ExcludeEnd:   false,
+		ExcludeStart: startExclusive,
+		ExcludeEnd:   stopExclusive,
 	})
 
 	if withScores {
@@ -117,6 +111,4 @@ func ZrangebyscoreCommand(c *Client, args [][]byte) {
 			c.Conn().WriteBulkString(ssn.key)
 		}
 	}
-
-	fmt.Println(reverse, offset, limit, set)
 }

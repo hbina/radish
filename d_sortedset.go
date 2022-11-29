@@ -248,7 +248,7 @@ func NewSortedSet[K constraints.Ordered, S constraints.Ordered, V any]() *Sorted
 
 // Get the number of elements
 func (ss *SortedSet[K, S, V]) Len() int {
-	return ss.length
+	return int(ss.length)
 }
 
 // PeekMin returns the element with the lowest score if it exists.
@@ -332,6 +332,8 @@ func (ss *SortedSet[K, S, V]) Remove(key K) *SortedSetNode[K, S, V] {
 
 // TODO: Add reverse, offset
 type GetByScoreRangeOptions struct {
+	Reverse      bool // Start iterating from the back
+	Offset       int  // How many nodes to skip
 	Limit        int  // limit the max nodes to return
 	ExcludeStart bool // exclude start value, so it search in interval (start, end] or (start, end)
 	ExcludeEnd   bool // exclude end value, so it search in interval [start, end) or (start, end)
@@ -346,13 +348,14 @@ func (ss *SortedSet[K, S, V]) GetRangeByScore(start S, end S, options *GetByScor
 
 	// prepare parameters
 	var limit int = int((^uint(0)) >> 1)
+
 	if options != nil && options.Limit > 0 {
 		limit = options.Limit
 	}
 
 	excludeStart := options != nil && options.ExcludeStart
 	excludeEnd := options != nil && options.ExcludeEnd
-	reverse := start > end
+	reverse := options != nil && options.Reverse
 
 	if reverse {
 		start, end = end, start
@@ -361,7 +364,7 @@ func (ss *SortedSet[K, S, V]) GetRangeByScore(start S, end S, options *GetByScor
 
 	var nodes []*SortedSetNode[K, S, V]
 
-	//determine if out of range
+	// determine if out of range
 	if ss.length == 0 {
 		return nodes
 	}
@@ -403,8 +406,7 @@ func (ss *SortedSet[K, S, V]) GetRangeByScore(start S, end S, options *GetByScor
 
 			x = next
 		}
-	} else {
-		// search from start to end
+	} else { // search from start to end
 		x := ss.header
 
 		if excludeStart {
@@ -562,7 +564,7 @@ func (ss *SortedSet[K, S, V]) GetByKey(key K) *SortedSetNode[K, S, V] {
 // Find the rank of the node specified by key
 // Note that the rank is 1-based integer. Rank 1 means the first node
 //
-// If the node is not found, 0 is returned. Otherwise rank(> 0) is returned
+// If the node is not found, -1 is returned. Otherwise rank(>= 0) is returned
 //
 // Time complexity: O(log(N)) with high probability
 func (ss *SortedSet[K, S, V]) FindRankOfKey(key K) int {
@@ -580,7 +582,7 @@ func (ss *SortedSet[K, S, V]) FindRankOfKey(key K) int {
 			}
 
 			if x.key == key {
-				return rank
+				return rank - 1
 			}
 		}
 	}

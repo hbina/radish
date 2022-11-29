@@ -163,7 +163,7 @@ func TestSortedFindRankOfKey(t *testing.T) {
 
 	ss.AddOrUpdate("x", 10, struct{}{})
 	ss.AddOrUpdate("y", 20, struct{}{})
-	ss.AddOrUpdate("x", 30, struct{}{})
+	ss.AddOrUpdate("z", 30, struct{}{})
 
 	assert.Equal(t, 3, ss.Len())
 

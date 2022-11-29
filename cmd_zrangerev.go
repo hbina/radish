@@ -2,7 +2,6 @@ package redis
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 )
 
@@ -18,23 +17,12 @@ func ZrevrangeCommand(c *Client, args [][]byte) {
 	startStr := string(args[2])
 	stopStr := string(args[3])
 
-	start64, err := strconv.ParseInt(startStr, 10, 32)
+	start, stop, err := ParseIntRange(startStr, stopStr)
 
 	if err != nil {
 		c.Conn().WriteError(InvalidIntErr)
 		return
 	}
-
-	start := int(start64)
-
-	stop64, err := strconv.ParseInt(stopStr, 10, 32)
-
-	if err != nil {
-		c.Conn().WriteError(InvalidIntErr)
-		return
-	}
-
-	stop := int(stop64)
 
 	// Parse options
 	withScores := false
