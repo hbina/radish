@@ -348,9 +348,14 @@ func (ss *SortedSet[K, S, V]) GetRangeByScore(start S, end S, options *GetByScor
 
 	// prepare parameters
 	var limit int = int((^uint(0)) >> 1)
+	offset := 0
 
 	if options != nil && options.Limit > 0 {
 		limit = options.Limit
+	}
+
+	if options != nil && options.Offset > 0 {
+		offset = options.Offset
 	}
 
 	excludeStart := options != nil && options.ExcludeStart
@@ -388,7 +393,12 @@ func (ss *SortedSet[K, S, V]) GetRangeByScore(start S, end S, options *GetByScor
 			}
 		}
 
-		for x != nil && limit > 0 {
+		for x != nil && offset > 0 && x != ss.header {
+			x = x.backward
+			offset--
+		}
+
+		for x != nil && limit > 0 && x != ss.header {
 			if excludeStart {
 				if x.score <= start {
 					break
@@ -428,7 +438,12 @@ func (ss *SortedSet[K, S, V]) GetRangeByScore(start S, end S, options *GetByScor
 		/* Current node is the last with score < or <= start. */
 		x = x.level[0].forward
 
-		for x != nil && limit > 0 {
+		for x != nil && offset > 0 && x != ss.header {
+			x = x.level[0].forward
+			offset--
+		}
+
+		for x != nil && limit > 0 && x != ss.header {
 			if excludeEnd {
 				if x.score >= end {
 					break
@@ -440,11 +455,9 @@ func (ss *SortedSet[K, S, V]) GetRangeByScore(start S, end S, options *GetByScor
 			}
 
 			next := x.level[0].forward
-
 			nodes = append(nodes, x)
-			limit--
-
 			x = next
+			limit--
 		}
 	}
 
@@ -582,7 +595,7 @@ func (ss *SortedSet[K, S, V]) FindRankOfKey(key K) int {
 			}
 
 			if x.key == key {
-				return rank - 1
+				return rank
 			}
 		}
 	}

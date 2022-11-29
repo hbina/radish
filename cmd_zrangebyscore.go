@@ -2,6 +2,7 @@ package redis
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 )
@@ -20,7 +21,7 @@ func ZrangebyscoreCommand(c *Client, args [][]byte) {
 
 	start, startExclusive, stop, stopExclusive, err := ParseFloatRange(startStr, stopStr)
 
-	if err != nil {
+	if err != nil || math.IsNaN(start) || math.IsNaN(stop) {
 		c.Conn().WriteError(InvalidFloatErr)
 		return
 	}
