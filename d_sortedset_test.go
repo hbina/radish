@@ -157,3 +157,17 @@ func TestSortedSetGetByRank(t *testing.T) {
 		assert.Equal(t, ss.Len()+i+1, res.score)
 	}
 }
+
+func TestSortedFindRankOfKey(t *testing.T) {
+	ss := NewSortedSet[string, int, struct{}]()
+
+	ss.AddOrUpdate("x", 10, struct{}{})
+	ss.AddOrUpdate("y", 20, struct{}{})
+	ss.AddOrUpdate("x", 30, struct{}{})
+
+	assert.Equal(t, 3, ss.Len())
+
+	assert.Equal(t, 0, ss.FindRankOfKey("x"))
+	assert.Equal(t, 1, ss.FindRankOfKey("y"))
+	assert.Equal(t, 2, ss.FindRankOfKey("z"))
+}

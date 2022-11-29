@@ -8,7 +8,7 @@ import (
 
 // https://redis.io/commands/zrevrange/
 // ZREVRANGE key start stop [WITHSCORES]
-func Zrevrange(c *Client, args [][]byte) {
+func ZrevrangeCommand(c *Client, args [][]byte) {
 	if len(args) < 4 {
 		c.Conn().WriteError(fmt.Sprintf(WrongNumOfArgsErr, args[0]))
 		return

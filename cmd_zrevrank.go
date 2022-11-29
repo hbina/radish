@@ -4,9 +4,9 @@ import (
 	"fmt"
 )
 
-// https://redis.io/commands/zscore/
-// ZSCORE key member
-func ZscoreCommand(c *Client, args [][]byte) {
+// https://redis.io/commands/zrevrank/
+// ZREVRANK key member
+func ZrevrankCommand(c *Client, args [][]byte) {
 	if len(args) < 3 {
 		c.Conn().WriteError(fmt.Sprintf(WrongNumOfArgsErr, args[0]))
 		return
@@ -27,12 +27,12 @@ func ZscoreCommand(c *Client, args [][]byte) {
 
 	set := maybeSet.(*ZSet)
 
-	maybeMember := set.inner.GetByKey(memberKey)
+	memberRank := set.inner.FindRankOfKey(memberKey)
 
-	if maybeMember == nil {
+	if memberRank == 0 {
 		c.Conn().WriteNull()
 		return
 	}
 
-	c.Conn().WriteString(fmt.Sprint(maybeMember.score))
+	c.Conn().WriteString(fmt.Sprint(set.Len() - memberRank))
 }
