@@ -448,52 +448,26 @@ func (ss *SortedSet[K, S, V]) GetRangeByScore(start S, end S, options *GetByScor
 	return nodes
 }
 
-// RecalibrateRank returns the calibrated start and end rank.
-func (ss *SortedSet[K, S, V]) RecalibrateRank(start int, end int, reverse bool) (int, int) {
+// ConvertIndexToRank sanitizes the given rank-based range.
+// Returns (1,-1) if its an empty range.
+func (ss *SortedSet[K, S, V]) ConvertIndexToRank(start int, end int, reverse bool) (int, int) {
 	if start < 0 {
-		start = ss.length + start + 1
+		start += ss.Len()
 	}
-
 	if end < 0 {
-		end = ss.length + end + 1
+		end += ss.Len()
 	}
-
-	if start <= 0 {
-		start = 1
+	if start < 0 {
+		start = 0
 	}
-
-	if end > ss.Len() {
-		end = ss.Len()
+	if start > end || start >= ss.Len() {
+		return 1, -1
 	}
-
+	start++
+	end++
 	if reverse {
 		start, end = ss.Len()-end+1, ss.Len()-start+1
 	}
-
-	return start, end
-}
-
-// RecalibrateIndex returns the calibrated start and end rank.
-func (ss *SortedSet[K, S, V]) RecalibrateIndex(start int, end int, reverse bool) (int, int) {
-	if start < 0 {
-		start = ss.length + start
-	}
-	if end < 0 {
-		end = ss.length + end
-	}
-
-	if start <= 0 {
-		start = 0
-	}
-
-	if end > ss.Len() {
-		end = ss.Len()
-	}
-
-	if reverse {
-		start, end = ss.Len()-end, ss.Len()-start
-	}
-
 	return start, end
 }
 
@@ -520,15 +494,15 @@ func (ss *SortedSet[K, S, V]) findNodeByRank(start int, remove bool) (traversed 
 	return
 }
 
-// GetRangeByRank returns array of nodes within specific rank range [start, end].
-// Note that the rank is 1-based index.
+// GetRangeByIndex returns array of nodes within specific index range [start, end].
+// The given start and end must be a valid rank-based index which can be obtained from 'SanitizeRank'.
 //
 // If start is greater than end, the returned array is in reserved order.
 // If remove is true, the returned nodes are removed
 //
 // Time complexity: O(log(N)) with high probability
-func (ss *SortedSet[K, S, V]) GetRangeByRank(start int, end int, reverse bool, remove bool) []*SortedSetNode[K, S, V] {
-	start, end = ss.RecalibrateRank(start, end, reverse)
+func (ss *SortedSet[K, S, V]) GetRangeByIndex(start int, end int, reverse bool, remove bool) []*SortedSetNode[K, S, V] {
+	start, end = ss.ConvertIndexToRank(start, end, reverse)
 
 	if start > end {
 		return []*SortedSetNode[K, S, V]{}
@@ -562,29 +536,14 @@ func (ss *SortedSet[K, S, V]) GetRangeByRank(start int, end int, reverse bool, r
 	return nodes
 }
 
-// GetRangeByIndex returns array of nodes within specific index range [start, end).
-//
-// If start is greater than end, the returned array is in reserved order.
-// If remove is true, the returned nodes are removed
-//
-// Time complexity: O(log(N)) with high probability
-func (ss *SortedSet[K, S, V]) GetRangeByIndex(start int, end int, reverse bool, remove bool) []*SortedSetNode[K, S, V] {
-	start, end = ss.RecalibrateIndex(start, end, reverse)
-	start += 1
-	end += 1
-
-	return ss.GetRangeByRank(start, end, reverse, remove)
-}
-
-// Get node by rank.
-// Note that the rank is 1-based integer. Rank 1 means the first node; Rank -1 means the last node;
+// Get node by index.
 //
 // If remove is true, the returned nodes are removed
 // If node is not found at specific rank, nil is returned
 //
 // Time complexity: O(log(N))
-func (ss *SortedSet[K, S, V]) GetByRank(rank int, remove bool) *SortedSetNode[K, S, V] {
-	nodes := ss.GetRangeByRank(rank, rank, false, remove)
+func (ss *SortedSet[K, S, V]) GetByIndex(rank int, remove bool) *SortedSetNode[K, S, V] {
+	nodes := ss.GetRangeByIndex(rank, rank, false, remove)
 	if len(nodes) == 1 {
 		return nodes[0]
 	}
@@ -625,42 +584,4 @@ func (ss *SortedSet[K, S, V]) FindRankOfKey(key K) int {
 		}
 	}
 	return 0
-}
-
-// IterRangeByRank apply fn to node within specific rank range [start, end]
-// or until fn return false
-//
-// Note that the rank is 1-based integer. Rank 1 means the first node; Rank -1 means the last node;
-// If start is greater than end, apply fn in reserved order
-// If fn is nil, ss function return without doing anything
-func (ss *SortedSet[K, S, V]) IterRangeByRank(start int, end int, reverse bool, fn func(key K, value V) bool) {
-	if fn == nil {
-		return
-	}
-
-	start, end = ss.RecalibrateRank(start, end, reverse)
-	traversed, x, _ := ss.findNodeByRank(start, false)
-	var nodes []*SortedSetNode[K, S, V]
-
-	x = x.level[0].forward
-	for x != nil && traversed < end {
-		next := x.level[0].forward
-
-		if reverse {
-			nodes = append(nodes, x)
-		} else if !fn(x.key, x.value) {
-			return
-		}
-
-		traversed++
-		x = next
-	}
-
-	if reverse {
-		for i := len(nodes) - 1; i >= 0; i-- {
-			if !fn(nodes[i].key, nodes[i].value) {
-				return
-			}
-		}
-	}
 }

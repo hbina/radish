@@ -232,6 +232,7 @@ func createDefault() *Redis {
 		NewCommand("zscore", ZscoreCommand),
 		NewCommand("zincrby", ZincrbyCommand),
 		NewCommand("zrem", ZremCommand),
+		NewCommand("zrevrange", Zrevrange),
 	})
 
 	// NOTE: Taken by dumping from `CONFIG GET *`.
