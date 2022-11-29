@@ -330,6 +330,7 @@ func (ss *SortedSet[K, S, V]) Remove(key K) *SortedSetNode[K, S, V] {
 	return nil
 }
 
+// TODO: Add reverse, offset
 type GetByScoreRangeOptions struct {
 	Limit        int  // limit the max nodes to return
 	ExcludeStart bool // exclude start value, so it search in interval (start, end] or (start, end)
