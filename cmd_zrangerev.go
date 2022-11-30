@@ -56,7 +56,7 @@ func ZrevrangeCommand(c *Client, args [][]byte) {
 
 	set := maybeSet.Value().(SortedSet[string, float64, struct{}])
 
-	res := set.GetRangeByIndex(start, stop, true, false)
+	res := set.GetRangeByIndex(start, stop, true)
 
 	if withScores {
 		c.Conn().WriteArray(len(res) * 2)

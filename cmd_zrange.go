@@ -112,7 +112,7 @@ func ZrangeCommand(c *Client, args [][]byte) {
 
 	set := maybeSet.Value().(SortedSet[string, float64, struct{}])
 
-	res := set.GetRangeByIndex(start, stop, reverse, false)
+	res := set.GetRangeByIndex(start, stop, reverse)
 
 	if withScores {
 		c.Conn().WriteArray(len(res) * 2)

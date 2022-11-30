@@ -375,29 +375,25 @@ func (ss *SortedSet[K, S, V]) GetRangeByScore(start S, end S, options *GetByScor
 	}
 
 	if reverse { // search from end to start
-		x := ss.header
+		var x *SortedSetNode[K, S, V] = nil
 
 		if excludeEnd {
-			for i := ss.level - 1; i >= 0; i-- {
-				for x.level[i].forward != nil &&
-					x.level[i].forward.score < end {
-					x = x.level[i].forward
-				}
-			}
+			x = ss.findNodeByScore(end, func(l, r S) bool {
+				return l < r
+			})
 		} else {
-			for i := ss.level - 1; i >= 0; i-- {
-				for x.level[i].forward != nil &&
-					x.level[i].forward.score <= end {
-					x = x.level[i].forward
-				}
-			}
+			x = ss.findNodeByScore(end, func(l, r S) bool {
+				return l <= r
+			})
 		}
 
+		// Skip some elements as required by offset
 		for x != nil && offset > 0 && x != ss.header {
 			x = x.backward
 			offset--
 		}
 
+		// Begin appending the result array from this node
 		for x != nil && limit > 0 && x != ss.header {
 			if excludeStart {
 				if x.score <= start {
@@ -417,26 +413,22 @@ func (ss *SortedSet[K, S, V]) GetRangeByScore(start S, end S, options *GetByScor
 			x = next
 		}
 	} else { // search from start to end
-		x := ss.header
+		var x *SortedSetNode[K, S, V] = nil
 
 		if excludeStart {
-			for i := ss.level - 1; i >= 0; i-- {
-				for x.level[i].forward != nil &&
-					x.level[i].forward.score <= start {
-					x = x.level[i].forward
-				}
-			}
+			x = ss.findNodeByScore(start, func(l, r S) bool {
+				return l <= r
+			})
 		} else {
-			for i := ss.level - 1; i >= 0; i-- {
-				for x.level[i].forward != nil &&
-					x.level[i].forward.score < start {
-					x = x.level[i].forward
-				}
-			}
+			x = ss.findNodeByScore(start, func(l, r S) bool {
+				return l < r
+			})
 		}
 
 		/* Current node is the last with score < or <= start. */
-		x = x.level[0].forward
+		if x != nil {
+			x = x.level[0].forward
+		}
 
 		for x != nil && offset > 0 && x != ss.header {
 			x = x.level[0].forward
@@ -464,50 +456,80 @@ func (ss *SortedSet[K, S, V]) GetRangeByScore(start S, end S, options *GetByScor
 	return nodes
 }
 
-// ConvertIndexToRank sanitizes the given rank-based range.
+// SanitizeIndex sanitizes the given 0-based range.
 // Returns (1,-1) if its an empty range.
-func (ss *SortedSet[K, S, V]) ConvertIndexToRank(start int, end int, reverse bool) (int, int) {
+// TODO: This is such a hack. Reimplement so we don't even need this whole mess.
+func (ss *SortedSet[K, S, V]) SanitizeIndex(start int, end int, reverse bool) (int, int) {
+	// If start is negative, calculate the absolute value
 	if start < 0 {
 		start += ss.Len()
 	}
+
+	// If end is negative, calculate the absolute value
 	if end < 0 {
 		end += ss.Len()
 	}
-	if start < 0 {
-		start = 0
-	}
+
+	// If absolute index does not make sense, return 1,-1
 	if start > end || start >= ss.Len() {
 		return 1, -1
 	}
+
+	// Convert 0-based to 1-based index
 	start++
 	end++
+
+	// Constraint index to minimum
+	if start < 1 {
+		start = 1
+	}
+
+	// Constraint index to max
+	if end > ss.Len() {
+		end = ss.Len()
+	}
+
+	// If reverse, calculate the opposite
 	if reverse {
 		start, end = ss.Len()-end+1, ss.Len()-start+1
 	}
+
 	return start, end
 }
 
-// findNodeByIter returns the node at the given rank (which is 1-based index).
-// Can also remove the node is asked.
+// findNodeByRank returns the node at the given rank (which is 1-based index).
+// Can also remove the node if asked.
 //
-// Time complexity: O(log(N)) with high probability
-func (ss *SortedSet[K, S, V]) findNodeByRank(start int, remove bool) (traversed int, x *SortedSetNode[K, S, V], update [SKIPLIST_MAXLEVEL]*SortedSetNode[K, S, V]) {
-	x = ss.header
+// Time complexity: O(log(N)) with high probability.
+func (ss *SortedSet[K, S, V]) findNodeByRank(start int) *SortedSetNode[K, S, V] {
+	traversed := 0
+	x := ss.header
 	for i := ss.level - 1; i >= 0; i-- {
 		for x.level[i].forward != nil &&
 			traversed+x.level[i].span < start {
 			traversed += x.level[i].span
 			x = x.level[i].forward
 		}
-		if remove {
-			update[i] = x
-		} else {
-			if traversed+1 == start {
-				break
-			}
+		if traversed+1 == start {
+			break
 		}
 	}
-	return
+	return x
+}
+
+// findNodeByScore returns the node at the given rank (which is 1-based index).
+// Can also remove the node is asked.
+//
+// Time complexity: O(log(N)) with high probability
+func (ss *SortedSet[K, S, V]) findNodeByScore(score S, cmp func(S, S) bool) *SortedSetNode[K, S, V] {
+	x := ss.header
+	for i := ss.level - 1; i >= 0; i-- {
+		for x.level[i].forward != nil &&
+			cmp(x.level[i].forward.score, score) {
+			x = x.level[i].forward
+		}
+	}
+	return x
 }
 
 // GetRangeByIndex returns array of nodes within specific index range [start, end].
@@ -517,30 +539,27 @@ func (ss *SortedSet[K, S, V]) findNodeByRank(start int, remove bool) (traversed 
 // If remove is true, the returned nodes are removed
 //
 // Time complexity: O(log(N)) with high probability
-func (ss *SortedSet[K, S, V]) GetRangeByIndex(start int, end int, reverse bool, remove bool) []*SortedSetNode[K, S, V] {
-	start, end = ss.ConvertIndexToRank(start, end, reverse)
+func (ss *SortedSet[K, S, V]) GetRangeByIndex(start int, end int, reverse bool) []*SortedSetNode[K, S, V] {
+	start, end = ss.SanitizeIndex(start, end, reverse)
 
 	if start > end {
 		return []*SortedSetNode[K, S, V]{}
 	}
 
 	var nodes []*SortedSetNode[K, S, V]
+	x := ss.findNodeByRank(start)
+	if x != nil {
+		x = x.level[0].forward
+	}
+	limit := end - start + 1
 
-	traversed, x, update := ss.findNodeByRank(start, remove)
-	traversed++
-
-	x = x.level[0].forward
-	for x != nil && traversed <= end {
+	for x != nil && limit != 0 {
 		next := x.level[0].forward
 
 		nodes = append(nodes, x)
 
-		if remove {
-			ss.deleteNode(x, update)
-		}
-
-		traversed++
 		x = next
+		limit--
 	}
 
 	if reverse {
@@ -559,7 +578,7 @@ func (ss *SortedSet[K, S, V]) GetRangeByIndex(start int, end int, reverse bool, 
 //
 // Time complexity: O(log(N))
 func (ss *SortedSet[K, S, V]) GetByIndex(rank int, remove bool) *SortedSetNode[K, S, V] {
-	nodes := ss.GetRangeByIndex(rank, rank, false, remove)
+	nodes := ss.GetRangeByIndex(rank, rank, false)
 	if len(nodes) == 1 {
 		return nodes[0]
 	}
