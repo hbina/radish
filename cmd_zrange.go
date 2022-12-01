@@ -18,13 +18,6 @@ func ZrangeCommand(c *Client, args [][]byte) {
 	startStr := string(args[2])
 	stopStr := string(args[3])
 
-	start, stop, err := ParseIntRange(startStr, stopStr)
-
-	if err != nil {
-		c.Conn().WriteError(InvalidIntErr)
-		return
-	}
-
 	// Parse options
 	sortByLex := false
 	sortByScore := false
@@ -112,7 +105,35 @@ func ZrangeCommand(c *Client, args [][]byte) {
 
 	set := maybeSet.Value().(SortedSet[string, float64, struct{}])
 
-	res := set.GetRangeByIndex(start, stop, reverse)
+	var res []*SortedSetNode[string, float64, struct{}]
+
+	if sortByLex {
+		res = set.GetRangeByKey(startStr, stopStr, &GetByScoreRangeOptions{})
+	} else if sortByScore {
+		start, startExclusive, stop, stopExclusive, err := ParseFloatRange(startStr, stopStr)
+
+		if err != nil {
+			c.Conn().WriteError(InvalidIntErr)
+			return
+		}
+
+		res = set.GetRangeByScore(start, stop, &GetByScoreRangeOptions{
+			Reverse:      reverse,
+			Offset:       0,
+			Limit:        0,
+			ExcludeStart: startExclusive,
+			ExcludeEnd:   stopExclusive,
+		})
+	} else {
+		start, stop, err := ParseIntRange(startStr, stopStr)
+
+		if err != nil {
+			c.Conn().WriteError(InvalidIntErr)
+			return
+		}
+
+		res = set.GetRangeByIndex(start, stop, reverse)
+	}
 
 	if withScores {
 		c.Conn().WriteArray(len(res) * 2)
