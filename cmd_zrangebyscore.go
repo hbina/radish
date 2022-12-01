@@ -29,7 +29,7 @@ func ZrangebyscoreCommand(c *Client, args [][]byte) {
 	// Parse options
 	withScores := false
 	offset := 0
-	limit := 0
+	limit := math.MaxInt
 
 	// TODO: Can be optimized to end when we encounter an integer
 	for i := 4; i < len(args); i++ {
@@ -90,12 +90,12 @@ func ZrangebyscoreCommand(c *Client, args [][]byte) {
 
 	set := maybeSet.Value().(SortedSet[string, float64, struct{}])
 
-	res := set.GetRangeByScore(start, stop, &GetByScoreRangeOptions{
-		Reverse:      false,
-		Offset:       offset,
-		Limit:        limit,
-		ExcludeStart: startExclusive,
-		ExcludeEnd:   stopExclusive,
+	res := set.GetRangeByScore(start, stop, GetRangeOptions{
+		reverse:        false,
+		offset:         offset,
+		limit:          limit,
+		startExclusive: startExclusive,
+		stopExclusive:  stopExclusive,
 	})
 
 	if withScores {

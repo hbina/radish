@@ -36,12 +36,11 @@ func ZcountCommand(c *Client, args [][]byte) {
 
 	set := maybeSet.Value().(SortedSet[string, float64, struct{}])
 
-	res := set.GetRangeByScore(start, stop, &GetByScoreRangeOptions{
-		Reverse:      false,
-		Offset:       0,
-		Limit:        0,
-		ExcludeStart: startExclusive,
-		ExcludeEnd:   stopExclusive})
+	options := DefaultRangeOptions()
+	options.startExclusive = startExclusive
+	options.stopExclusive = stopExclusive
+
+	res := set.GetRangeByScore(start, stop, options)
 
 	c.Conn().WriteInt(len(res))
 }

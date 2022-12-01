@@ -17,7 +17,7 @@ func ZrevrangeCommand(c *Client, args [][]byte) {
 	startStr := string(args[2])
 	stopStr := string(args[3])
 
-	start, stop, err := ParseIntRange(startStr, stopStr)
+	start, startExclusive, stop, stopExclusive, err := ParseIntRange(startStr, stopStr)
 
 	if err != nil {
 		c.Conn().WriteError(InvalidIntErr)
@@ -56,7 +56,12 @@ func ZrevrangeCommand(c *Client, args [][]byte) {
 
 	set := maybeSet.Value().(SortedSet[string, float64, struct{}])
 
-	res := set.GetRangeByIndex(start, stop, true)
+	options := DefaultRangeOptions()
+	options.reverse = true
+	options.startExclusive = startExclusive
+	options.stopExclusive = stopExclusive
+
+	res := set.GetRangeByIndex(start, stop, options)
 
 	if withScores {
 		c.Conn().WriteArray(len(res) * 2)

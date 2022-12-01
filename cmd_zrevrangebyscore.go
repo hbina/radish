@@ -2,6 +2,7 @@ package redis
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 )
@@ -27,9 +28,8 @@ func ZrevrangebyscoreCommand(c *Client, args [][]byte) {
 
 	// Parse options
 	withScores := false
-	reverse := false
 	offset := 0
-	limit := 0
+	limit := math.MaxInt
 
 	// TODO: Can be optimized to end when we encounter an integer
 	for i := 4; i < len(args); i++ {
@@ -90,12 +90,12 @@ func ZrevrangebyscoreCommand(c *Client, args [][]byte) {
 
 	set := maybeSet.Value().(SortedSet[string, float64, struct{}])
 
-	res := set.GetRangeByScore(start, stop, &GetByScoreRangeOptions{
-		Reverse:      true,
-		Offset:       offset,
-		Limit:        limit,
-		ExcludeStart: startExclusive,
-		ExcludeEnd:   stopExclusive,
+	res := set.GetRangeByScore(start, stop, GetRangeOptions{
+		reverse:        true,
+		offset:         offset,
+		limit:          limit,
+		startExclusive: startExclusive,
+		stopExclusive:  stopExclusive,
 	})
 
 	if withScores {
@@ -112,6 +112,4 @@ func ZrevrangebyscoreCommand(c *Client, args [][]byte) {
 			c.Conn().WriteBulkString(ssn.key)
 		}
 	}
-
-	fmt.Println(reverse, offset, limit, set)
 }

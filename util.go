@@ -47,7 +47,7 @@ func CollectArgs(args [][]byte) string {
 	return result
 }
 
-func ParseIntRange(startStr string, stopStr string) (int, int, error) {
+func ParseIntRange(startStr string, stopStr string) (int, bool, int, bool, error) {
 	startExclusive := false
 	stopExclusive := false
 
@@ -64,24 +64,16 @@ func ParseIntRange(startStr string, stopStr string) (int, int, error) {
 	start, err := strconv.ParseInt(startStr, 10, 32)
 
 	if err != nil {
-		return 0, 0, err
+		return 0, false, 0, false, err
 	}
 
 	stop, err := strconv.ParseInt(stopStr, 10, 32)
 
 	if err != nil {
-		return 0, 0, err
+		return 0, false, 0, false, err
 	}
 
-	if startExclusive {
-		start += 1
-	}
-
-	if stopExclusive {
-		stop -= 1
-	}
-
-	return int(start), int(stop), nil
+	return int(start), startExclusive, int(stop), stopExclusive, nil
 }
 
 func ParseFloatRange(startStr string, stopStr string) (float64, bool, float64, bool, error) {
@@ -108,6 +100,23 @@ func ParseFloatRange(startStr string, stopStr string) (float64, bool, float64, b
 
 	if err != nil {
 		return 0, startExclusive, 0, stopExclusive, err
+	}
+
+	return start, startExclusive, stop, stopExclusive, nil
+}
+
+func ParseStringRange(start string, stop string) (string, bool, string, bool, error) {
+	startExclusive := false
+	stopExclusive := false
+
+	if len(start) > 0 && start[0] == '(' {
+		start = start[1:]
+		startExclusive = true
+	}
+
+	if len(stop) > 0 && stop[0] == '(' {
+		stop = stop[1:]
+		stopExclusive = true
 	}
 
 	return start, startExclusive, stop, stopExclusive, nil

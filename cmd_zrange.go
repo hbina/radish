@@ -2,6 +2,7 @@ package redis
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 )
@@ -24,7 +25,7 @@ func ZrangeCommand(c *Client, args [][]byte) {
 	withScores := false
 	reverse := false
 	offset := 0
-	limit := 0
+	limit := math.MaxInt
 
 	// TODO: Can be optimized to end when we encounter an integer
 	for i := 4; i < len(args); i++ {
@@ -108,7 +109,20 @@ func ZrangeCommand(c *Client, args [][]byte) {
 	var res []*SortedSetNode[string, float64, struct{}]
 
 	if sortByLex {
-		res = set.GetRangeByKey(startStr, stopStr, &GetByScoreRangeOptions{})
+		start, startExclusive, stop, stopExclusive, err := ParseStringRange(startStr, stopStr)
+
+		if err != nil {
+			c.Conn().WriteError(InvalidIntErr)
+			return
+		}
+
+		res = set.GetRangeByLex(start, stop, GetRangeOptions{
+			reverse:        reverse,
+			offset:         offset,
+			limit:          limit,
+			startExclusive: startExclusive,
+			stopExclusive:  stopExclusive,
+		})
 	} else if sortByScore {
 		start, startExclusive, stop, stopExclusive, err := ParseFloatRange(startStr, stopStr)
 
@@ -117,22 +131,28 @@ func ZrangeCommand(c *Client, args [][]byte) {
 			return
 		}
 
-		res = set.GetRangeByScore(start, stop, &GetByScoreRangeOptions{
-			Reverse:      reverse,
-			Offset:       0,
-			Limit:        0,
-			ExcludeStart: startExclusive,
-			ExcludeEnd:   stopExclusive,
+		res = set.GetRangeByScore(start, stop, GetRangeOptions{
+			reverse:        reverse,
+			offset:         offset,
+			limit:          limit,
+			startExclusive: startExclusive,
+			stopExclusive:  stopExclusive,
 		})
 	} else {
-		start, stop, err := ParseIntRange(startStr, stopStr)
+		start, startExclusive, stop, stopExclusive, err := ParseIntRange(startStr, stopStr)
 
 		if err != nil {
 			c.Conn().WriteError(InvalidIntErr)
 			return
 		}
 
-		res = set.GetRangeByIndex(start, stop, reverse)
+		res = set.GetRangeByIndex(start, stop, GetRangeOptions{
+			reverse:        reverse,
+			offset:         offset,
+			limit:          limit,
+			startExclusive: startExclusive,
+			stopExclusive:  stopExclusive,
+		})
 	}
 
 	if withScores {

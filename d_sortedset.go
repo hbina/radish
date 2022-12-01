@@ -27,6 +27,7 @@
 package redis
 
 import (
+	"math"
 	"math/rand"
 
 	"golang.org/x/exp/constraints"
@@ -37,6 +38,7 @@ type Score int // the type of score
 const SKIPLIST_MAXLEVEL = 32 /* Should be enough for 2^64 elements */
 const SKIPLIST_P = 0.25      /* Skiplist P = 1/4 */
 
+// TODO: Remove value?
 type SortedSetLevel[K constraints.Ordered, S constraints.Ordered, V any] struct {
 	// Pointer to the next node
 	forward *SortedSetNode[K, S, V]
@@ -331,125 +333,84 @@ func (ss *SortedSet[K, S, V]) Remove(key K) *SortedSetNode[K, S, V] {
 }
 
 // TODO: Add reverse, offset
-type GetByScoreRangeOptions struct {
-	Reverse      bool // Start iterating from the back
-	Offset       int  // How many nodes to skip
-	Limit        int  // limit the max nodes to return
-	ExcludeStart bool // exclude start value, so it search in interval (start, end] or (start, end)
-	ExcludeEnd   bool // exclude end value, so it search in interval [start, end) or (start, end)
+type GetRangeOptions struct {
+	reverse        bool // Start iterating from the back
+	offset         int  // How many nodes to skip
+	limit          int  // limit the max nodes to return
+	startExclusive bool // exclude start value, so it search in interval (start, end] or (start, end)
+	stopExclusive  bool // exclude end value, so it search in interval [start, end) or (start, end)
+}
+
+func DefaultRangeOptions() GetRangeOptions {
+	return GetRangeOptions{
+		reverse:        false,
+		offset:         0,
+		limit:          math.MaxInt,
+		startExclusive: false,
+		stopExclusive:  false,
+	}
 }
 
 // GetRangeByScore returns an array of nodes that satisfy the given score range.
 //
 // Time complexity: O(log(N))
-func (ss *SortedSet[K, S, V]) GetRangeByScore(start S, end S, options *GetByScoreRangeOptions) []*SortedSetNode[K, S, V] {
-
-	// prepare parameters
-	var limit int = int((^uint(0)) >> 1)
-	offset := 0
-
-	if options != nil && options.Limit > 0 {
-		limit = options.Limit
-	}
-
-	if options != nil && options.Offset > 0 {
-		offset = options.Offset
-	}
-
-	excludeStart := options != nil && options.ExcludeStart
-	excludeEnd := options != nil && options.ExcludeEnd
-	reverse := options != nil && options.Reverse
-
-	if reverse {
+func (ss *SortedSet[K, S, V]) GetRangeByScore(start S, end S, options GetRangeOptions) []*SortedSetNode[K, S, V] {
+	if options.reverse {
 		start, end = end, start
-		excludeStart, excludeEnd = excludeEnd, excludeStart
 	}
 
-	var nodes []*SortedSetNode[K, S, V]
+	startNode, startRank := ss.findNodeByScore(start)
 
-	// determine if out of range
-	if ss.length == 0 {
-		return nodes
+	// Move forward once because startRank is the last node that succeeds <start
+	startRank += startNode.level[0].span
+	startNode = startNode.level[0].forward
+
+	if startNode == nil {
+		return []*SortedSetNode[K, S, V]{}
 	}
 
-	if reverse { // search from end to start
-		var x *SortedSetNode[K, S, V] = nil
-
-		if excludeEnd {
-			x = ss.findNodeByScore(end, func(l, r S) bool {
-				return l < r
-			})
-		} else {
-			x = ss.findNodeByScore(end, func(l, r S) bool {
-				return l <= r
-			})
-		}
-
-		// Skip some elements as required by offset
-		for x != nil && offset > 0 && x != ss.header {
-			x = x.backward
-			offset--
-		}
-
-		// Begin appending the result array from this node
-		for x != nil && limit > 0 && x != ss.header {
-			if excludeStart {
-				if x.score <= start {
-					break
-				}
-			} else {
-				if x.score < start {
-					break
-				}
-			}
-
-			next := x.backward
-
-			nodes = append(nodes, x)
-			limit--
-
-			x = next
-		}
-	} else { // search from start to end
-		var x *SortedSetNode[K, S, V] = nil
-
-		if excludeStart {
-			x = ss.findNodeByScore(start, func(l, r S) bool {
-				return l <= r
-			})
-		} else {
-			x = ss.findNodeByScore(start, func(l, r S) bool {
-				return l < r
-			})
-		}
-
-		/* Current node is the last with score < or <= start. */
-		if x != nil {
-			x = x.level[0].forward
-		}
-
-		for x != nil && offset > 0 && x != ss.header {
-			x = x.level[0].forward
-			offset--
-		}
-
-		for x != nil && limit > 0 && x != ss.header {
-			if excludeEnd {
-				if x.score >= end {
-					break
-				}
-			} else {
-				if x.score > end {
-					break
-				}
-			}
-
-			next := x.level[0].forward
-			nodes = append(nodes, x)
-			x = next
-			limit--
-		}
+	if options.startExclusive && startNode != nil && startNode.score == start {
+		startRank += 1
 	}
+
+	endNode, endRank := ss.findNodeByScore(end)
+
+	if !options.stopExclusive && endNode.level[0].forward != nil && endNode.level[0].forward.score == end {
+		endRank += 1
+	}
+
+	nodes := ss.GetRangeByRank(startRank, endRank, options)
+
+	return nodes
+}
+
+// GetRangeByScore returns an array of nodes that satisfy the given score range.
+//
+// Time complexity: O(log(N))
+func (ss *SortedSet[K, S, V]) GetRangeByLex(start K, end K, options GetRangeOptions) []*SortedSetNode[K, S, V] {
+	if options.reverse {
+		start, end = end, start
+	}
+
+	startNode, startRank := ss.findNodeByKey(start)
+
+	// Move forward once because startRank is the last node that succeeds <start
+	if startNode != nil {
+		startRank += startNode.level[0].span
+		startNode = startNode.level[0].forward
+	}
+
+	if options.startExclusive && startNode != nil && startNode.key == start {
+		startRank += 1
+	}
+
+	endNode, endRank := ss.findNodeByKey(end)
+
+	if options.stopExclusive && endNode != nil && endNode.key == end {
+		endRank -= 1
+	}
+
+	nodes := ss.GetRangeByIndex(startRank, endRank, options)
 
 	return nodes
 }
@@ -495,72 +456,101 @@ func (ss *SortedSet[K, S, V]) SanitizeIndex(start int, end int, reverse bool) (i
 	return start, end
 }
 
-// findNodeByRank returns the node at the given rank (which is 1-based index).
-// Can also remove the node if asked.
+// findNodeByRank returns the node just before the requested rank and its rank.
 //
 // Time complexity: O(log(N)) with high probability.
-func (ss *SortedSet[K, S, V]) findNodeByRank(start int) *SortedSetNode[K, S, V] {
-	traversed := 0
-	x := ss.header
+func (ss *SortedSet[K, S, V]) findNodeByRank(start int) (*SortedSetNode[K, S, V], int) {
+	node := ss.header
+	nodeRank := 0
+
 	for i := ss.level - 1; i >= 0; i-- {
-		for x.level[i].forward != nil &&
-			traversed+x.level[i].span < start {
-			traversed += x.level[i].span
-			x = x.level[i].forward
-		}
-		if traversed+1 == start {
-			break
+		for node.level[i].forward != nil &&
+			nodeRank+node.level[i].span < start {
+			nodeRank += node.level[i].span
+			node = node.level[i].forward
 		}
 	}
-	return x
+
+	return node, nodeRank
 }
 
-// findNodeByScore returns the node at the given rank (which is 1-based index).
-// Can also remove the node is asked.
+// findNodeByScore returns the node just before the requested score and its rank.
 //
 // Time complexity: O(log(N)) with high probability
-func (ss *SortedSet[K, S, V]) findNodeByScore(score S, cmp func(S, S) bool) *SortedSetNode[K, S, V] {
-	x := ss.header
+func (ss *SortedSet[K, S, V]) findNodeByScore(score S) (*SortedSetNode[K, S, V], int) {
+	node := ss.header
+	nodeRank := 0
+
 	for i := ss.level - 1; i >= 0; i-- {
-		for x.level[i].forward != nil &&
-			cmp(x.level[i].forward.score, score) {
-			x = x.level[i].forward
+		for node.level[i].forward != nil &&
+			node.level[i].forward.score < score {
+			nodeRank += node.level[i].span
+			node = node.level[i].forward
 		}
 	}
-	return x
+
+	return node, nodeRank
+}
+
+// returns the node just before the requested key and its rank.
+//
+// Time complexity: O(log(N)) with high probability
+func (ss *SortedSet[K, S, V]) findNodeByKey(key K) (*SortedSetNode[K, S, V], int) {
+	node := ss.header
+	nodeRank := 0
+
+	for i := ss.level - 1; i >= 0; i-- {
+		for node.level[i].forward != nil &&
+			node.level[i].forward.key < key {
+			nodeRank += node.level[i].span
+			node = node.level[i].forward
+		}
+	}
+
+	return node, nodeRank
 }
 
 // GetRangeByIndex returns array of nodes within specific index range [start, end].
 // The given start and end must be a valid rank-based index which can be obtained from 'SanitizeRank'.
 //
 // If start is greater than end, the returned array is in reserved order.
-// If remove is true, the returned nodes are removed
 //
 // Time complexity: O(log(N)) with high probability
-func (ss *SortedSet[K, S, V]) GetRangeByIndex(start int, end int, reverse bool) []*SortedSetNode[K, S, V] {
-	start, end = ss.SanitizeIndex(start, end, reverse)
+func (ss *SortedSet[K, S, V]) GetRangeByIndex(start int, end int, options GetRangeOptions) []*SortedSetNode[K, S, V] {
+	start, end = ss.SanitizeIndex(start, end, options.reverse)
+	return ss.GetRangeByRank(start, end, options)
+}
+
+// GetRangeByRank returns array of nodes within specific rank range [start, end].
+// If start is greater than end, returns an empty array.
+//
+// Time complexity: O(log(N)) with high probability
+func (ss *SortedSet[K, S, V]) GetRangeByRank(start int, end int, options GetRangeOptions) []*SortedSetNode[K, S, V] {
 
 	if start > end {
 		return []*SortedSetNode[K, S, V]{}
 	}
 
-	var nodes []*SortedSetNode[K, S, V]
-	x := ss.findNodeByRank(start)
-	if x != nil {
-		x = x.level[0].forward
+	node, nodeRank := ss.findNodeByRank(start)
+	node = node.level[0].forward
+	nodeRank += 1
+
+	nodes := make([]*SortedSetNode[K, S, V], 0)
+	for node != nil && options.limit != 0 && nodeRank <= end {
+		if options.offset == 0 {
+			options.limit--
+
+			nodes = append(nodes, node)
+			node = node.level[0].forward
+		} else {
+			options.offset--
+
+			node = node.level[0].forward
+		}
+		nodeRank++
 	}
-	limit := end - start + 1
 
-	for x != nil && limit != 0 {
-		next := x.level[0].forward
-
-		nodes = append(nodes, x)
-
-		x = next
-		limit--
-	}
-
-	if reverse {
+	if options.reverse {
 		for i, j := 0, len(nodes)-1; i < j; i, j = i+1, j-1 {
 			nodes[i], nodes[j] = nodes[j], nodes[i]
 		}
@@ -576,7 +566,7 @@ func (ss *SortedSet[K, S, V]) GetRangeByIndex(start int, end int, reverse bool) 
 //
 // Time complexity: O(log(N))
 func (ss *SortedSet[K, S, V]) GetByIndex(rank int, remove bool) *SortedSetNode[K, S, V] {
-	nodes := ss.GetRangeByIndex(rank, rank, false)
+	nodes := ss.GetRangeByIndex(rank, rank, DefaultRangeOptions())
 	if len(nodes) == 1 {
 		return nodes[0]
 	}
@@ -594,157 +584,13 @@ func (ss *SortedSet[K, S, V]) GetByKey(key K) *SortedSetNode[K, S, V] {
 // Find the rank of the node specified by key
 // Note that the rank is 1-based integer. Rank 1 means the first node
 //
-// If the node is not found, -1 is returned. Otherwise rank(>= 0) is returned
+// If the node is not found, 0 is returned. Otherwise rank(>0) is returned
 //
 // Time complexity: O(log(N)) with high probability
 func (ss *SortedSet[K, S, V]) FindRankOfKey(key K) int {
-	var rank int = 0
-	node := ss.dict[key]
-	if node != nil {
-		x := ss.header
-		for i := ss.level - 1; i >= 0; i-- {
-			for x.level[i].forward != nil &&
-				(x.level[i].forward.score < node.score ||
-					(x.level[i].forward.score == node.score &&
-						x.level[i].forward.key <= node.key)) {
-				rank += x.level[i].span
-				x = x.level[i].forward
-			}
-
-			if x.key == key {
-				return rank
-			}
-		}
+	node, rank := ss.findNodeByKey(key)
+	if node.level[0].forward != nil && node.level[0].forward.key == key {
+		return rank + 1
 	}
 	return 0
-}
-
-// GetRangeByKey returns an array of nodes that satisfy the given key range.
-//
-// Time complexity: O(log(N))
-func (ss *SortedSet[K, S, V]) GetRangeByKey(start K, end K, options *GetByScoreRangeOptions) []*SortedSetNode[K, S, V] {
-
-	// prepare parameters
-	var limit int = int((^uint(0)) >> 1)
-	offset := 0
-
-	if options != nil && options.Limit > 0 {
-		limit = options.Limit
-	}
-
-	if options != nil && options.Offset > 0 {
-		offset = options.Offset
-	}
-
-	excludeStart := options != nil && options.ExcludeStart
-	excludeEnd := options != nil && options.ExcludeEnd
-	reverse := options != nil && options.Reverse
-
-	if reverse {
-		start, end = end, start
-		excludeStart, excludeEnd = excludeEnd, excludeStart
-	}
-
-	var nodes []*SortedSetNode[K, S, V]
-
-	// determine if out of range
-	if ss.length == 0 {
-		return nodes
-	}
-
-	if reverse { // search from end to start
-		var x *SortedSetNode[K, S, V] = nil
-
-		if excludeEnd {
-			x = ss.findNodeByLex(end, func(l, r K) bool {
-				return l < r
-			})
-		} else {
-			x = ss.findNodeByLex(end, func(l, r K) bool {
-				return l <= r
-			})
-		}
-
-		// Skip some elements as required by offset
-		for x != nil && offset > 0 && x != ss.header {
-			x = x.backward
-			offset--
-		}
-
-		// Begin appending the result array from this node
-		for x != nil && limit > 0 && x != ss.header {
-			if excludeStart {
-				if x.key <= start {
-					break
-				}
-			} else {
-				if x.key < start {
-					break
-				}
-			}
-
-			next := x.backward
-
-			nodes = append(nodes, x)
-			limit--
-
-			x = next
-		}
-	} else { // search from start to end
-		var x *SortedSetNode[K, S, V] = nil
-
-		if excludeStart {
-			x = ss.findNodeByLex(start, func(l, r K) bool {
-				return l <= r
-			})
-		} else {
-			x = ss.findNodeByLex(start, func(l, r K) bool {
-				return l < r
-			})
-		}
-
-		/* Current node is the last with score < or <= start. */
-		if x != nil {
-			x = x.level[0].forward
-		}
-
-		for x != nil && offset > 0 && x != ss.header {
-			x = x.level[0].forward
-			offset--
-		}
-
-		for x != nil && limit > 0 && x != ss.header {
-			if excludeEnd {
-				if x.key >= end {
-					break
-				}
-			} else {
-				if x.key > end {
-					break
-				}
-			}
-
-			next := x.level[0].forward
-			nodes = append(nodes, x)
-			x = next
-			limit--
-		}
-	}
-
-	return nodes
-}
-
-// findNodeByLex returns the node at the given rank (which is 1-based index).
-// Can also remove the node is asked.
-//
-// Time complexity: O(log(N)) with high probability
-func (ss *SortedSet[K, S, V]) findNodeByLex(key K, cmp func(K, K) bool) *SortedSetNode[K, S, V] {
-	x := ss.header
-	for i := ss.level - 1; i >= 0; i-- {
-		for x.level[i].forward != nil &&
-			cmp(x.level[i].forward.key, key) {
-			x = x.level[i].forward
-		}
-	}
-	return x
 }
