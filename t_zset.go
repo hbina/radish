@@ -3,14 +3,14 @@ package redis
 var _ Item = (*ZSet)(nil)
 
 type ZSet struct {
-	inner SortedSet[string, float64, struct{}]
+	inner SortedSet
 }
 
 func NewZSet() *ZSet {
-	return &ZSet{inner: *New[string, float64, struct{}]()}
+	return &ZSet{inner: *New()}
 }
 
-func NewZSetFromSs(value SortedSet[string, float64, struct{}]) *ZSet {
+func NewZSetFromSs(value SortedSet) *ZSet {
 	return &ZSet{inner: value}
 }
 
