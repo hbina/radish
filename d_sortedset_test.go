@@ -266,7 +266,7 @@ func TestSortedSet3(t *testing.T) {
 		options.offset = 0
 		options.limit = 2
 		rn := ss.GetRangeByScore(10, 0, options)
-		assert.Equal(t, 3, len(rn))
+		assert.Equal(t, 2, len(rn))
 
 		res := make([]string, 0, len(rn))
 		for _, r := range rn {

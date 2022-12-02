@@ -465,7 +465,7 @@ func (ss *SortedSet[K, S, V]) findNodeByRank(start int) (*SortedSetNode[K, S, V]
 
 	for i := ss.level - 1; i >= 0; i-- {
 		for node.level[i].forward != nil &&
-			nodeRank+node.level[i].span < start {
+			nodeRank+node.level[i].span <= start {
 			nodeRank += node.level[i].span
 			node = node.level[i].forward
 		}
@@ -531,32 +531,45 @@ func (ss *SortedSet[K, S, V]) GetRangeByRank(start int, end int, options GetRang
 		return []*SortedSetNode[K, S, V]{}
 	}
 
-	node, nodeRank := ss.findNodeByRank(start)
-	node = node.level[0].forward
-	nodeRank += 1
-
-	nodes := make([]*SortedSetNode[K, S, V], 0)
-	for node != nil && options.limit != 0 && nodeRank <= end {
-		if options.offset == 0 {
-			options.limit--
-
-			nodes = append(nodes, node)
-			node = node.level[0].forward
-		} else {
-			options.offset--
-
-			node = node.level[0].forward
-		}
-		nodeRank++
-	}
-
 	if options.reverse {
-		for i, j := 0, len(nodes)-1; i < j; i, j = i+1, j-1 {
-			nodes[i], nodes[j] = nodes[j], nodes[i]
-		}
-	}
+		node, nodeRank := ss.findNodeByRank(end)
 
-	return nodes
+		nodes := make([]*SortedSetNode[K, S, V], 0)
+		for node != nil && options.limit != 0 && nodeRank >= start {
+			if options.offset == 0 {
+				options.limit--
+
+				nodes = append(nodes, node)
+				node = node.backward
+			} else {
+				options.offset--
+
+				node = node.backward
+			}
+			nodeRank--
+		}
+
+		return nodes
+	} else {
+		node, nodeRank := ss.findNodeByRank(start)
+
+		nodes := make([]*SortedSetNode[K, S, V], 0)
+		for node != nil && options.limit != 0 && nodeRank <= end {
+			if options.offset == 0 {
+				options.limit--
+
+				nodes = append(nodes, node)
+				node = node.level[0].forward
+			} else {
+				options.offset--
+
+				node = node.level[0].forward
+			}
+			nodeRank++
+		}
+
+		return nodes
+	}
 }
 
 // Get node by index.
