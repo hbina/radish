@@ -240,6 +240,7 @@ func createDefault() *Redis {
 		NewCommand("zcount", ZcountCommand),
 		NewCommand("zrangebylex", ZrangebylexCommand),
 		NewCommand("zrevrangebylex", ZrevrangebylexCommand),
+		NewCommand("zlexcount", ZlexcountCommand),
 	})
 
 	// NOTE: Taken by dumping from `CONFIG GET *`.

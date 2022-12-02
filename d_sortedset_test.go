@@ -348,4 +348,25 @@ func TestSortedSet5(t *testing.T) {
 		}
 		assert.Equal(t, []string{"omega", "hill", "great", "foo", "elephant", "down"}, res)
 	}
+	{
+		options := DefaultRangeOptions()
+		rn := ss.GetRangeByLex("ele", "h", options)
+		res := make([]string, 0, len(rn))
+		for _, r := range rn {
+			res = append(res, r.Key())
+		}
+		assert.Equal(t, []string{"elephant", "foo", "great"}, res)
+	}
+	{
+		options := DefaultRangeOptions()
+		options.reverse = true
+		options.startExclusive = true
+		rn := ss.GetRangeByLex("cool", "-", options)
+		res := make([]string, 0, len(rn))
+		for _, r := range rn {
+			res = append(res, r.Key())
+		}
+		assert.Equal(t, []string{"bar", "alpha"}, res)
+
+	}
 }

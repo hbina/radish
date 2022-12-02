@@ -22,7 +22,7 @@ func ZrangebylexCommand(c *Client, args [][]byte) {
 	start, startExclusive, stop, stopExclusive, err := ParseLexRange(startStr, stopStr)
 
 	if err != nil {
-		c.Conn().WriteError(InvalidFloatErr)
+		c.Conn().WriteError(err.Error())
 		return
 	}
 
@@ -75,7 +75,8 @@ func ZrangebylexCommand(c *Client, args [][]byte) {
 	maybeSet := c.Db().Get(key)
 
 	if maybeSet == nil {
-		maybeSet = NewZSet()
+		c.Conn().WriteError(WrongTypeErr)
+		return
 	}
 
 	if maybeSet.Type() != ValueTypeZSet {

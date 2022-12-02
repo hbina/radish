@@ -4,6 +4,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 func ParseTtlFromUnitTime(arg string, multiplier int64) (time.Time, error) {
@@ -127,6 +129,8 @@ func ParseLexRange(start string, stop string) (string, bool, string, bool, error
 	} else if len(start) > 0 && start[0] == '(' {
 		start = start[1:]
 		startExclusive = true
+	} else if start != "+" && start != "-" {
+		return start, startExclusive, stop, stopExclusive, errors.New("ERR min or max not valid string range item")
 	}
 
 	if len(stop) > 0 && stop[0] == '[' {
@@ -135,6 +139,8 @@ func ParseLexRange(start string, stop string) (string, bool, string, bool, error
 	} else if len(stop) > 0 && stop[0] == '(' {
 		stop = stop[1:]
 		stopExclusive = true
+	} else if stop != "+" && stop != "-" {
+		return start, startExclusive, stop, stopExclusive, errors.New("ERR min or max not valid string range item")
 	}
 
 	return start, startExclusive, stop, stopExclusive, nil

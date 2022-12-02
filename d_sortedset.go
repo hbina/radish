@@ -373,6 +373,7 @@ func (ss *SortedSet) GetRangeByScore(start float64, end float64, options GetRang
 func (ss *SortedSet) GetRangeByLex(start string, end string, options GetRangeOptions) []*SortedSetNode {
 	if options.reverse {
 		start, end = end, start
+		options.startExclusive, options.stopExclusive = options.stopExclusive, options.startExclusive
 	}
 
 	startNode, startRank := ss.findNodeByLex(start)
@@ -387,7 +388,7 @@ func (ss *SortedSet) GetRangeByLex(start string, end string, options GetRangeOpt
 
 	endNode, endRank := ss.findNodeByLex(end)
 
-	if options.stopExclusive && endNode.key == end {
+	if (options.stopExclusive && endNode.key == end) || endNode.key > end {
 		endRank -= 1
 	}
 

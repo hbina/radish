@@ -7,10 +7,10 @@ import (
 	"strings"
 )
 
-// https://redis.io/commands/zrevrangebylex/
-// ZREVRANGEBYLEX key max min [LIMIT offset count]
-func ZrevrangebylexCommand(c *Client, args [][]byte) {
-	if len(args) < 4 {
+// https://redis.io/commands/zlexcount/
+// ZLEXCOUNT key min max
+func ZlexcountCommand(c *Client, args [][]byte) {
+	if len(args) != 4 {
 		c.Conn().WriteError(fmt.Sprintf(WrongNumOfArgsErr, args[0]))
 		return
 	}
@@ -86,16 +86,12 @@ func ZrevrangebylexCommand(c *Client, args [][]byte) {
 	set := maybeSet.Value().(SortedSet)
 
 	res := set.GetRangeByLex(start, stop, GetRangeOptions{
-		reverse:        true,
+		reverse:        false,
 		offset:         offset,
 		limit:          limit,
 		startExclusive: startExclusive,
 		stopExclusive:  stopExclusive,
 	})
 
-	c.Conn().WriteArray(len(res))
-
-	for _, ssn := range res {
-		c.Conn().WriteBulkString(ssn.key)
-	}
+	c.Conn().WriteInt(len(res))
 }

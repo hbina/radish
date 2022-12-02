@@ -112,7 +112,7 @@ func ZrangeCommand(c *Client, args [][]byte) {
 		start, startExclusive, stop, stopExclusive, err := ParseLexRange(startStr, stopStr)
 
 		if err != nil {
-			c.Conn().WriteError(InvalidIntErr)
+			c.Conn().WriteError(err.Error())
 			return
 		}
 
@@ -169,6 +169,4 @@ func ZrangeCommand(c *Client, args [][]byte) {
 			c.Conn().WriteBulkString(ssn.key)
 		}
 	}
-
-	fmt.Println(reverse, offset, limit, set)
 }
