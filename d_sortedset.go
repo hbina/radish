@@ -36,7 +36,6 @@ type Score int // the type of score
 const SKIPLIST_MAXLEVEL = 32 /* Should be enough for 2^64 elements */
 const SKIPLIST_P = 0.25      /* Skiplist P = 1/4 */
 
-// TODO: Remove value?
 type SortedSetLevel struct {
 	// Pointer to the next node
 	forward *SortedSetNode
@@ -240,7 +239,7 @@ func NewSortedSet() *SortedSet {
 
 // Get the number of elements
 func (ss *SortedSet) Len() int {
-	return int(ss.length)
+	return ss.length
 }
 
 // PeekMin returns the element with the lowest score if it exists.
@@ -287,7 +286,7 @@ func (ss *SortedSet) PopMax() *SortedSetNode {
 // Add an element into the sorted set with specific key / value / score.
 // If the element is added, this method returns true; otherwise false means updated.
 //
-// Time complexity: O(log(N))
+// Time complexity: O(log(N)) with high probability
 func (ss *SortedSet) AddOrUpdate(key string, score float64) bool {
 	var newNode *SortedSetNode = nil
 
@@ -310,7 +309,7 @@ func (ss *SortedSet) AddOrUpdate(key string, score float64) bool {
 
 // Delete element specified by key
 //
-// Time complexity: O(log(N))
+// Time complexity: O(log(N)) with high probability
 func (ss *SortedSet) Remove(key string) *SortedSetNode {
 	found := ss.dict[key]
 	if found != nil {
@@ -368,7 +367,7 @@ func (ss *SortedSet) GetRangeByScore(start float64, end float64, options GetRang
 	return nodes
 }
 
-// GetRangeByScore returns an array of nodes that satisfy the given score range.
+// GetRangeByLex returns an array of nodes that satisfy the given score range.
 //
 // Time complexity: O(log(N))
 func (ss *SortedSet) GetRangeByLex(start string, end string, options GetRangeOptions) []*SortedSetNode {
