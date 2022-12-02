@@ -51,12 +51,18 @@ func ParseIntRange(startStr string, stopStr string) (int, bool, int, bool, error
 	startExclusive := false
 	stopExclusive := false
 
-	if len(startStr) > 0 && startStr[0] == '(' {
+	if len(startStr) > 0 && startStr[0] == '[' {
+		startStr = startStr[1:]
+		startExclusive = false
+	} else if len(startStr) > 0 && startStr[0] == '(' {
 		startStr = startStr[1:]
 		startExclusive = true
 	}
 
-	if len(stopStr) > 0 && stopStr[0] == '(' {
+	if len(stopStr) > 0 && stopStr[0] == '[' {
+		stopStr = stopStr[1:]
+		stopExclusive = false
+	} else if len(stopStr) > 0 && stopStr[0] == '(' {
 		stopStr = stopStr[1:]
 		stopExclusive = true
 	}
@@ -80,12 +86,18 @@ func ParseFloatRange(startStr string, stopStr string) (float64, bool, float64, b
 	startExclusive := false
 	stopExclusive := false
 
-	if len(startStr) > 0 && startStr[0] == '(' {
+	if len(startStr) > 0 && startStr[0] == '[' {
+		startStr = startStr[1:]
+		startExclusive = false
+	} else if len(startStr) > 0 && startStr[0] == '(' {
 		startStr = startStr[1:]
 		startExclusive = true
 	}
 
-	if len(stopStr) > 0 && stopStr[0] == '(' {
+	if len(stopStr) > 0 && stopStr[0] == '[' {
+		stopStr = stopStr[1:]
+		stopExclusive = false
+	} else if len(stopStr) > 0 && stopStr[0] == '(' {
 		stopStr = stopStr[1:]
 		stopExclusive = true
 	}
@@ -105,16 +117,22 @@ func ParseFloatRange(startStr string, stopStr string) (float64, bool, float64, b
 	return start, startExclusive, stop, stopExclusive, nil
 }
 
-func ParseStringRange(start string, stop string) (string, bool, string, bool, error) {
+func ParseLexRange(start string, stop string) (string, bool, string, bool, error) {
 	startExclusive := false
 	stopExclusive := false
 
-	if len(start) > 0 && start[0] == '(' {
+	if len(start) > 0 && start[0] == '[' {
+		start = start[1:]
+		startExclusive = false
+	} else if len(start) > 0 && start[0] == '(' {
 		start = start[1:]
 		startExclusive = true
 	}
 
-	if len(stop) > 0 && stop[0] == '(' {
+	if len(stop) > 0 && stop[0] == '[' {
+		stop = stop[1:]
+		stopExclusive = false
+	} else if len(stop) > 0 && stop[0] == '(' {
 		stop = stop[1:]
 		stopExclusive = true
 	}

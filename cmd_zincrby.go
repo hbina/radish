@@ -42,7 +42,7 @@ func ZincrbyCommand(c *Client, args [][]byte) {
 	maybeMember := set.inner.GetByKey(memberKey)
 
 	if maybeMember == nil {
-		set.inner.AddOrUpdate(memberKey, increment, struct{}{})
+		set.inner.AddOrUpdate(memberKey, increment)
 		db.Set(key, set, ttl)
 		c.Conn().WriteString(fmt.Sprint(increment))
 	} else {
@@ -52,7 +52,7 @@ func ZincrbyCommand(c *Client, args [][]byte) {
 			c.Conn().WriteError("ERR resulting score is not a number (NaN)")
 			return
 		}
-		set.inner.AddOrUpdate(memberKey, newScore, struct{}{})
+		set.inner.AddOrUpdate(memberKey, newScore)
 		db.Set(key, set, ttl)
 		c.Conn().WriteString(fmt.Sprint(newScore))
 	}

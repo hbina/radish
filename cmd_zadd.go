@@ -129,7 +129,7 @@ func ZaddCommand(c *Client, args [][]byte) {
 		return
 	}
 
-	set := maybeSet.Value().(SortedSet[string, float64, struct{}])
+	set := maybeSet.Value().(SortedSet)
 
 	addedCount := 0
 	var newScore *float64 = nil
@@ -150,7 +150,7 @@ func ZaddCommand(c *Client, args [][]byte) {
 			continue
 		}
 
-		added := set.AddOrUpdate(member, score, struct{}{})
+		added := set.AddOrUpdate(member, score)
 
 		if added || (chEnabled && old != nil && old.Score() != score) {
 			addedCount++

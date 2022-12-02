@@ -7,9 +7,9 @@ import (
 	"strings"
 )
 
-// https://redis.io/commands/zrangebyscore/
-// ZRANGEBYSCORE key min max [WITHSCORES] [LIMIT offset count]
-func ZrangebyscoreCommand(c *Client, args [][]byte) {
+// https://redis.io/commands/zrangebylex/
+// ZRANGEBYLEX key min max [LIMIT offset count]
+func ZrangebylexCommand(c *Client, args [][]byte) {
 	if len(args) < 4 {
 		c.Conn().WriteError(fmt.Sprintf(WrongNumOfArgsErr, args[0]))
 		return
@@ -19,15 +19,14 @@ func ZrangebyscoreCommand(c *Client, args [][]byte) {
 	startStr := string(args[2])
 	stopStr := string(args[3])
 
-	start, startExclusive, stop, stopExclusive, err := ParseFloatRange(startStr, stopStr)
+	start, startExclusive, stop, stopExclusive, err := ParseLexRange(startStr, stopStr)
 
-	if err != nil || math.IsNaN(start) || math.IsNaN(stop) {
+	if err != nil {
 		c.Conn().WriteError(InvalidFloatErr)
 		return
 	}
 
 	// Parse options
-	withScores := false
 	offset := 0
 	limit := math.MaxInt
 
@@ -70,10 +69,6 @@ func ZrangebyscoreCommand(c *Client, args [][]byte) {
 
 				limit = int(newLimit)
 			}
-		case "withscores":
-			{
-				withScores = true
-			}
 		}
 	}
 
@@ -90,7 +85,7 @@ func ZrangebyscoreCommand(c *Client, args [][]byte) {
 
 	set := maybeSet.Value().(SortedSet)
 
-	res := set.GetRangeByScore(start, stop, GetRangeOptions{
+	res := set.GetRangeByLex(start, stop, GetRangeOptions{
 		reverse:        false,
 		offset:         offset,
 		limit:          limit,
@@ -98,18 +93,9 @@ func ZrangebyscoreCommand(c *Client, args [][]byte) {
 		stopExclusive:  stopExclusive,
 	})
 
-	if withScores {
-		c.Conn().WriteArray(len(res) * 2)
+	c.Conn().WriteArray(len(res))
 
-		for _, ssn := range res {
-			c.Conn().WriteBulkString(ssn.key)
-			c.Conn().WriteBulkString(fmt.Sprint(ssn.score))
-		}
-	} else {
-		c.Conn().WriteArray(len(res))
-
-		for _, ssn := range res {
-			c.Conn().WriteBulkString(ssn.key)
-		}
+	for _, ssn := range res {
+		c.Conn().WriteBulkString(ssn.key)
 	}
 }

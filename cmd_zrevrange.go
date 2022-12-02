@@ -54,7 +54,7 @@ func ZrevrangeCommand(c *Client, args [][]byte) {
 		return
 	}
 
-	set := maybeSet.Value().(SortedSet[string, float64, struct{}])
+	set := maybeSet.Value().(SortedSet)
 
 	options := DefaultRangeOptions()
 	options.reverse = true

@@ -88,7 +88,7 @@ func ZrevrangebyscoreCommand(c *Client, args [][]byte) {
 		return
 	}
 
-	set := maybeSet.Value().(SortedSet[string, float64, struct{}])
+	set := maybeSet.Value().(SortedSet)
 
 	res := set.GetRangeByScore(start, stop, GetRangeOptions{
 		reverse:        true,

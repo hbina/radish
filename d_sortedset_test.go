@@ -8,15 +8,15 @@ import (
 )
 
 func TestSortedSet1(t *testing.T) {
-	ss := NewSortedSet[string, int, struct{}]()
+	ss := NewSortedSet()
 
-	ss.AddOrUpdate("a", 1, struct{}{})
-	ss.AddOrUpdate("b", 2, struct{}{})
-	ss.AddOrUpdate("c", 3, struct{}{})
-	ss.AddOrUpdate("d", 4, struct{}{})
-	ss.AddOrUpdate("e", 5, struct{}{})
-	ss.AddOrUpdate("f", 6, struct{}{})
-	ss.AddOrUpdate("g", 7, struct{}{})
+	ss.AddOrUpdate("a", 1)
+	ss.AddOrUpdate("b", 2)
+	ss.AddOrUpdate("c", 3)
+	ss.AddOrUpdate("d", 4)
+	ss.AddOrUpdate("e", 5)
+	ss.AddOrUpdate("f", 6)
+	ss.AddOrUpdate("g", 7)
 
 	assert.Equal(t, 7, ss.Len())
 
@@ -137,22 +137,22 @@ func TestSortedSet1(t *testing.T) {
 
 	for i := 0; i < ss.Len(); i++ {
 		res := ss.GetByIndex(i, false)
-		assert.Equal(t, i+1, res.score)
+		assert.Equal(t, float64(i+1), res.score)
 	}
 
 	for i := -1; i >= -ss.Len(); i-- {
 		res := ss.GetByIndex(i, false)
-		assert.Equal(t, ss.Len()+i+1, res.score)
+		assert.Equal(t, float64(ss.Len()+i+1), res.score)
 	}
 }
 
 func TestSortedSet2(t *testing.T) {
-	ss := NewSortedSet[string, int, struct{}]()
+	ss := NewSortedSet()
 
-	ss.AddOrUpdate("a", 1, struct{}{})
-	ss.AddOrUpdate("b", 2, struct{}{})
-	ss.AddOrUpdate("c", 3, struct{}{})
-	ss.AddOrUpdate("d", 4, struct{}{})
+	ss.AddOrUpdate("a", 1)
+	ss.AddOrUpdate("b", 2)
+	ss.AddOrUpdate("c", 3)
+	ss.AddOrUpdate("d", 4)
 
 	{
 		rn := ss.GetRangeByIndex(-5, 2, DefaultRangeOptions())
@@ -176,18 +176,24 @@ func TestSortedSet2(t *testing.T) {
 		}
 		assert.Equal(t, []string{"c", "b", "a"}, res)
 	}
+	{
+		a := ss.FindRankOfKey("A")
+		assert.Equal(t, 0, a)
+		e := ss.FindRankOfKey("e")
+		assert.Equal(t, 0, e)
+	}
 }
 
 func TestSortedSet3(t *testing.T) {
-	ss := NewSortedSet[string, float64, struct{}]()
+	ss := NewSortedSet()
 
-	ss.AddOrUpdate("a", math.Inf(-1), struct{}{})
-	ss.AddOrUpdate("b", 1, struct{}{})
-	ss.AddOrUpdate("c", 2, struct{}{})
-	ss.AddOrUpdate("d", 3, struct{}{})
-	ss.AddOrUpdate("e", 4, struct{}{})
-	ss.AddOrUpdate("f", 5, struct{}{})
-	ss.AddOrUpdate("g", math.Inf(1), struct{}{})
+	ss.AddOrUpdate("a", math.Inf(-1))
+	ss.AddOrUpdate("b", 1)
+	ss.AddOrUpdate("c", 2)
+	ss.AddOrUpdate("d", 3)
+	ss.AddOrUpdate("e", 4)
+	ss.AddOrUpdate("f", 5)
+	ss.AddOrUpdate("g", math.Inf(1))
 
 	{
 		options := DefaultRangeOptions()
@@ -277,17 +283,69 @@ func TestSortedSet3(t *testing.T) {
 }
 
 func TestSortedSet4(t *testing.T) {
-	ss := NewSortedSet[string, float64, struct{}]()
+	ss := NewSortedSet()
 
-	ss.AddOrUpdate("b", 1, struct{}{})
-	ss.AddOrUpdate("c", 2, struct{}{})
-	ss.AddOrUpdate("d", 3, struct{}{})
-	ss.AddOrUpdate("e", 4, struct{}{})
-	ss.AddOrUpdate("f", 5, struct{}{})
+	ss.AddOrUpdate("b", 1)
+	ss.AddOrUpdate("c", 2)
+	ss.AddOrUpdate("d", 3)
+	ss.AddOrUpdate("e", 4)
+	ss.AddOrUpdate("f", 5)
 
 	{
 		options := DefaultRangeOptions()
 		rn := ss.GetRangeByScore(6, math.Inf(1), options)
 		assert.Equal(t, 0, len(rn))
+	}
+
+	{
+		options := DefaultRangeOptions()
+		options.stopExclusive = true
+		rn := ss.GetRangeByScore(2, 2, options)
+		assert.Equal(t, 0, len(rn))
+	}
+}
+
+// ZADD key 0 alpha 0 bar 0 cool 0 down 0 elephant 0 foo 0 great 0 hill 0 omega
+func TestSortedSet5(t *testing.T) {
+	ss := NewSortedSet()
+
+	ss.AddOrUpdate("alpha", 0)
+	ss.AddOrUpdate("bar", 0)
+	ss.AddOrUpdate("cool", 0)
+	ss.AddOrUpdate("down", 0)
+	ss.AddOrUpdate("elephant", 0)
+	ss.AddOrUpdate("foo", 0)
+	ss.AddOrUpdate("great", 0)
+	ss.AddOrUpdate("hill", 0)
+	ss.AddOrUpdate("omega", 0)
+
+	{
+		options := DefaultRangeOptions()
+		rn := ss.GetRangeByLex("-", "cool", options)
+		res := make([]string, 0, len(rn))
+		for _, r := range rn {
+			res = append(res, r.Key())
+		}
+		assert.Equal(t, []string{"alpha", "bar", "cool"}, res)
+	}
+	{
+		options := DefaultRangeOptions()
+		rn := ss.GetRangeByLex("g", "+", options)
+		res := make([]string, 0, len(rn))
+		for _, r := range rn {
+			res = append(res, r.Key())
+		}
+		assert.Equal(t, []string{"great", "hill", "omega"}, res)
+	}
+	{
+		options := DefaultRangeOptions()
+		options.reverse = true
+		options.stopExclusive = true
+		rn := ss.GetRangeByLex("+", "d", options)
+		res := make([]string, 0, len(rn))
+		for _, r := range rn {
+			res = append(res, r.Key())
+		}
+		assert.Equal(t, []string{"omega", "hill", "great", "foo", "elephant", "down"}, res)
 	}
 }

@@ -103,7 +103,7 @@ func RestoreCommand(c *Client, args [][]byte) {
 
 		db.Set(key, NewSetFromMap(set), ttl)
 	} else if kvp.Type == ValueTypeFancyZSet {
-		set, ok := kvp.Value.(SortedSet[string, float64, struct{}])
+		set, ok := kvp.Value.(SortedSet)
 
 		if !ok {
 			c.Conn().WriteError(fmt.Sprintf(DeserializationErr, string(args[3])))

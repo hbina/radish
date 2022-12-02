@@ -104,12 +104,12 @@ func ZrangeCommand(c *Client, args [][]byte) {
 		return
 	}
 
-	set := maybeSet.Value().(SortedSet[string, float64, struct{}])
+	set := maybeSet.Value().(SortedSet)
 
-	var res []*SortedSetNode[string, float64, struct{}]
+	var res []*SortedSetNode
 
 	if sortByLex {
-		start, startExclusive, stop, stopExclusive, err := ParseStringRange(startStr, stopStr)
+		start, startExclusive, stop, stopExclusive, err := ParseLexRange(startStr, stopStr)
 
 		if err != nil {
 			c.Conn().WriteError(InvalidIntErr)
