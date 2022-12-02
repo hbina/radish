@@ -262,6 +262,7 @@ func (db *RedisDb) Clear() {
 	}
 }
 
+// Number of keys in the storage
 func (db *RedisDb) Len() int {
 	return len(db.storage)
 }
