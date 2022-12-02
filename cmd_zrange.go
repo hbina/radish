@@ -111,8 +111,8 @@ func ZrangeCommand(c *Client, args [][]byte) {
 	if sortByLex {
 		start, startExclusive, stop, stopExclusive, err := ParseLexRange(startStr, stopStr)
 
-		if err != nil {
-			c.Conn().WriteError(err.Error())
+		if err {
+			c.Conn().WriteError(InvalidLexErr)
 			return
 		}
 
@@ -126,8 +126,8 @@ func ZrangeCommand(c *Client, args [][]byte) {
 	} else if sortByScore {
 		start, startExclusive, stop, stopExclusive, err := ParseFloatRange(startStr, stopStr)
 
-		if err != nil {
-			c.Conn().WriteError(InvalidIntErr)
+		if err {
+			c.Conn().WriteError(InvalidFloatErr)
 			return
 		}
 
@@ -141,7 +141,7 @@ func ZrangeCommand(c *Client, args [][]byte) {
 	} else {
 		start, startExclusive, stop, stopExclusive, err := ParseIntRange(startStr, stopStr)
 
-		if err != nil {
+		if err {
 			c.Conn().WriteError(InvalidIntErr)
 			return
 		}

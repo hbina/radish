@@ -21,8 +21,8 @@ func ZlexcountCommand(c *Client, args [][]byte) {
 
 	start, startExclusive, stop, stopExclusive, err := ParseLexRange(startStr, stopStr)
 
-	if err != nil {
-		c.Conn().WriteError(err.Error())
+	if err {
+		c.Conn().WriteError("ERR min or max not valid string range item")
 		return
 	}
 

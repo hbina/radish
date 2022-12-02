@@ -19,7 +19,7 @@ func ZrevrangeCommand(c *Client, args [][]byte) {
 
 	start, startExclusive, stop, stopExclusive, err := ParseIntRange(startStr, stopStr)
 
-	if err != nil {
+	if err {
 		c.Conn().WriteError(InvalidIntErr)
 		return
 	}

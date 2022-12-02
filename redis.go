@@ -13,6 +13,7 @@ const (
 	SyntaxErr             = "ERR syntax error"
 	InvalidIntErr         = "ERR value is not an integer or out of range"
 	InvalidFloatErr       = "ERR value is not a valid float"
+	InvalidLexErr         = "ERR min or max not valid string range item"
 	WrongTypeErr          = "WRONGTYPE Operation against a key holding the wrong kind of value"
 	WrongNumOfArgsErr     = "ERR wrong number of arguments for '%s' command"
 	ZeroArgumentErr       = "ERR zero argument passed to the handler. This is an implementation bug"
@@ -241,6 +242,7 @@ func createDefault() *Redis {
 		NewCommand("zrangebylex", ZrangebylexCommand),
 		NewCommand("zrevrangebylex", ZrevrangebylexCommand),
 		NewCommand("zlexcount", ZlexcountCommand),
+		NewCommand("zremrangebyscore", ZremrangebyscoreCommand),
 	})
 
 	// NOTE: Taken by dumping from `CONFIG GET *`.

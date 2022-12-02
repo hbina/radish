@@ -1,11 +1,10 @@
 package redis
 
 import (
+	"math"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
 func ParseTtlFromUnitTime(arg string, multiplier int64) (time.Time, error) {
@@ -49,7 +48,7 @@ func CollectArgs(args [][]byte) string {
 	return result
 }
 
-func ParseIntRange(startStr string, stopStr string) (int, bool, int, bool, error) {
+func ParseIntRange(startStr string, stopStr string) (int, bool, int, bool, bool) {
 	startExclusive := false
 	stopExclusive := false
 
@@ -72,19 +71,19 @@ func ParseIntRange(startStr string, stopStr string) (int, bool, int, bool, error
 	start, err := strconv.ParseInt(startStr, 10, 32)
 
 	if err != nil {
-		return 0, false, 0, false, err
+		return 0, false, 0, false, true
 	}
 
 	stop, err := strconv.ParseInt(stopStr, 10, 32)
 
 	if err != nil {
-		return 0, false, 0, false, err
+		return 0, false, 0, false, true
 	}
 
-	return int(start), startExclusive, int(stop), stopExclusive, nil
+	return int(start), startExclusive, int(stop), stopExclusive, false
 }
 
-func ParseFloatRange(startStr string, stopStr string) (float64, bool, float64, bool, error) {
+func ParseFloatRange(startStr string, stopStr string) (float64, bool, float64, bool, bool) {
 	startExclusive := false
 	stopExclusive := false
 
@@ -107,19 +106,23 @@ func ParseFloatRange(startStr string, stopStr string) (float64, bool, float64, b
 	start, err := strconv.ParseFloat(startStr, 64)
 
 	if err != nil {
-		return 0, startExclusive, 0, stopExclusive, err
+		return 0, startExclusive, 0, stopExclusive, true
 	}
 
 	stop, err := strconv.ParseFloat(stopStr, 64)
 
 	if err != nil {
-		return 0, startExclusive, 0, stopExclusive, err
+		return 0, startExclusive, 0, stopExclusive, true
 	}
 
-	return start, startExclusive, stop, stopExclusive, nil
+	if math.IsNaN(start) || math.IsNaN(stop) {
+		return 0, startExclusive, 0, stopExclusive, true
+	}
+
+	return start, startExclusive, stop, stopExclusive, false
 }
 
-func ParseLexRange(start string, stop string) (string, bool, string, bool, error) {
+func ParseLexRange(start string, stop string) (string, bool, string, bool, bool) {
 	startExclusive := false
 	stopExclusive := false
 
@@ -130,7 +133,7 @@ func ParseLexRange(start string, stop string) (string, bool, string, bool, error
 		start = start[1:]
 		startExclusive = true
 	} else if start != "+" && start != "-" {
-		return start, startExclusive, stop, stopExclusive, errors.New("ERR min or max not valid string range item")
+		return start, startExclusive, stop, stopExclusive, true
 	}
 
 	if len(stop) > 0 && stop[0] == '[' {
@@ -140,8 +143,8 @@ func ParseLexRange(start string, stop string) (string, bool, string, bool, error
 		stop = stop[1:]
 		stopExclusive = true
 	} else if stop != "+" && stop != "-" {
-		return start, startExclusive, stop, stopExclusive, errors.New("ERR min or max not valid string range item")
+		return start, startExclusive, stop, stopExclusive, true
 	}
 
-	return start, startExclusive, stop, stopExclusive, nil
+	return start, startExclusive, stop, stopExclusive, false
 }

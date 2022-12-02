@@ -18,7 +18,7 @@ func ZcountCommand(c *Client, args [][]byte) {
 
 	start, startExclusive, stop, stopExclusive, err := ParseFloatRange(startStr, stopStr)
 
-	if err != nil {
+	if err {
 		c.Conn().WriteError(InvalidFloatErr)
 		return
 	}

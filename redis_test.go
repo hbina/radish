@@ -231,10 +231,7 @@ func TestZaddCommad(t *testing.T) {
 	// ZADD CH option changes return value to all changed elements
 	{
 		c := CreateTestClient()
-		_, err := c.Del("ztmp").Result()
-		assert.NoError(t, err)
-
-		_, err = c.ZAdd("ztmp", redis.Z{
+		_, err := c.ZAdd("ztmp", redis.Z{
 			Score:  10,
 			Member: "x",
 		}, redis.Z{
@@ -276,10 +273,7 @@ func TestZaddCommad(t *testing.T) {
 	// ZRANGE basics
 	{
 		c := CreateTestClient()
-		_, err := c.Del("ztmp").Result()
-		assert.NoError(t, err)
-
-		_, err = c.ZAdd("ztmp", redis.Z{
+		_, err := c.ZAdd("ztmp", redis.Z{
 			Score:  1,
 			Member: "a",
 		}, redis.Z{
@@ -334,5 +328,34 @@ func TestZaddCommad(t *testing.T) {
 		res, err = c.ZRange("ztmp", 5, -2).Result()
 		assert.NoError(t, err)
 		assert.Equal(t, []string{}, res)
+	}
+}
+
+func TestZremrangebyScoreCommand(t *testing.T) {
+
+	{
+		c := CreateTestClient()
+
+		_, err := c.ZAdd("zset", redis.Z{
+			Score:  1,
+			Member: "a",
+		}, redis.Z{
+			Score:  2,
+			Member: "b",
+		}, redis.Z{
+			Score:  3,
+			Member: "c",
+		}, redis.Z{
+			Score:  4,
+			Member: "d",
+		}, redis.Z{
+			Score:  5,
+			Member: "e",
+		}).Result()
+		assert.NoError(t, err)
+
+		res, err := c.ZRemRangeByScore("zset", "2", "4").Result()
+		assert.NoError(t, err)
+		fmt.Println(res)
 	}
 }
