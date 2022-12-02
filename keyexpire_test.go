@@ -10,10 +10,10 @@ import (
 func TestKeyExpirer(t *testing.T) {
 	c := CreateTestClient()
 
-	s, err := c.Set("a", "v", 53*time.Millisecond).Result()
+	s, err := c.Set("a", "v", 5*time.Millisecond).Result()
 	assert.Equal(t, "OK", s)
 	assert.NoError(t, err)
-	time.Sleep(1 * time.Second)
+	time.Sleep(50 * time.Millisecond)
 
 	s, err = c.Get("a").Result()
 	assert.NotEqual(t, "v", s)
