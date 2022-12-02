@@ -231,7 +231,7 @@ func TestZaddCommad(t *testing.T) {
 	// ZADD CH option changes return value to all changed elements
 	{
 		c := CreateTestClient()
-		_, err := c.ZAdd("ztmp", redis.Z{
+		_, err := c.ZAdd("ztmp2", redis.Z{
 			Score:  10,
 			Member: "x",
 		}, redis.Z{
@@ -243,7 +243,7 @@ func TestZaddCommad(t *testing.T) {
 		}).Result()
 		assert.NoError(t, err)
 
-		s, err := c.ZAdd("ztmp", redis.Z{
+		s, err := c.ZAdd("ztmp2", redis.Z{
 			Score:  11,
 			Member: "x",
 		}, redis.Z{
@@ -256,7 +256,7 @@ func TestZaddCommad(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, int64(0), s)
 
-		s, err = c.ZAddCh("ztmp", redis.Z{
+		s, err = c.ZAddCh("ztmp2", redis.Z{
 			Score:  12,
 			Member: "x",
 		}, redis.Z{
@@ -273,7 +273,7 @@ func TestZaddCommad(t *testing.T) {
 	// ZRANGE basics
 	{
 		c := CreateTestClient()
-		_, err := c.ZAdd("ztmp", redis.Z{
+		_, err := c.ZAdd("ztmp1", redis.Z{
 			Score:  1,
 			Member: "a",
 		}, redis.Z{
@@ -288,44 +288,44 @@ func TestZaddCommad(t *testing.T) {
 		}).Result()
 		assert.NoError(t, err)
 
-		res, err := c.ZRange("ztmp", 0, -1).Result()
+		res, err := c.ZRange("ztmp1", 0, -1).Result()
 		assert.NoError(t, err)
 		assert.Equal(t, []string{"a", "b", "c", "d"}, res)
 
-		res, err = c.ZRange("ztmp", 0, -2).Result()
+		res, err = c.ZRange("ztmp1", 0, -2).Result()
 		assert.NoError(t, err)
 		assert.Equal(t, []string{"a", "b", "c"}, res)
 
-		res, err = c.ZRange("ztmp", 1, -1).Result()
+		res, err = c.ZRange("ztmp1", 1, -1).Result()
 		assert.NoError(t, err)
 		assert.Equal(t, []string{"b", "c", "d"}, res)
 
-		res, err = c.ZRange("ztmp", 1, -2).Result()
+		res, err = c.ZRange("ztmp1", 1, -2).Result()
 		assert.NoError(t, err)
 		assert.Equal(t, []string{"b", "c"}, res)
 
-		res, err = c.ZRange("ztmp", -2, -1).Result()
+		res, err = c.ZRange("ztmp1", -2, -1).Result()
 		assert.NoError(t, err)
 		assert.Equal(t, []string{"c", "d"}, res)
 
-		res, err = c.ZRange("ztmp", -2, -2).Result()
+		res, err = c.ZRange("ztmp1", -2, -2).Result()
 		assert.NoError(t, err)
 		assert.Equal(t, []string{"c"}, res)
 
 		// out of range start index
-		res, err = c.ZRange("ztmp", -5, 2).Result()
+		res, err = c.ZRange("ztmp1", -5, 2).Result()
 		assert.NoError(t, err)
 		assert.Equal(t, []string{"a", "b", "c"}, res)
 
-		res, err = c.ZRange("ztmp", -5, 1).Result()
+		res, err = c.ZRange("ztmp1", -5, 1).Result()
 		assert.NoError(t, err)
 		assert.Equal(t, []string{"a", "b"}, res)
 
-		res, err = c.ZRange("ztmp", 5, -1).Result()
+		res, err = c.ZRange("ztmp1", 5, -1).Result()
 		assert.NoError(t, err)
 		assert.Equal(t, []string{}, res)
 
-		res, err = c.ZRange("ztmp", 5, -2).Result()
+		res, err = c.ZRange("ztmp1", 5, -2).Result()
 		assert.NoError(t, err)
 		assert.Equal(t, []string{}, res)
 	}
@@ -354,8 +354,7 @@ func TestZremrangebyScoreCommand(t *testing.T) {
 		}).Result()
 		assert.NoError(t, err)
 
-		res, err := c.ZRemRangeByScore("zset", "2", "4").Result()
+		_, err = c.ZRemRangeByScore("zset", "2", "4").Result()
 		assert.NoError(t, err)
-		fmt.Println(res)
 	}
 }
