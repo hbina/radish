@@ -141,12 +141,26 @@ func createDefault() *Redis {
 
 			// TODO: Check that args is not empty
 			// TODO: Remove the first argument from argument to command handlers
-			mu.Lock()
-			defer mu.Unlock()
+			// fmt.Println(CollectArgs(cmd.Args))
 			cmdl := strings.ToLower(string(cmd.Args[0]))
-			commandHandler := c.Redis().CommandHandlerFn(cmdl)
-			if commandHandler != nil {
-				(*commandHandler)(c, cmd.Args)
+			command := c.Redis().Command(cmdl)
+
+			fmt.Println(CollectArgs(cmd.Args))
+
+			if command != nil {
+				if command.flag&CMD_WRITE != 0 {
+					mu.Lock()
+				} else {
+					mu.RLock()
+				}
+
+				(command.handler)(c, cmd.Args)
+
+				if command.flag&CMD_WRITE != 0 {
+					mu.Unlock()
+				} else {
+					mu.RUnlock()
+				}
 			} else {
 				c.Redis().UnknownCommandFn()(c, cmd)
 			}
@@ -161,71 +175,71 @@ func createDefault() *Redis {
 	r.keyExpirer = KeyExpirer(NewKeyExpirer(r))
 
 	r.RegisterCommands([]*Command{
-		NewCommand("ping", PingCommand, CMD_STALE, CMD_FAST),
-		NewCommand("set", SetCommand, CMD_WRITE, CMD_DENYOOM),
-		NewCommand("get", GetCommand, CMD_READONLY, CMD_FAST),
+		NewCommand("ping", PingCommand, CMD_READONLY),
+		NewCommand("set", SetCommand, CMD_WRITE),
+		NewCommand("get", GetCommand, CMD_READONLY),
 		NewCommand("del", DelCommand, CMD_WRITE),
-		NewCommand("ttl", TtlCommand, CMD_READONLY, CMD_FAST),
-		NewCommand("lpush", LPushCommand, CMD_WRITE, CMD_FAST, CMD_DENYOOM),
-		NewCommand("rpush", RPushCommand, CMD_WRITE, CMD_FAST, CMD_DENYOOM),
-		NewCommand("lpop", LPopCommand, CMD_WRITE, CMD_FAST),
-		NewCommand("rpop", RPopCommand, CMD_WRITE, CMD_FAST),
+		NewCommand("ttl", TtlCommand, CMD_READONLY),
+		NewCommand("lpush", LPushCommand, CMD_WRITE),
+		NewCommand("rpush", RPushCommand, CMD_WRITE),
+		NewCommand("lpop", LPopCommand, CMD_WRITE),
+		NewCommand("rpop", RPopCommand, CMD_WRITE),
 		NewCommand("lrange", LRangeCommand, CMD_READONLY),
 		NewCommand("config", ConfigCommand, CMD_WRITE),
 		NewCommand("info", InfoCommand, CMD_READONLY),
 		NewCommand("select", SelectCommand, CMD_WRITE),
 		NewCommand("flushall", FlushAllCommand, CMD_WRITE),
-		NewCommand("function", FunctionCommand),
+		NewCommand("function", FunctionCommand, CMD_WRITE),
 		NewCommand("incr", IncrCommand, CMD_WRITE),
 		NewCommand("incrby", IncrByCommand, CMD_WRITE),
 		NewCommand("incrbyfloat", IncrByFloatCommand, CMD_WRITE),
-		NewCommand("decr", DecrCommand),
-		NewCommand("decrby", DecrByCommand),
-		NewCommand("decrbyfloat", DecrByFloatCommand),
-		NewCommand("object", ObjectCommand),
-		NewCommand("sadd", SaddCommand),
-		NewCommand("smembers", SmembersCommand),
-		NewCommand("smismember", SmismemberCommand),
-		NewCommand("zadd", ZaddCommand),
-		NewCommand("dump", DumpCommand),
-		NewCommand("exists", ExistsCommand),
-		NewCommand("restore", RestoreCommand),
-		NewCommand("pttl", PttlCommand),
-		NewCommand("debug", DebugCommand),
-		NewCommand("srem", SremCommand),
-		NewCommand("sintercard", SintercardCommand),
-		NewCommand("sinter", SinterCommand),
-		NewCommand("sinterstore", SinterstoreCommand),
-		NewCommand("scard", ScardCommand),
-		NewCommand("sismember", SismemberCommand),
-		NewCommand("sunion", SunionCommand),
-		NewCommand("sunionstore", SunionstoreCommand),
-		NewCommand("sdiff", SdiffCommand),
-		NewCommand("sdiffstore", SdiffstoreCommand),
-		NewCommand("spop", SpopCommand),
-		NewCommand("srandmember", SrandmemberCommand),
-		NewCommand("smove", SmoveCommand),
-		NewCommand("watch", WatchCommand),
-		NewCommand("multi", MultiCommand),
-		NewCommand("exec", ExecCommand),
-		NewCommand("flushdb", FlushDbCommand),
-		NewCommand("dbsize", DbSizeCommand),
-		NewCommand("setx", SetXCommand),
-		NewCommand("setnx", SetNxCommand),
-		NewCommand("expire", ExpireCommand),
-		NewCommand("setex", SetexCommand),
-		NewCommand("getex", GetexCommand),
-		NewCommand("getdel", GetdelCommand),
-		NewCommand("mget", MgetCommand),
-		NewCommand("getset", GetsetCommand),
-		NewCommand("mset", MsetCommand),
-		NewCommand("msetnx", MsetnxCommand),
-		NewCommand("strlen", StrlenCommand),
-		NewCommand("setbit", SetbitCommand),
-		NewCommand("getbit", GetbitCommand),
-		NewCommand("setrange", SetrangeCommand),
-		NewCommand("getrange", GetrangeCommand),
-		NewCommand("lcs", LcsCommand),
+		NewCommand("decr", DecrCommand, CMD_WRITE),
+		NewCommand("decrby", DecrByCommand, CMD_WRITE),
+		NewCommand("decrbyfloat", DecrByFloatCommand, CMD_WRITE),
+		NewCommand("object", ObjectCommand, CMD_READONLY),
+		NewCommand("sadd", SaddCommand, CMD_WRITE),
+		NewCommand("smembers", SmembersCommand, CMD_WRITE),
+		NewCommand("smismember", SmismemberCommand, CMD_WRITE),
+		NewCommand("zadd", ZaddCommand, CMD_WRITE),
+		NewCommand("dump", DumpCommand, CMD_READONLY),
+		NewCommand("exists", ExistsCommand, CMD_READONLY),
+		NewCommand("restore", RestoreCommand, CMD_WRITE),
+		NewCommand("pttl", PttlCommand, CMD_READONLY),
+		NewCommand("debug", DebugCommand, CMD_READONLY),
+		NewCommand("srem", SremCommand, CMD_WRITE),
+		NewCommand("sintercard", SintercardCommand, CMD_READONLY),
+		NewCommand("sinter", SinterCommand, CMD_READONLY),
+		NewCommand("sinterstore", SinterstoreCommand, CMD_WRITE),
+		NewCommand("scard", ScardCommand, CMD_READONLY),
+		NewCommand("sismember", SismemberCommand, CMD_READONLY),
+		NewCommand("sunion", SunionCommand, CMD_READONLY),
+		NewCommand("sunionstore", SunionstoreCommand, CMD_WRITE),
+		NewCommand("sdiff", SdiffCommand, CMD_READONLY),
+		NewCommand("sdiffstore", SdiffstoreCommand, CMD_WRITE),
+		NewCommand("spop", SpopCommand, CMD_WRITE),
+		NewCommand("srandmember", SrandmemberCommand, CMD_READONLY),
+		NewCommand("smove", SmoveCommand, CMD_WRITE),
+		NewCommand("watch", WatchCommand, CMD_READONLY),
+		NewCommand("multi", MultiCommand, CMD_READONLY),
+		NewCommand("exec", ExecCommand, CMD_READONLY),
+		NewCommand("flushdb", FlushDbCommand, CMD_WRITE),
+		NewCommand("dbsize", DbSizeCommand, CMD_READONLY),
+		NewCommand("setx", SetXCommand, CMD_WRITE),
+		NewCommand("setnx", SetNxCommand, CMD_WRITE),
+		NewCommand("expire", ExpireCommand, CMD_WRITE),
+		NewCommand("setex", SetexCommand, CMD_WRITE),
+		NewCommand("getex", GetexCommand, CMD_READONLY),
+		NewCommand("getdel", GetdelCommand, CMD_WRITE),
+		NewCommand("mget", MgetCommand, CMD_WRITE),
+		NewCommand("getset", GetsetCommand, CMD_WRITE),
+		NewCommand("mset", MsetCommand, CMD_READONLY),
+		NewCommand("msetnx", MsetnxCommand, CMD_WRITE),
+		NewCommand("strlen", StrlenCommand, CMD_READONLY),
+		NewCommand("setbit", SetbitCommand, CMD_WRITE),
+		NewCommand("getbit", GetbitCommand, CMD_READONLY),
+		NewCommand("setrange", SetrangeCommand, CMD_WRITE),
+		NewCommand("getrange", GetrangeCommand, CMD_READONLY),
+		NewCommand("lcs", LcsCommand, CMD_READONLY),
 	})
 
 	// NOTE: Taken by dumping from `CONFIG GET *`.
