@@ -5,17 +5,9 @@ import (
 	"time"
 )
 
-type KeyExpirer interface {
-	Start(tick time.Duration)
-	Stop()
-}
-
-var _ KeyExpirer = (*Expirer)(nil)
-
 type Expirer struct {
 	redis *Redis
-
-	done chan bool
+	done  chan bool
 }
 
 func NewKeyExpirer(r *Redis) *Expirer {
