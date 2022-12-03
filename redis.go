@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-	"sync/atomic"
 
 	"github.com/tidwall/redcon"
 )
@@ -25,87 +24,17 @@ type Redis struct {
 	mu *sync.RWMutex
 
 	// databases/keyspaces
-	redisDbs map[DatabaseId]*RedisDb
+	redisDbs map[uint64]*RedisDb
 	configDb map[string]string
 
-	commands       Commands
+	commands       map[string]*Command
 	unknownCommand UnknownCommand
 
-	handler Handler
+	handler func(c *Client, cmd redcon.Command)
 
-	accept  Accept
-	onClose OnClose
+	keyExpirer *Expirer
 
-	// TODO version
-	// TODO log writer
-	// TODO modules
-	// TODO redis options type
-
-	keyExpirer KeyExpirer
-
-	clients      Clients
-	nextClientId uint64
-}
-
-// A Handler is called when a request is received and after Accept
-// (if Accept allowed the connection by returning true).
-//
-// For implementing an own handler see the default handler
-// as a perfect example in the createDefault() function.
-type Handler func(c *Client, cmd redcon.Command)
-
-// Accept is called when a Client tries to connect and before everything else,
-// the Client connection will be closed instantaneously if the function returns false.
-type Accept func(c *Client) bool
-
-// OnClose is called when a Client connection is closed.
-type OnClose func(c *Client, err error)
-
-// Client map
-type Clients map[ClientId]*Client
-
-// Client id
-type ClientId uint64
-
-// Gets the handler func.
-func (r *Redis) HandlerFn() Handler {
-	return r.handler
-}
-
-// Sets the handler func.
-// Live updates (while redis is running) works.
-func (r *Redis) SetHandlerFn(new Handler) {
-	r.handler = new
-}
-
-// Gets the accept func.
-func (r *Redis) AcceptFn() Accept {
-	return r.accept
-}
-
-// Sets the accept func.
-// Live updates (while redis is running) works.
-func (r *Redis) SetAcceptFn(new Accept) {
-	r.accept = new
-}
-
-// Gets the onclose func.
-func (r *Redis) OnCloseFn() OnClose {
-	return r.onClose
-}
-
-// Sets the onclose func.
-// Live updates (while redis is running) works.
-func (r *Redis) SetOnCloseFn(new OnClose) {
-	r.onClose = new
-}
-
-func (r *Redis) KeyExpirer() KeyExpirer {
-	return r.keyExpirer
-}
-
-func (r *Redis) SetKeyExpirer(ke KeyExpirer) {
-	r.keyExpirer = ke
+	clients map[string]*Client
 }
 
 var defaultRedis *Redis
@@ -128,11 +57,6 @@ func createDefault() *Redis {
 	mu := new(sync.RWMutex)
 	r := &Redis{
 		mu: mu,
-		accept: func(c *Client) bool {
-			return true
-		},
-		onClose: func(c *Client, err error) {
-		},
 		handler: func(c *Client, cmd redcon.Command) {
 			if len(cmd.Args) == 0 {
 				c.Conn().WriteError(ZeroArgumentErr)
@@ -154,11 +78,11 @@ func createDefault() *Redis {
 		unknownCommand: func(c *Client, cmd redcon.Command) {
 			c.Conn().WriteError(fmt.Sprintf("ERR unknown command '%s'", cmd.Args[0]))
 		},
-		commands: make(Commands, 0),
+		commands: make(map[string]*Command, 0),
+		clients:  make(map[string]*Client),
+		redisDbs: make(map[uint64]*RedisDb, 0),
 	}
-	r.redisDbs = make(map[DatabaseId]*RedisDb, 0)
-	r.RedisDb(0) // initializes default db 0
-	r.keyExpirer = KeyExpirer(NewKeyExpirer(r))
+	r.keyExpirer = NewKeyExpirer(r)
 
 	r.RegisterCommands([]*Command{
 		NewCommand("ping", PingCommand, CMD_STALE, CMD_FAST),
@@ -395,7 +319,7 @@ func (r *Redis) SyncFlushAll() {
 }
 
 // Flush the selected db
-func (r *Redis) SyncFlushDb(dbId DatabaseId) {
+func (r *Redis) SyncFlushDb(dbId uint64) {
 	d, exists := r.redisDbs[dbId]
 
 	if exists {
@@ -404,7 +328,7 @@ func (r *Redis) SyncFlushDb(dbId DatabaseId) {
 }
 
 // RedisDb gets the redis database by its id or creates and returns it if not exists.
-func (r *Redis) RedisDb(dbId DatabaseId) *RedisDb {
+func (r *Redis) RedisDb(dbId uint64) *RedisDb {
 	getDb := func() *RedisDb { // returns nil if db not exists
 		if db, ok := r.redisDbs[dbId]; ok {
 			return db
@@ -442,24 +366,8 @@ func (r *Redis) SetConfigValue(key string, value string) {
 // NewClient creates new client and adds it to the redis.
 func (r *Redis) NewClient(conn redcon.Conn) *Client {
 	c := &Client{
-		conn:     conn,
-		redis:    r,
-		clientId: r.NextClientId(),
+		conn:  conn,
+		redis: r,
 	}
 	return c
-}
-
-// NextClientId atomically gets and increments a counter to return the next client id.
-func (r *Redis) NextClientId() ClientId {
-	id := atomic.AddUint64(&r.nextClientId, 1)
-	return ClientId(id)
-}
-
-// Clients gets the current connected clients.
-func (r *Redis) Clients() Clients {
-	return r.clients
-}
-
-func (r *Redis) getClients() Clients {
-	return r.clients
 }
