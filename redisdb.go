@@ -1,7 +1,6 @@
 package redis
 
 import (
-	"log"
 	"time"
 )
 
@@ -140,14 +139,9 @@ func (db *RedisDb) GetExpiry(key string) (time.Time, bool) {
 
 // SetExpiry sets the expiry of a key
 func (db *RedisDb) SetExpiry(key string, ttl time.Time) (time.Time, bool) {
-	if time.Time.IsZero(ttl) {
-		delete(db.ttl, key)
-		return time.Time{}, false
-	} else {
-		old, exists := db.ttl[key]
-		db.ttl[key] = ttl
-		return old, exists
-	}
+	old, exists := db.ttl[key]
+	db.ttl[key] = ttl
+	return old, exists
 }
 
 // Deletes a key, returns number of deleted keys.
@@ -158,10 +152,6 @@ func (db *RedisDb) Delete(keys ...string) int {
 		_, ttlExists := db.ttl[k]
 		delete(db.storage, k)
 		delete(db.ttl, k)
-
-		if itemExists != ttlExists {
-			log.Printf("Invariant failure: %t != %t when checking if key exists in storage and expiringKeys", itemExists, ttlExists)
-		}
 
 		if itemExists && ttlExists {
 			c++
@@ -215,12 +205,6 @@ func (db *RedisDb) Exists(key string) bool {
 	return maybeItem != nil
 }
 
-// Check if key has an expiry set.
-func (db *RedisDb) Expires(key string) bool {
-	_, ok := db.ttl[key]
-	return ok
-}
-
 // Expired only check if a key can and is expired.
 func (db *RedisDb) Expired(key string) bool {
 	ttl, exists := db.Expiry(key)
@@ -229,7 +213,7 @@ func (db *RedisDb) Expired(key string) bool {
 	if !exists || time.Time.IsZero(ttl) {
 		return false
 	}
-	return db.Expires(key) && time.Now().After(ttl)
+	return time.Now().After(ttl)
 }
 
 // Expiry gets the expiry of the key has one.

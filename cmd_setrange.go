@@ -41,6 +41,13 @@ func SetrangeCommand(c *Client, args [][]byte) {
 		c.Conn().WriteError(WrongTypeErr)
 	} else {
 		if maybeItem == nil {
+
+			if len(value) == 0 {
+				db.Delete(key)
+				c.Conn().WriteInt(0)
+				return
+			}
+
 			maybeItem = NewString(string(make([]byte, byteOffset)))
 		}
 
