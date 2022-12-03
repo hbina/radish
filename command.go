@@ -7,16 +7,6 @@ import "github.com/tidwall/redcon"
 const (
 	CMD_WRITE    uint64 = 1 << 0 /* "w" flag */
 	CMD_READONLY        = 1 << 1 /* "r" flag */
-	CMD_DENYOOM         = 1 << 2 /* "m" flag */
-	CMD_MODULE          = 1 << 3 /* Command exported by module. */
-	CMD_ADMIN           = 1 << 4 /* "a" flag */
-	CMD_PUBSUB          = 1 << 5 /* "p" flag */
-	CMD_NOSCRIPT        = 1 << 6 /* "s" flag */
-	CMD_BLOCKING        = 1 << 8
-	CMD_LOADING         = 1 << 9
-	CMD_STALE           = 1 << 10
-	CMD_FAST            = 1 << 14
-	// Add more commands whenever necessary
 )
 
 // A command can be registered.
@@ -28,14 +18,10 @@ type Command struct {
 	handler CommandHandler
 
 	// Command flag
-	flag uint64 // Use map as a set data structure
+	flag uint64
 }
 
-func NewCommand(name string, handler CommandHandler, flags ...uint64) *Command {
-	var flag uint64 = 0
-	for _, f := range flags {
-		flag = flag | f
-	}
+func NewCommand(name string, handler CommandHandler, flag uint64) *Command {
 
 	return &Command{
 		name:    name,
@@ -88,17 +74,6 @@ func (r *Redis) Command(name string) *Command {
 func (r *Redis) Commands() Commands {
 
 	return r.commands
-}
-
-// CommandHandlerFn returns the CommandHandler of cmd.
-func (r *Redis) CommandHandlerFn(name string) *CommandHandler {
-
-	k, v := r.commands[name]
-	if v {
-		return &k.handler
-	} else {
-		return nil
-	}
 }
 
 // UnknownCommandFn returns the UnknownCommand function.

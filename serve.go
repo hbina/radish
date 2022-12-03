@@ -21,12 +21,23 @@ func (r *Redis) Run(addr string) error {
 		addr,
 		func(conn redcon.Conn, cmd redcon.Command) {
 			addr := conn.RemoteAddr()
+
+			r.mu.RLock()
+
 			c := r.clients[addr]
+
+			r.mu.RUnlock()
 
 			if c == nil {
 				log.Printf("Attempting to handle a command from a disconnected client with address [%s]\n", addr)
 				return
 			}
+
+			// TODO: There's a small race condition here where we unlocked the lock
+			// above but then the connection is closed. That means that the connection is closed
+			// but the handler will still use it. What should happen instead is that the
+			// onClose function check if the client is still active then pause its deletion for later.
+			// At the same time, this handler also checks if the client is pending for deletion.
 
 			r.handler(c, cmd)
 		},
@@ -37,13 +48,25 @@ func (r *Redis) Run(addr string) error {
 				log.Printf("Client from this address [%s] already exists\n", addr)
 				return false
 			}
+
+			r.mu.Lock()
+
 			r.clients[addr] = r.NewClient(conn)
+
+			r.mu.Unlock()
+
 			return true
 
 		},
 		func(conn redcon.Conn, err error) {
 			addr := conn.RemoteAddr()
+
+			r.mu.Lock()
+
 			delete(r.clients, addr)
+
+			r.mu.Unlock()
+
 		},
 	)
 }
