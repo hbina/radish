@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-	"sync/atomic"
 
 	"github.com/tidwall/redcon"
 )
@@ -26,87 +25,17 @@ type Redis struct {
 	mu *sync.RWMutex
 
 	// databases/keyspaces
-	redisDbs map[DatabaseId]*RedisDb
+	redisDbs map[uint64]*RedisDb
 	configDb map[string]string
 
-	commands       Commands
+	commands       map[string]*Command
 	unknownCommand UnknownCommand
 
-	handler Handler
+	handler func(c *Client, cmd redcon.Command)
 
-	accept  Accept
-	onClose OnClose
+	keyExpirer *Expirer
 
-	// TODO version
-	// TODO log writer
-	// TODO modules
-	// TODO redis options type
-
-	keyExpirer KeyExpirer
-
-	clients      Clients
-	nextClientId uint64
-}
-
-// A Handler is called when a request is received and after Accept
-// (if Accept allowed the connection by returning true).
-//
-// For implementing an own handler see the default handler
-// as a perfect example in the createDefault() function.
-type Handler func(c *Client, cmd redcon.Command)
-
-// Accept is called when a Client tries to connect and before everything else,
-// the Client connection will be closed instantaneously if the function returns false.
-type Accept func(c *Client) bool
-
-// OnClose is called when a Client connection is closed.
-type OnClose func(c *Client, err error)
-
-// Client map
-type Clients map[ClientId]*Client
-
-// Client id
-type ClientId uint64
-
-// Gets the handler func.
-func (r *Redis) HandlerFn() Handler {
-	return r.handler
-}
-
-// Sets the handler func.
-// Live updates (while redis is running) works.
-func (r *Redis) SetHandlerFn(new Handler) {
-	r.handler = new
-}
-
-// Gets the accept func.
-func (r *Redis) AcceptFn() Accept {
-	return r.accept
-}
-
-// Sets the accept func.
-// Live updates (while redis is running) works.
-func (r *Redis) SetAcceptFn(new Accept) {
-	r.accept = new
-}
-
-// Gets the onclose func.
-func (r *Redis) OnCloseFn() OnClose {
-	return r.onClose
-}
-
-// Sets the onclose func.
-// Live updates (while redis is running) works.
-func (r *Redis) SetOnCloseFn(new OnClose) {
-	r.onClose = new
-}
-
-func (r *Redis) KeyExpirer() KeyExpirer {
-	return r.keyExpirer
-}
-
-func (r *Redis) SetKeyExpirer(ke KeyExpirer) {
-	r.keyExpirer = ke
+	clients map[string]*Client
 }
 
 var defaultRedis *Redis
@@ -129,11 +58,6 @@ func createDefault() *Redis {
 	mu := new(sync.RWMutex)
 	r := &Redis{
 		mu: mu,
-		accept: func(c *Client) bool {
-			return true
-		},
-		onClose: func(c *Client, err error) {
-		},
 		handler: func(c *Client, cmd redcon.Command) {
 			if len(cmd.Args) == 0 {
 				c.Conn().WriteError(ZeroArgumentErr)
@@ -142,12 +66,24 @@ func createDefault() *Redis {
 
 			// TODO: Check that args is not empty
 			// TODO: Remove the first argument from argument to command handlers
-			mu.Lock()
-			defer mu.Unlock()
+			// fmt.Println(CollectArgs(cmd.Args))
 			cmdl := strings.ToLower(string(cmd.Args[0]))
-			commandHandler := c.Redis().CommandHandlerFn(cmdl)
-			if commandHandler != nil {
-				(*commandHandler)(c, cmd.Args)
+			command := c.Redis().Command(cmdl)
+
+			if command != nil {
+				if command.flag&CMD_WRITE != 0 {
+					mu.Lock()
+				} else {
+					mu.RLock()
+				}
+
+				(command.handler)(c, cmd.Args)
+
+				if command.flag&CMD_WRITE != 0 {
+					mu.Unlock()
+				} else {
+					mu.RUnlock()
+				}
 			} else {
 				c.Redis().UnknownCommandFn()(c, cmd)
 			}
@@ -155,96 +91,96 @@ func createDefault() *Redis {
 		unknownCommand: func(c *Client, cmd redcon.Command) {
 			c.Conn().WriteError(fmt.Sprintf("ERR unknown command '%s'", cmd.Args[0]))
 		},
-		commands: make(Commands, 0),
+		commands: make(map[string]*Command, 0),
+		clients:  make(map[string]*Client),
+		redisDbs: make(map[uint64]*RedisDb, 0),
 	}
-	r.redisDbs = make(map[DatabaseId]*RedisDb, 0)
-	r.RedisDb(0) // initializes default db 0
-	r.keyExpirer = KeyExpirer(NewKeyExpirer(r))
+	r.keyExpirer = NewKeyExpirer(r)
 
 	r.RegisterCommands([]*Command{
-		NewCommand("ping", PingCommand, CMD_STALE, CMD_FAST),
-		NewCommand("set", SetCommand, CMD_WRITE, CMD_DENYOOM),
-		NewCommand("get", GetCommand, CMD_READONLY, CMD_FAST),
+		NewCommand("ping", PingCommand, CMD_READONLY),
+		NewCommand("set", SetCommand, CMD_WRITE),
+		NewCommand("get", GetCommand, CMD_READONLY),
 		NewCommand("del", DelCommand, CMD_WRITE),
-		NewCommand("ttl", TtlCommand, CMD_READONLY, CMD_FAST),
-		NewCommand("lpush", LPushCommand, CMD_WRITE, CMD_FAST, CMD_DENYOOM),
-		NewCommand("rpush", RPushCommand, CMD_WRITE, CMD_FAST, CMD_DENYOOM),
-		NewCommand("lpop", LPopCommand, CMD_WRITE, CMD_FAST),
-		NewCommand("rpop", RPopCommand, CMD_WRITE, CMD_FAST),
+		NewCommand("ttl", TtlCommand, CMD_READONLY),
+		NewCommand("lpush", LPushCommand, CMD_WRITE),
+		NewCommand("rpush", RPushCommand, CMD_WRITE),
+		NewCommand("lpop", LPopCommand, CMD_WRITE),
+		NewCommand("rpop", RPopCommand, CMD_WRITE),
 		NewCommand("lrange", LRangeCommand, CMD_READONLY),
 		NewCommand("config", ConfigCommand, CMD_WRITE),
 		NewCommand("info", InfoCommand, CMD_READONLY),
 		NewCommand("select", SelectCommand, CMD_WRITE),
 		NewCommand("flushall", FlushAllCommand, CMD_WRITE),
-		NewCommand("function", FunctionCommand),
+		NewCommand("function", FunctionCommand, CMD_WRITE),
 		NewCommand("incr", IncrCommand, CMD_WRITE),
 		NewCommand("incrby", IncrByCommand, CMD_WRITE),
 		NewCommand("incrbyfloat", IncrByFloatCommand, CMD_WRITE),
-		NewCommand("decr", DecrCommand),
-		NewCommand("decrby", DecrByCommand),
-		NewCommand("decrbyfloat", DecrByFloatCommand),
-		NewCommand("object", ObjectCommand),
-		NewCommand("sadd", SaddCommand),
-		NewCommand("smembers", SmembersCommand),
-		NewCommand("smismember", SmismemberCommand),
-		NewCommand("zadd", ZaddCommand),
-		NewCommand("dump", DumpCommand),
-		NewCommand("exists", ExistsCommand),
-		NewCommand("restore", RestoreCommand),
-		NewCommand("pttl", PttlCommand),
-		NewCommand("debug", DebugCommand),
-		NewCommand("srem", SremCommand),
-		NewCommand("sintercard", SintercardCommand),
-		NewCommand("sinter", SinterCommand),
-		NewCommand("sinterstore", SinterstoreCommand),
-		NewCommand("scard", ScardCommand),
-		NewCommand("sismember", SismemberCommand),
-		NewCommand("sunion", SunionCommand),
-		NewCommand("sunionstore", SunionstoreCommand),
-		NewCommand("sdiff", SdiffCommand),
-		NewCommand("sdiffstore", SdiffstoreCommand),
-		NewCommand("spop", SpopCommand),
-		NewCommand("srandmember", SrandmemberCommand),
-		NewCommand("smove", SmoveCommand),
-		NewCommand("watch", WatchCommand),
-		NewCommand("multi", MultiCommand),
-		NewCommand("exec", ExecCommand),
-		NewCommand("flushdb", FlushDbCommand),
-		NewCommand("dbsize", DbSizeCommand),
-		NewCommand("setx", SetXCommand),
-		NewCommand("setnx", SetNxCommand),
-		NewCommand("expire", ExpireCommand),
-		NewCommand("setex", SetexCommand),
-		NewCommand("getex", GetexCommand),
-		NewCommand("getdel", GetdelCommand),
-		NewCommand("mget", MgetCommand),
-		NewCommand("getset", GetsetCommand),
-		NewCommand("mset", MsetCommand),
-		NewCommand("msetnx", MsetnxCommand),
-		NewCommand("strlen", StrlenCommand),
-		NewCommand("setbit", SetbitCommand),
-		NewCommand("getbit", GetbitCommand),
-		NewCommand("setrange", SetrangeCommand),
-		NewCommand("getrange", GetrangeCommand),
-		NewCommand("lcs", LcsCommand),
-		NewCommand("zrange", ZrangeCommand),
-		NewCommand("type", TypeCommand),
-		NewCommand("zcard", ZcardCommand),
-		NewCommand("zscore", ZscoreCommand),
-		NewCommand("zincrby", ZincrbyCommand),
-		NewCommand("zrem", ZremCommand),
-		NewCommand("zrevrange", ZrevrangeCommand),
-		NewCommand("zrank", ZrankCommand),
-		NewCommand("zrevrank", ZrevrankCommand),
-		NewCommand("zrangebyscore", ZrangebyscoreCommand),
-		NewCommand("zrevrangebyscore", ZrevrangebyscoreCommand),
-		NewCommand("zcount", ZcountCommand),
-		NewCommand("zrangebylex", ZrangebylexCommand),
-		NewCommand("zrevrangebylex", ZrevrangebylexCommand),
-		NewCommand("zlexcount", ZlexcountCommand),
-		NewCommand("zremrangebyscore", ZremrangebyscoreCommand),
-		NewCommand("zremrangebylex", ZremrangebylexCommand),
-		NewCommand("zremrangebyrank", ZremrangebyrankCommand),
+		NewCommand("decr", DecrCommand, CMD_WRITE),
+		NewCommand("decrby", DecrByCommand, CMD_WRITE),
+		NewCommand("decrbyfloat", DecrByFloatCommand, CMD_WRITE),
+		NewCommand("object", ObjectCommand, CMD_READONLY),
+		NewCommand("sadd", SaddCommand, CMD_WRITE),
+		NewCommand("smembers", SmembersCommand, CMD_WRITE),
+		NewCommand("smismember", SmismemberCommand, CMD_WRITE),
+		NewCommand("zadd", ZaddCommand, CMD_WRITE),
+		NewCommand("dump", DumpCommand, CMD_READONLY),
+		NewCommand("exists", ExistsCommand, CMD_READONLY),
+		NewCommand("restore", RestoreCommand, CMD_WRITE),
+		NewCommand("pttl", PttlCommand, CMD_READONLY),
+		NewCommand("debug", DebugCommand, CMD_READONLY),
+		NewCommand("srem", SremCommand, CMD_WRITE),
+		NewCommand("sintercard", SintercardCommand, CMD_READONLY),
+		NewCommand("sinter", SinterCommand, CMD_READONLY),
+		NewCommand("sinterstore", SinterstoreCommand, CMD_WRITE),
+		NewCommand("scard", ScardCommand, CMD_READONLY),
+		NewCommand("sismember", SismemberCommand, CMD_READONLY),
+		NewCommand("sunion", SunionCommand, CMD_READONLY),
+		NewCommand("sunionstore", SunionstoreCommand, CMD_WRITE),
+		NewCommand("sdiff", SdiffCommand, CMD_READONLY),
+		NewCommand("sdiffstore", SdiffstoreCommand, CMD_WRITE),
+		NewCommand("spop", SpopCommand, CMD_WRITE),
+		NewCommand("srandmember", SrandmemberCommand, CMD_READONLY),
+		NewCommand("smove", SmoveCommand, CMD_WRITE),
+		NewCommand("watch", WatchCommand, CMD_READONLY),
+		NewCommand("multi", MultiCommand, CMD_READONLY),
+		NewCommand("exec", ExecCommand, CMD_READONLY),
+		NewCommand("flushdb", FlushDbCommand, CMD_WRITE),
+		NewCommand("dbsize", DbSizeCommand, CMD_READONLY),
+		NewCommand("setx", SetXCommand, CMD_WRITE),
+		NewCommand("setnx", SetNxCommand, CMD_WRITE),
+		NewCommand("expire", ExpireCommand, CMD_WRITE),
+		NewCommand("setex", SetexCommand, CMD_WRITE),
+		NewCommand("getex", GetexCommand, CMD_READONLY),
+		NewCommand("getdel", GetdelCommand, CMD_WRITE),
+		NewCommand("mget", MgetCommand, CMD_WRITE),
+		NewCommand("getset", GetsetCommand, CMD_WRITE),
+		NewCommand("mset", MsetCommand, CMD_READONLY),
+		NewCommand("msetnx", MsetnxCommand, CMD_WRITE),
+		NewCommand("strlen", StrlenCommand, CMD_READONLY),
+		NewCommand("setbit", SetbitCommand, CMD_WRITE),
+		NewCommand("getbit", GetbitCommand, CMD_READONLY),
+		NewCommand("setrange", SetrangeCommand, CMD_WRITE),
+		NewCommand("getrange", GetrangeCommand, CMD_READONLY),
+		NewCommand("lcs", LcsCommand, CMD_READONLY),
+		NewCommand("zrange", ZrangeCommand, CMD_READONLY),
+		NewCommand("type", TypeCommand, CMD_READONLY),
+		NewCommand("zcard", ZcardCommand, CMD_READONLY),
+		NewCommand("zscore", ZscoreCommand, CMD_READONLY),
+		NewCommand("zincrby", ZincrbyCommand, CMD_WRITE),
+		NewCommand("zrem", ZremCommand, CMD_WRITE),
+		NewCommand("zrevrange", ZrevrangeCommand, CMD_READONLY),
+		NewCommand("zrank", ZrankCommand, CMD_READONLY),
+		NewCommand("zrevrank", ZrevrankCommand, CMD_READONLY),
+		NewCommand("zrangebyscore", ZrangebyscoreCommand, CMD_READONLY),
+		NewCommand("zrevrangebyscore", ZrevrangebyscoreCommand, CMD_READONLY),
+		NewCommand("zcount", ZcountCommand, CMD_READONLY),
+		NewCommand("zrangebylex", ZrangebylexCommand, CMD_READONLY),
+		NewCommand("zrevrangebylex", ZrevrangebylexCommand, CMD_READONLY),
+		NewCommand("zlexcount", ZlexcountCommand, CMD_READONLY),
+		NewCommand("zremrangebyscore", ZremrangebyscoreCommand, CMD_WRITE),
+		NewCommand("zremrangebylex", ZremrangebylexCommand, CMD_WRITE),
+		NewCommand("zremrangebyrank", ZremrangebyrankCommand, CMD_WRITE),
 	})
 
 	// NOTE: Taken by dumping from `CONFIG GET *`.
@@ -414,7 +350,7 @@ func (r *Redis) SyncFlushAll() {
 }
 
 // Flush the selected db
-func (r *Redis) SyncFlushDb(dbId DatabaseId) {
+func (r *Redis) SyncFlushDb(dbId uint64) {
 	d, exists := r.redisDbs[dbId]
 
 	if exists {
@@ -423,7 +359,7 @@ func (r *Redis) SyncFlushDb(dbId DatabaseId) {
 }
 
 // RedisDb gets the redis database by its id or creates and returns it if not exists.
-func (r *Redis) RedisDb(dbId DatabaseId) *RedisDb {
+func (r *Redis) RedisDb(dbId uint64) *RedisDb {
 	getDb := func() *RedisDb { // returns nil if db not exists
 		if db, ok := r.redisDbs[dbId]; ok {
 			return db
@@ -461,24 +397,8 @@ func (r *Redis) SetConfigValue(key string, value string) {
 // NewClient creates new client and adds it to the redis.
 func (r *Redis) NewClient(conn redcon.Conn) *Client {
 	c := &Client{
-		conn:     conn,
-		redis:    r,
-		clientId: r.NextClientId(),
+		conn:  conn,
+		redis: r,
 	}
 	return c
-}
-
-// NextClientId atomically gets and increments a counter to return the next client id.
-func (r *Redis) NextClientId() ClientId {
-	id := atomic.AddUint64(&r.nextClientId, 1)
-	return ClientId(id)
-}
-
-// Clients gets the current connected clients.
-func (r *Redis) Clients() Clients {
-	return r.clients
-}
-
-func (r *Redis) getClients() Clients {
-	return r.clients
 }

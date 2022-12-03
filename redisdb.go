@@ -31,7 +31,7 @@ type Kvp struct {
 // There can be more than one in a redis instance.
 type RedisDb struct {
 	// Database id
-	id DatabaseId
+	id uint64
 
 	// All storage in this db.
 	storage map[string]Item
@@ -44,9 +44,6 @@ type RedisDb struct {
 
 	redis *Redis
 }
-
-// Database id
-type DatabaseId uint64
 
 // The item interface. An item is the value of a key.
 type Item interface {
@@ -61,7 +58,7 @@ type Item interface {
 }
 
 // NewRedisDb creates a new db.
-func NewRedisDb(id DatabaseId, r *Redis) *RedisDb {
+func NewRedisDb(id uint64, r *Redis) *RedisDb {
 	return &RedisDb{
 		id:      id,
 		redis:   r,
@@ -71,7 +68,7 @@ func NewRedisDb(id DatabaseId, r *Redis) *RedisDb {
 }
 
 // RedisDbs gets all redis databases.
-func (r *Redis) RedisDbs() map[DatabaseId]*RedisDb {
+func (r *Redis) RedisDbs() map[uint64]*RedisDb {
 	return r.redisDbs
 }
 
@@ -81,7 +78,7 @@ func (db *RedisDb) Redis() *Redis {
 }
 
 // Id gets the db id.
-func (db *RedisDb) Id() DatabaseId {
+func (db *RedisDb) Id() uint64 {
 	return db.id
 }
 
@@ -92,12 +89,7 @@ func (db *RedisDb) Set(key string, i Item, ttl time.Time) Item {
 	// object type.
 	// TODO: Should this be behavior of set or the specific commands?
 	if i.Type() == ValueTypeString {
-		str := i.(*String)
-
-		if str.Len() == 0 {
-			db.Delete(key)
-			return nil
-		}
+		// Except or strings?
 	} else if i.Type() == ValueTypeList {
 		list := i.(*List)
 
@@ -262,6 +254,7 @@ func (db *RedisDb) Clear() {
 	}
 }
 
+// Number of keys in the storage
 func (db *RedisDb) Len() int {
 	return len(db.storage)
 }

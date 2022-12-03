@@ -64,13 +64,32 @@ func TestSetGetCommand(t *testing.T) {
 func TestDelCommand(t *testing.T) {
 	c := CreateTestClient()
 
-	i, err := c.Del("k", "k3").Result()
-	assert.Equal(t, i, int64(2))
-	assert.NoError(t, err)
+	// Delete non-existent key returns 0
+	{
+		i, err := c.Del("abc").Result()
+		assert.Equal(t, i, int64(0))
+		assert.NoError(t, err)
+	}
 
-	i, err = c.Del("abc").Result()
-	assert.Equal(t, i, int64(0))
-	assert.NoError(t, err)
+	// Create some keys then delete it
+	{
+		s, err := c.Set("k", "v", 0).Result()
+		assert.Equal(t, "OK", s)
+		assert.NoError(t, err)
+
+		s, err = c.Set("k2", nil, 0).Result()
+		assert.Equal(t, "OK", s)
+		assert.NoError(t, err)
+
+		s, err = c.Get("k2").Result()
+		fmt.Println(s)
+		assert.NoError(t, err)
+
+		i, err := c.Del("k", "k2").Result()
+		assert.Equal(t, i, int64(2))
+		assert.NoError(t, err)
+	}
+
 }
 
 func TestTtlCommand(t *testing.T) {
