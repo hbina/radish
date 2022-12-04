@@ -103,15 +103,36 @@ func RestoreCommand(c *Client, args [][]byte) {
 
 		db.Set(key, NewSetFromMap(set), ttl)
 	} else if kvp.Type == ValueTypeFancyZSet {
-		set, ok := kvp.Value.(SortedSet)
+		pair, ok := kvp.Value.(map[string]interface{})
 
 		if !ok {
 			c.Conn().WriteError(fmt.Sprintf(DeserializationErr, string(args[3])))
 			return
 		}
 
-		db.Set(key, NewZSetFromSs(set), ttl)
-	}
+		set := NewZSet()
 
+		keys, ok1 := pair["keys"].([]interface{})
+		scores, ok2 := pair["scores"].([]interface{})
+
+		if !ok1 || !ok2 || len(keys) != len(scores) {
+			c.Conn().WriteError(fmt.Sprintf(DeserializationErr, string(args[3])))
+			return
+		}
+
+		for i := range keys {
+			key, ok3 := keys[i].(string)
+			score, ok4 := scores[i].(float64)
+
+			if !ok3 || !ok4 {
+				c.Conn().WriteError(fmt.Sprintf(DeserializationErr, string(args[3])))
+				return
+			}
+
+			set.inner.AddOrUpdate(key, score)
+		}
+
+		db.Set(key, set, ttl)
+	}
 	c.Conn().WriteString("OK")
 }

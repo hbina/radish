@@ -72,10 +72,23 @@ func DumpCommand(c *Client, args [][]byte) {
 
 		return
 	} else if value.Type() == ValueTypeZSet {
+		keys := make([]string, 0)
+		scores := make([]float64, 0)
+
+		for key, node := range value.(*ZSet).inner.dict {
+			keys = append(keys, key)
+			scores = append(scores, node.score)
+		}
+
+		pair := SerdeZSet{
+			Keys:   keys,
+			Scores: scores,
+		}
+
 		str, err := json.Marshal(Kvp{
 			Key:   key,
 			Type:  value.TypeFancy(),
-			Value: value.(*ZSet).inner,
+			Value: pair,
 		})
 
 		if err != nil {
