@@ -26,6 +26,11 @@ type Kvp struct {
 	Value interface{} `json:"value"`
 }
 
+type SerdeZSet struct {
+	Keys   []string  `json:"keys"`
+	Scores []float64 `json:"scores"`
+}
+
 // A redis database.
 // There can be more than one in a redis instance.
 type RedisDb struct {
