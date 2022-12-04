@@ -498,7 +498,7 @@ func (ss *SortedSet) findNodeByScore(score float64, forward bool) (*SortedSetNod
 	return node, nodeRank
 }
 
-// returns the node just before the requested key and its rank.
+// findNodeByLex returns the node with the requested key
 //
 // Time complexity: O(log(N)) with high probability
 func (ss *SortedSet) findNodeByLex(key string) (*SortedSetNode, int) {
@@ -618,4 +618,33 @@ func (ss *SortedSet) FindRankOfKey(key string) int {
 		return 0
 	}
 	return rank
+}
+
+// Union returns a new Set that is a union of both sets.
+func (s *SortedSet) Union(o *SortedSet, mode int, weight float64) *SortedSet {
+	set := NewSortedSet()
+
+	for key, node := range s.dict {
+		otherNode := o.dict[key]
+		if otherNode != nil {
+			if mode == 1 { // Min
+				set.AddOrUpdate(key, math.Min(node.score, otherNode.score*weight))
+			} else if mode == 2 { // Max
+				set.AddOrUpdate(key, math.Max(node.score, otherNode.score*weight))
+			} else { // NOTE: It _should_ be 0 here, but this might not always be correct :)
+				set.AddOrUpdate(key, node.score+(otherNode.score*weight))
+			}
+		} else {
+			set.AddOrUpdate(key, node.score)
+		}
+	}
+
+	for key, node := range o.dict {
+		_, exists := set.dict[key]
+		if !exists {
+			set.AddOrUpdate(key, node.score)
+		}
+	}
+
+	return set
 }

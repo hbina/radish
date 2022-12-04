@@ -59,6 +59,8 @@ func createDefault() *Redis {
 	r := &Redis{
 		mu: mu,
 		handler: func(c *Client, cmd redcon.Command) {
+			fmt.Println(CollectArgs(cmd.Args))
+
 			if len(cmd.Args) == 0 {
 				c.Conn().WriteError(ZeroArgumentErr)
 				return
@@ -181,6 +183,8 @@ func createDefault() *Redis {
 		NewCommand("zremrangebyscore", ZremrangebyscoreCommand, CMD_WRITE),
 		NewCommand("zremrangebylex", ZremrangebylexCommand, CMD_WRITE),
 		NewCommand("zremrangebyrank", ZremrangebyrankCommand, CMD_WRITE),
+		NewCommand("zunionstore", ZunionstoreCommand, CMD_WRITE),
+		NewCommand("zunion", ZunionCommand, CMD_READONLY),
 	})
 
 	// NOTE: Taken by dumping from `CONFIG GET *`.
