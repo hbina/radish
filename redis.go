@@ -183,8 +183,16 @@ func createDefault() *Redis {
 		NewCommand("zremrangebyscore", ZremrangebyscoreCommand, CMD_WRITE),
 		NewCommand("zremrangebylex", ZremrangebylexCommand, CMD_WRITE),
 		NewCommand("zremrangebyrank", ZremrangebyrankCommand, CMD_WRITE),
-		NewCommand("zunionstore", ZunionstoreCommand, CMD_WRITE),
+		NewCommand("zinter", ZinterCommand, CMD_READONLY),
+		NewCommand("zintercard", ZintercardCommand, CMD_READONLY),
+		NewCommand("zinterstore", ZinterstoreCommand, CMD_WRITE),
 		NewCommand("zunion", ZunionCommand, CMD_READONLY),
+		NewCommand("zunioncard", ZunioncardCommand, CMD_READONLY),
+		NewCommand("zunionstore", ZunionstoreCommand, CMD_WRITE),
+		NewCommand("zdiff", ZdiffCommand, CMD_READONLY),
+		NewCommand("zdiffcard", ZdiffcardCommand, CMD_READONLY),
+		NewCommand("zdiffstore", ZdiffstoreCommand, CMD_WRITE),
+		NewCommand("hello", HelloCommand, CMD_WRITE),
 	})
 
 	// NOTE: Taken by dumping from `CONFIG GET *`.

@@ -2,6 +2,7 @@ package redis
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -10,20 +11,33 @@ import (
 // https://redis.io/commands/zunion/
 // ZUNION numkeys key [key ...] [WEIGHTS weight [weight ...]] [AGGREGATE <SUM | MIN | MAX>] [WITHSCORES]
 func ZunionCommand(c *Client, args [][]byte) {
-	implZunionCommand(c, args, false)
+	implZSetSetOperationCommand(c, args, false, ZSetOperationUnion, false)
 }
 
-// Shared generic function for Zunion* family of functions
+const (
+	ZSetOperationUnion = iota
+	ZSetOperationInter
+	ZSetOperationDiff
+)
+
+// Shared functions for operations on ZSet
 // https://redis.io/commands/zunion/
 // https://redis.io/commands/zunionstore/
-func implZunionCommand(c *Client, args [][]byte, store bool) {
+// https://redis.io/commands/zunioncard/
+// https://redis.io/commands/zinter/
+// https://redis.io/commands/zinterstore/
+// https://redis.io/commands/zintercard/
+// https://redis.io/commands/zdiff/
+// https://redis.io/commands/zdiffstore/
+// https://redis.io/commands/zdiffcard/
+func implZSetSetOperationCommand(c *Client, args [][]byte,
+	store bool, operation int, card bool) {
 	offsetToKeys := 2
-	offsetToNumKeys := 1
+	currArg := 0
 
 	// Store requires 1 more argument for thet destination
 	if store {
 		offsetToKeys += 1
-		offsetToNumKeys += 1
 	}
 
 	// Check if we have the minimum number of args
@@ -33,7 +47,7 @@ func implZunionCommand(c *Client, args [][]byte, store bool) {
 	}
 
 	destination := string(args[1])
-	numKeyStr := string(args[offsetToNumKeys])
+	numKeyStr := string(args[offsetToKeys-1])
 	numKey64, err := strconv.ParseInt(numKeyStr, 10, 32)
 
 	if err != nil {
@@ -42,6 +56,11 @@ func implZunionCommand(c *Client, args [][]byte, store bool) {
 	}
 
 	numKey := int(numKey64)
+
+	if numKey < 0 {
+		c.Conn().WriteError("ERR LIMIT can't be negative")
+		return
+	}
 
 	// Verify there's enough args for the given numKey
 	if len(args)-offsetToKeys < numKey {
@@ -54,6 +73,7 @@ func implZunionCommand(c *Client, args [][]byte, store bool) {
 	for i := 0; i < numKey; i++ {
 		keys = append(keys, string(args[i+offsetToKeys]))
 	}
+	currArg += offsetToKeys + len(keys)
 
 	// Verify there's enough args for the given numKey
 	if len(args)-offsetToKeys < numKey {
@@ -69,7 +89,8 @@ func implZunionCommand(c *Client, args [][]byte, store bool) {
 	// 1. the initial offsetIntoNumKeys required arguments (ZUNION destination numkeys)
 	// 2. the number of keys provided (numKeys)
 	// 3. and the tag for weights (WEIGHTS)
-	if len(args)-offsetToKeys-numKey-1 >= numKey {
+	// card doesn't care about any of this so we skip for it
+	if len(args)-offsetToKeys-numKey-1 >= numKey && !card {
 		if strings.ToLower(string(args[offsetToKeys+numKey])) == "weights" {
 			for i := 0; i < numKey; i++ {
 				float, err := strconv.ParseFloat(string(args[i+offsetToKeys+numKey+1]), 64)
@@ -89,6 +110,10 @@ func implZunionCommand(c *Client, args [][]byte, store bool) {
 		}
 	}
 
+	if len(weights) != 0 {
+		currArg += 1 + len(weights)
+	}
+
 	// What to do with overlapping elements of 2 sets
 	// -1 -> not set
 	// 0  -> SUM
@@ -96,9 +121,10 @@ func implZunionCommand(c *Client, args [][]byte, store bool) {
 	// 2  -> MAX
 	aggregateMode := -1
 	withScores := false
+	limit := math.MaxInt
 
 	// Parse additional option
-	for i := offsetToKeys + len(keys) + 1 + len(weights); i < len(args); i++ {
+	for i := currArg; i < len(args); i++ {
 		switch strings.ToLower(string(args[i])) {
 		default:
 			{
@@ -107,6 +133,11 @@ func implZunionCommand(c *Client, args [][]byte, store bool) {
 			}
 		case "aggregate":
 			{
+				if card || operation == ZSetOperationDiff {
+					c.Conn().WriteError(SyntaxErr)
+					return
+				}
+
 				// Requires 1 more argument and check if
 				// we have found aggregate option before
 				if i+1 >= len(args) || aggregateMode != -1 {
@@ -114,7 +145,8 @@ func implZunionCommand(c *Client, args [][]byte, store bool) {
 					return
 				}
 
-				switch strings.ToLower(string(args[i+1])) {
+				i++
+				switch strings.ToLower(string(args[i])) {
 				case "sum":
 					{
 						aggregateMode = 0
@@ -131,12 +163,40 @@ func implZunionCommand(c *Client, args [][]byte, store bool) {
 			}
 		case "withscores":
 			{
-				if store {
+				if store || card {
 					c.Conn().WriteError(SyntaxErr)
 					return
 				}
 
 				withScores = true
+			}
+		case "limit":
+			{
+				if !card || operation == ZSetOperationDiff {
+					c.Conn().WriteError(SyntaxErr)
+					return
+				}
+
+				if i+1 >= len(args) {
+					c.Conn().WriteError(SyntaxErr)
+					return
+				}
+
+				i++
+				limitStr := string(args[i])
+
+				limit64, err := strconv.ParseInt(limitStr, 10, 32)
+
+				if err != nil || limit64 < 0 {
+					c.Conn().WriteError("ERR LIMIT must be a positive integer")
+					return
+				}
+
+				if limit64 == 0 {
+					limit = math.MaxInt
+				} else {
+					limit = int(limit64)
+				}
 			}
 		}
 	}
@@ -148,42 +208,79 @@ func implZunionCommand(c *Client, args [][]byte, store bool) {
 	}
 
 	db := c.Db()
-	union := NewZSet()
+	var result *ZSet = nil
 
 	for idx, key := range keys {
 		weight := 1.0
+
 		if len(weights) != 0 {
 			weight = weights[idx]
 		}
+
 		maybeSet, _ := db.GetOrExpire(key, true)
 
-		// If the other set is nil, then the union is no-op
 		if maybeSet == nil {
-			continue
-		} else if maybeSet.Type() != ValueTypeZSet {
+			maybeSet = NewZSet()
+		}
+
+		var set *ZSet = nil
+
+		if maybeSet.Type() == ValueTypeZSet {
+			set = maybeSet.(*ZSet)
+		} else if maybeSet.Type() == ValueTypeSet {
+			set = maybeSet.(*Set).ToZSet()
+		} else {
 			c.Conn().WriteError(WrongTypeErr)
 			return
 		}
 
-		set := maybeSet.(*ZSet)
+		if result == nil {
+			// We initialize a new set using the weights
+			result = NewZSet().Union(set, aggregateMode, weight)
+		} else {
+			if operation == ZSetOperationUnion {
+				result = result.Union(set, aggregateMode, weight)
+			} else if operation == ZSetOperationInter {
+				result = result.Intersect(set, aggregateMode, weight)
+			} else if operation == ZSetOperationDiff {
+				result = result.Diff(set)
+			} else {
+				c.Conn().WriteError(SyntaxErr)
+				return
+			}
+		}
 
-		union.inner = *union.inner.Union(&set.inner, aggregateMode, weight)
+		if card && result != nil && result.Len() >= limit {
+			break
+		}
 	}
 
-	if store {
-		db.Set(destination, union, time.Time{})
-		c.Conn().WriteInt(union.Len())
+	if result == nil {
+		result = NewZSet()
+	}
+
+	if card {
+		if result.Len() > limit {
+			c.Conn().WriteInt(limit)
+		} else {
+			c.Conn().WriteInt(result.Len())
+		}
+	} else if store {
+		if result.Len() != 0 {
+			db.Set(destination, result, time.Time{})
+		}
+		c.Conn().WriteInt(result.Len())
 	} else {
 		if withScores {
-			c.Conn().WriteArray(union.Len() * 2)
-			for key, node := range union.inner.dict {
-				c.Conn().WriteBulkString(key)
-				c.Conn().WriteBulkString(fmt.Sprint(node))
+			c.Conn().WriteArray(result.Len() * 2)
+			for _, node := range result.inner.GetRangeByRank(1, result.Len(), DefaultRangeOptions()) {
+				c.Conn().WriteBulkString(node.key)
+				c.Conn().WriteBulkString(fmt.Sprint(node.score))
 			}
 		} else {
-			c.Conn().WriteArray(union.Len())
-			for key := range union.inner.dict {
-				c.Conn().WriteBulkString(key)
+			c.Conn().WriteArray(result.Len())
+			for _, node := range result.inner.GetRangeByRank(1, result.Len(), DefaultRangeOptions()) {
+				c.Conn().WriteBulkString(node.key)
 			}
 		}
 	}
