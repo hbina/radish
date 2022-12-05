@@ -18,6 +18,7 @@ const (
 	ZeroArgumentErr       = "ERR zero argument passed to the handler. This is an implementation bug"
 	DeserializationErr    = "ERR unable to deserialize '%s' into a valid object"
 	OptionNotSupportedErr = "ERR option '%s' is not currently supported"
+	NegativeIntErr        = "ERR %s must be positive"
 )
 
 // This is the redis server.
@@ -193,6 +194,8 @@ func createDefault() *Redis {
 		NewCommand("zdiffcard", ZdiffcardCommand, CMD_READONLY),
 		NewCommand("zdiffstore", ZdiffstoreCommand, CMD_WRITE),
 		NewCommand("hello", HelloCommand, CMD_WRITE),
+		NewCommand("zpopmin", ZpopminCommand, CMD_WRITE),
+		NewCommand("zpopmax", ZpopmaxCommand, CMD_WRITE),
 	})
 
 	// NOTE: Taken by dumping from `CONFIG GET *`.

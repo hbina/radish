@@ -27,7 +27,6 @@ func ZrevrangeCommand(c *Client, args [][]byte) {
 	// Parse options
 	withScores := false
 
-	// TODO: Can be optimized to end when we encounter an integer
 	for i := 4; i < len(args); i++ {
 		arg := strings.ToLower(string(args[i]))
 		switch arg {

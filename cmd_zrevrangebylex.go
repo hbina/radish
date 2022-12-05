@@ -30,7 +30,6 @@ func ZrevrangebylexCommand(c *Client, args [][]byte) {
 	offset := 0
 	limit := math.MaxInt
 
-	// TODO: Can be optimized to end when we encounter an integer
 	for i := 4; i < len(args); i++ {
 		arg := strings.ToLower(string(args[i]))
 		switch arg {

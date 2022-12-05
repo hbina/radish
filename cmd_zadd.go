@@ -37,9 +37,16 @@ func ZaddCommand(c *Client, args [][]byte) {
 	chEnabled := false
 	incrEnabled := false
 
-	// TODO: Can be optimized to end when we encounter an integer
 	for i := 2; i < len(args); i++ {
 		arg := strings.ToLower(string(args[i]))
+
+		// If arg is a number, then we have found score, meaning there are no options left
+		_, err := strconv.ParseInt(arg, 10, 32)
+
+		if err == nil {
+			break
+		}
+
 		switch arg {
 		case "xx":
 			{
