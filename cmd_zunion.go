@@ -95,8 +95,8 @@ func implZSetSetOperationCommand(c *Client, args [][]byte,
 			for i := 0; i < numKey; i++ {
 				float, err := strconv.ParseFloat(string(args[i+offsetToKeys+numKey+1]), 64)
 
-				if err != nil {
-					c.Conn().WriteError(SyntaxErr)
+				if err != nil || math.IsNaN(float) {
+					c.Conn().WriteError("ERR weight value is not a float")
 					return
 				}
 
@@ -266,9 +266,7 @@ func implZSetSetOperationCommand(c *Client, args [][]byte,
 			c.Conn().WriteInt(result.Len())
 		}
 	} else if store {
-		if result.Len() != 0 {
-			db.Set(destination, result, time.Time{})
-		}
+		db.Set(destination, result, time.Time{})
 		c.Conn().WriteInt(result.Len())
 	} else {
 		if withScores {

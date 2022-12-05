@@ -2,6 +2,7 @@ package redis
 
 import (
 	"fmt"
+	"math"
 )
 
 // https://redis.io/commands/zscore/
@@ -34,5 +35,13 @@ func ZscoreCommand(c *Client, args [][]byte) {
 		return
 	}
 
-	c.Conn().WriteString(fmt.Sprint(maybeMember.score))
+	if math.IsNaN(maybeMember.score) {
+		c.Conn().WriteString("nan")
+	} else if math.IsInf(maybeMember.score, -1) {
+		c.Conn().WriteString("-inf")
+	} else if math.IsInf(maybeMember.score, 1) {
+		c.Conn().WriteString("inf")
+	} else {
+		c.Conn().WriteString(fmt.Sprint(maybeMember.score))
+	}
 }
