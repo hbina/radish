@@ -27,5 +27,5 @@ func (l ZSet) TypeFancy() string {
 }
 
 func (s ZSet) Len() int {
-	return s.inner.GetCount()
+	return s.inner.Len()
 }

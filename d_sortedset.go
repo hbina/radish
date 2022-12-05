@@ -63,7 +63,6 @@ func (ss *SortedSetNode) Score() float64 {
 type SortedSet struct {
 	header *SortedSetNode
 	tail   *SortedSetNode
-	length int
 	level  int
 	dict   map[string]*SortedSetNode
 }
@@ -131,7 +130,7 @@ func (ss *SortedSet) insertNode(score float64, key string) *SortedSetNode {
 		for i := ss.level; i < level; i++ {
 			rank[i] = 0
 			update[i] = ss.header
-			update[i].level[i].span = ss.length
+			update[i].level[i].span = ss.Len()
 		}
 		ss.level = level
 	}
@@ -172,7 +171,6 @@ func (ss *SortedSet) insertNode(score float64, key string) *SortedSetNode {
 		// Otherwise, we are the furthermost node at level 0, we are the new tail
 		ss.tail = x
 	}
-	ss.length++
 	return x
 }
 
@@ -194,7 +192,6 @@ func (ss *SortedSet) deleteNode(x *SortedSetNode, update [SKIPLIST_MAXLEVEL]*Sor
 	for ss.level > 1 && ss.header.level[ss.level-1].forward == nil {
 		ss.level--
 	}
-	ss.length--
 	delete(ss.dict, x.key)
 }
 
@@ -217,7 +214,7 @@ func (ss *SortedSet) delete(score float64, key string) bool {
 	x = x.level[0].forward
 	if x != nil && score == x.score && x.key == key {
 		ss.deleteNode(x, update)
-		// free x
+		delete(ss.dict, key)
 		return true
 	}
 	return false /* not found */
@@ -237,8 +234,8 @@ func New() *SortedSet {
 }
 
 // Get the number of elements
-func (ss *SortedSet) GetCount() int {
-	return ss.length
+func (ss *SortedSet) Len() int {
+	return len(ss.dict)
 }
 
 // get the element with minimum score, nil if the set is empty
@@ -343,7 +340,7 @@ func (ss *SortedSet) GetByScoreRange(start float64, end float64, options *GetByS
 	var nodes []*SortedSetNode
 
 	//determine if out of range
-	if ss.length == 0 {
+	if ss.Len() == 0 {
 		return nodes
 	}
 	//////////////////////////
@@ -433,10 +430,10 @@ func (ss *SortedSet) GetByScoreRange(start float64, end float64, options *GetByS
 // sanitizeIndexes return start, end, and reverse flag
 func (ss *SortedSet) sanitizeIndexes(start int, end int) (int, int, bool) {
 	if start < 0 {
-		start = ss.length + start + 1
+		start = ss.Len() + start + 1
 	}
 	if end < 0 {
-		end = ss.length + end + 1
+		end = ss.Len() + end + 1
 	}
 	if start <= 0 {
 		start = 1
