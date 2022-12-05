@@ -64,7 +64,6 @@ func (ss *SortedSetNode) Score() float64 {
 type SortedSet struct {
 	header *SortedSetNode
 	tail   *SortedSetNode
-	length int
 	level  int
 	dict   map[string]*SortedSetNode
 }
@@ -132,7 +131,7 @@ func (ss *SortedSet) insertNode(score float64, key string) *SortedSetNode {
 		for i := ss.level; i < level; i++ {
 			rank[i] = 0
 			update[i] = ss.header
-			update[i].level[i].span = ss.length
+			update[i].level[i].span = ss.Len()
 		}
 		ss.level = level
 	}
@@ -174,7 +173,6 @@ func (ss *SortedSet) insertNode(score float64, key string) *SortedSetNode {
 		// Otherwise, we are the furthermost node at level 0, we are the new tail
 		ss.tail = x
 	}
-	ss.length++
 	return x
 }
 
@@ -196,7 +194,6 @@ func (ss *SortedSet) deleteNode(x *SortedSetNode, update [SKIPLIST_MAXLEVEL]*Sor
 	for ss.level > 1 && ss.header.level[ss.level-1].forward == nil {
 		ss.level--
 	}
-	ss.length--
 	delete(ss.dict, x.key)
 }
 
@@ -219,6 +216,7 @@ func (ss *SortedSet) delete(score float64, key string) bool {
 	x = x.level[0].forward
 	if x != nil && score == x.score && x.key == key {
 		ss.deleteNode(x, update)
+		delete(ss.dict, key)
 		return true
 	}
 	return false /* not found */
@@ -239,7 +237,7 @@ func NewSortedSet() *SortedSet {
 
 // Get the number of elements
 func (ss *SortedSet) Len() int {
-	return ss.length
+	return len(ss.dict)
 }
 
 // PeekMin returns the element with the lowest score if it exists.

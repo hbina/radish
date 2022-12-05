@@ -13,7 +13,7 @@ import (
 
 var dbId int64 = 0
 var server *Redis = Default()
-var port string = fmt.Sprintf("localhost:%s", "6380")
+var port string = fmt.Sprintf("localhost:%s", "6381")
 
 func CreateTestClient() *redis.Client {
 	c := redis.NewClient(&redis.Options{
@@ -24,7 +24,7 @@ func CreateTestClient() *redis.Client {
 }
 
 func init() {
-	go server.Run(":6380")
+	go server.Run(":6381")
 }
 
 func TestPingCommand(t *testing.T) {
@@ -221,7 +221,7 @@ func TestRestoreCommand(t *testing.T) {
 }
 
 func TestBadRespCommand(t *testing.T) {
-	tcpAddr, err := net.ResolveTCPAddr("tcp", "localhost:6380")
+	tcpAddr, err := net.ResolveTCPAddr("tcp", "localhost:6381")
 	assert.NoError(t, err)
 
 	tcpConn, err := net.DialTCP("tcp", nil, tcpAddr)
