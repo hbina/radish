@@ -142,7 +142,6 @@ func (s *Set) ForEachF(f func(a string)) {
 	}
 }
 
-// TODO: For now we only store strings so this should be enough.
 func (s *Set) ToZSet() *ZSet {
 	set := NewZSet()
 

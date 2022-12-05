@@ -4,6 +4,11 @@ import "math"
 
 var _ Item = (*ZSet)(nil)
 
+type SerdeZSet struct {
+	Keys   []string  `json:"keys"`
+	Scores []float64 `json:"scores"`
+}
+
 type ZSet struct {
 	inner SortedSet
 }

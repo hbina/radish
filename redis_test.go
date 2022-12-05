@@ -13,11 +13,12 @@ import (
 
 var dbId int64 = 0
 var server *Redis = Default()
-var port string = fmt.Sprintf("localhost:%s", "6379")
+var port string = "6381"
+var addr string = fmt.Sprintf("localhost:%s", port)
 
 func CreateTestClient() *redis.Client {
 	c := redis.NewClient(&redis.Options{
-		Addr: port,
+		Addr: addr,
 		DB:   int(atomic.AddInt64(&dbId, 1)),
 	})
 	return c
