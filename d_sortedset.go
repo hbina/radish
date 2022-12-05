@@ -131,7 +131,7 @@ func (ss *SortedSet) insertNode(score float64, key string) *SortedSetNode {
 		for i := ss.level; i < level; i++ {
 			rank[i] = 0
 			update[i] = ss.header
-			update[i].level[i].span = len(ss.dict)
+			update[i].level[i].span = ss.Len()
 		}
 		ss.level = level
 	}
@@ -194,6 +194,7 @@ func (ss *SortedSet) deleteNode(x *SortedSetNode, update [SKIPLIST_MAXLEVEL]*Sor
 	for ss.level > 1 && ss.header.level[ss.level-1].forward == nil {
 		ss.level--
 	}
+	delete(ss.dict, x.key)
 }
 
 /* Delete an element with matching score/key from the skiplist. */
@@ -215,7 +216,7 @@ func (ss *SortedSet) delete(score float64, key string) bool {
 	x = x.level[0].forward
 	if x != nil && score == x.score && x.key == key {
 		ss.deleteNode(x, update)
-		delete(ss.dict, x.key)
+		delete(ss.dict, key)
 		return true
 	}
 	return false /* not found */
