@@ -18,6 +18,8 @@ func NewSetEmpty() *Set {
 	return &Set{inner: map[string]struct{}{}}
 }
 
+/// impl Item for Set
+
 func (s *Set) Value() interface{} {
 	return s.inner
 }
@@ -138,4 +140,14 @@ func (s *Set) ForEachF(f func(a string)) {
 	for k := range s.inner {
 		f(k)
 	}
+}
+
+func (s *Set) ToZSet() *ZSet {
+	set := NewZSet()
+
+	for k := range s.inner {
+		set.inner.AddOrUpdate(k, 1)
+	}
+
+	return set
 }
