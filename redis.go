@@ -196,6 +196,7 @@ func createDefault() *Redis {
 		NewCommand("hello", HelloCommand, CMD_WRITE),
 		NewCommand("zpopmin", ZpopminCommand, CMD_WRITE),
 		NewCommand("zpopmax", ZpopmaxCommand, CMD_WRITE),
+		NewCommand("zmpop", ZmpopCommand, CMD_WRITE),
 	})
 
 	// NOTE: Taken by dumping from `CONFIG GET *`.

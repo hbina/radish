@@ -5,8 +5,8 @@ import "github.com/tidwall/redcon"
 // Command flags. Please check the command table defined in the redis.c file
 // for more information about the meaning of every flag.
 const (
-	CMD_WRITE    uint64 = 1 << 0 /* "w" flag */
-	CMD_READONLY        = 1 << 1 /* "r" flag */
+	CMD_WRITE    uint64 = 1 << 0
+	CMD_READONLY        = 1 << 1
 )
 
 // A command can be registered.
