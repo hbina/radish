@@ -136,7 +136,7 @@ func ZaddCommand(c *Client, args [][]byte) {
 		return
 	}
 
-	set := maybeSet.Value().(SortedSet)
+	set := maybeSet.Value().(*SortedSet)
 
 	addedCount := 0
 	var newScore *float64 = nil

@@ -36,7 +36,7 @@ func ZremrangebylexCommand(c *Client, args [][]byte) {
 		return
 	}
 
-	set := maybeSet.Value().(SortedSet)
+	set := maybeSet.Value().(*SortedSet)
 
 	res := set.GetRangeByLex(start, stop, GetRangeOptions{
 		reverse:        false,

@@ -87,7 +87,7 @@ func ZrangebyscoreCommand(c *Client, args [][]byte) {
 		return
 	}
 
-	set := maybeSet.Value().(SortedSet)
+	set := maybeSet.Value().(*SortedSet)
 
 	res := set.GetRangeByScore(start, stop, GetRangeOptions{
 		reverse:        false,
