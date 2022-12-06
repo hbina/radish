@@ -309,6 +309,7 @@ func (ss *SortedSet) AddOrUpdate(key string, score float64) bool {
 //
 // Time complexity: O(log(N)) with high probability
 func (ss *SortedSet) Remove(key string) *SortedSetNode {
+	// Check the dict first so we don't have to iterate the nodes
 	found := ss.dict[key]
 	if found != nil {
 		ss.delete(found.score, found.key)

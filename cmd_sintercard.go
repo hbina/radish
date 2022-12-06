@@ -2,12 +2,13 @@ package redis
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 )
 
 // https://redis.io/commands/sintercard/
-// SREM key member [member ...]
+// SINTERCARD numkeys key [key ...] [LIMIT limit]
 // TODO: Cleanup this mess. It feels like this shouldn't be as complicated as this?
 func SintercardCommand(c *Client, args [][]byte) {
 	if len(args) < 3 {
@@ -36,7 +37,7 @@ func SintercardCommand(c *Client, args [][]byte) {
 	}
 
 	// The only additional args that can be passed is LIMIT <limit>
-	if numberOfKeys+2 != len(args) && numberOfKeys+4 != len(args) {
+	if numberOfKeys != len(args)-2 && numberOfKeys != len(args)-4 {
 		c.Conn().WriteError(SyntaxErr)
 		return
 	}
@@ -49,7 +50,7 @@ func SintercardCommand(c *Client, args [][]byte) {
 	}
 
 	// Parse limit option
-	limit := 0
+	limit := math.MaxInt
 
 	// number of keys should be equal to the length of the args minus
 	// command name, number of keys, limit and limit number
@@ -57,6 +58,7 @@ func SintercardCommand(c *Client, args [][]byte) {
 		limitOption := string(args[len(args)-2])
 		limitValue64, err := strconv.ParseInt(string(args[len(args)-1]), 10, 32)
 
+		// TODO: I think this should be a syntax error if its not limit
 		if strings.ToLower(limitOption) != "limit" || err != nil || limitValue64 < 0 {
 			c.Conn().WriteError("ERR LIMIT can't be negative")
 			return
@@ -71,6 +73,7 @@ func SintercardCommand(c *Client, args [][]byte) {
 
 	// TODO: Is it possible to optimize using the fact that we know what the
 	// upper bound is?
+	// TODO: Should be able to optimize this further by breaking early from this loop
 	for _, key := range keys {
 		maybeSet, _ := db.GetOrExpire(key, true)
 

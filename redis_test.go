@@ -13,11 +13,12 @@ import (
 
 var dbId int64 = 0
 var server *Redis = Default()
-var port string = fmt.Sprintf("localhost:%s", "6381")
+var port string = "6381"
+var addr string = fmt.Sprintf("localhost:%s", port)
 
 func CreateTestClient() *redis.Client {
 	c := redis.NewClient(&redis.Options{
-		Addr: port,
+		Addr: addr,
 		DB:   int(atomic.AddInt64(&dbId, 1)),
 	})
 	return c
@@ -202,22 +203,66 @@ func TestSrandMember(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, c1, c2, fmt.Sprintf("Failed when size = %d", size))
 	}
-
 }
 
 func TestRestoreCommand(t *testing.T) {
 	c := CreateTestClient()
 
-	s, err := c.Set("foo", "bar", time.Duration(0)).Result()
-	assert.NoError(t, err)
-	assert.Equal(t, "OK", s)
+	{
+		s, err := c.Set("dump-restore-string", "bar", time.Duration(0)).Result()
+		assert.NoError(t, err)
+		assert.Equal(t, "OK", s)
 
-	s, err = c.Dump("foo").Result()
-	assert.NoError(t, err)
+		dump, err := c.Dump("dump-restore-string").Result()
+		assert.NoError(t, err)
+		assert.NotEmpty(t, dump)
 
-	s, err = c.Restore("foo", time.Duration(0), s).Result()
-	assert.Equal(t, "BUSYKEY Target key name already exists.", err.Error())
-	assert.Empty(t, s)
+		s, err = c.Restore("dump-restore-string", time.Duration(0), dump).Result()
+		assert.Equal(t, "BUSYKEY Target key name already exists.", err.Error())
+		assert.Empty(t, s)
+
+		i, err := c.Del("dump-restore-string").Result()
+		assert.NoError(t, err)
+		assert.Equal(t, int64(1), i)
+
+		s, err = c.Restore("dump-restore-string", time.Duration(0), dump).Result()
+		assert.NoError(t, err)
+		assert.Equal(t, "OK", s)
+	}
+
+	{
+		s1, err := c.ZAdd("dump-restore-zset", redis.Z{
+			Score:  1,
+			Member: "a",
+		}, redis.Z{
+			Score:  2,
+			Member: "b",
+		}, redis.Z{
+			Score:  3,
+			Member: "c",
+		}, redis.Z{
+			Score:  4,
+			Member: "d",
+		}).Result()
+		assert.NoError(t, err)
+		assert.Equal(t, int64(4), s1)
+
+		dump, err := c.Dump("dump-restore-zset").Result()
+		assert.NoError(t, err)
+		assert.NotEmpty(t, dump)
+
+		s2, err := c.Restore("dump-restore-zset", time.Duration(0), dump).Result()
+		assert.Equal(t, "BUSYKEY Target key name already exists.", err.Error())
+		assert.Empty(t, s2)
+
+		i, err := c.Del("dump-restore-zset").Result()
+		assert.NoError(t, err)
+		assert.Equal(t, int64(1), i)
+
+		s3, err := c.Restore("dump-restore-zset", time.Duration(0), dump).Result()
+		assert.NoError(t, err)
+		assert.Equal(t, "OK", s3)
+	}
 }
 
 func TestBadRespCommand(t *testing.T) {
@@ -243,4 +288,182 @@ func TestBadRespCommand(t *testing.T) {
 
 	err = tcpConn.Close()
 	assert.NoError(t, err)
+}
+
+func TestZaddCommad(t *testing.T) {
+
+	// ZADD CH option changes return value to all changed elements
+	{
+		c := CreateTestClient()
+		_, err := c.ZAdd("ztmp2", redis.Z{
+			Score:  10,
+			Member: "x",
+		}, redis.Z{
+			Score:  20,
+			Member: "y",
+		}, redis.Z{
+			Score:  30,
+			Member: "z",
+		}).Result()
+		assert.NoError(t, err)
+
+		s, err := c.ZAdd("ztmp2", redis.Z{
+			Score:  11,
+			Member: "x",
+		}, redis.Z{
+			Score:  21,
+			Member: "y",
+		}, redis.Z{
+			Score:  30,
+			Member: "z",
+		}).Result()
+		assert.NoError(t, err)
+		assert.Equal(t, int64(0), s)
+
+		s, err = c.ZAddCh("ztmp2", redis.Z{
+			Score:  12,
+			Member: "x",
+		}, redis.Z{
+			Score:  22,
+			Member: "y",
+		}, redis.Z{
+			Score:  30,
+			Member: "z",
+		}).Result()
+		assert.NoError(t, err)
+		assert.Equal(t, int64(2), s)
+	}
+
+	// ZRANGE basics
+	{
+		c := CreateTestClient()
+		_, err := c.ZAdd("ztmp1", redis.Z{
+			Score:  1,
+			Member: "a",
+		}, redis.Z{
+			Score:  2,
+			Member: "b",
+		}, redis.Z{
+			Score:  3,
+			Member: "c",
+		}, redis.Z{
+			Score:  4,
+			Member: "d",
+		}).Result()
+		assert.NoError(t, err)
+
+		res, err := c.ZRange("ztmp1", 0, -1).Result()
+		assert.NoError(t, err)
+		assert.Equal(t, []string{"a", "b", "c", "d"}, res)
+
+		res, err = c.ZRange("ztmp1", 0, -2).Result()
+		assert.NoError(t, err)
+		assert.Equal(t, []string{"a", "b", "c"}, res)
+
+		res, err = c.ZRange("ztmp1", 1, -1).Result()
+		assert.NoError(t, err)
+		assert.Equal(t, []string{"b", "c", "d"}, res)
+
+		res, err = c.ZRange("ztmp1", 1, -2).Result()
+		assert.NoError(t, err)
+		assert.Equal(t, []string{"b", "c"}, res)
+
+		res, err = c.ZRange("ztmp1", -2, -1).Result()
+		assert.NoError(t, err)
+		assert.Equal(t, []string{"c", "d"}, res)
+
+		res, err = c.ZRange("ztmp1", -2, -2).Result()
+		assert.NoError(t, err)
+		assert.Equal(t, []string{"c"}, res)
+
+		// out of range start index
+		res, err = c.ZRange("ztmp1", -5, 2).Result()
+		assert.NoError(t, err)
+		assert.Equal(t, []string{"a", "b", "c"}, res)
+
+		res, err = c.ZRange("ztmp1", -5, 1).Result()
+		assert.NoError(t, err)
+		assert.Equal(t, []string{"a", "b"}, res)
+
+		res, err = c.ZRange("ztmp1", 5, -1).Result()
+		assert.NoError(t, err)
+		assert.Equal(t, []string{}, res)
+
+		res, err = c.ZRange("ztmp1", 5, -2).Result()
+		assert.NoError(t, err)
+		assert.Equal(t, []string{}, res)
+	}
+}
+
+func TestZremrangebyScoreCommand(t *testing.T) {
+
+	{
+		c := CreateTestClient()
+
+		_, err := c.ZAdd("zset", redis.Z{
+			Score:  1,
+			Member: "a",
+		}, redis.Z{
+			Score:  2,
+			Member: "b",
+		}, redis.Z{
+			Score:  3,
+			Member: "c",
+		}, redis.Z{
+			Score:  4,
+			Member: "d",
+		}, redis.Z{
+			Score:  5,
+			Member: "e",
+		}).Result()
+		assert.NoError(t, err)
+
+		_, err = c.ZRemRangeByScore("zset", "2", "4").Result()
+		assert.NoError(t, err)
+	}
+}
+
+func TestZrankCommand(t *testing.T) {
+	{
+		c := CreateTestClient()
+
+		_, err := c.ZAdd("zset", redis.Z{
+			Score:  10,
+			Member: "x",
+		}, redis.Z{
+			Score:  20,
+			Member: "y",
+		}, redis.Z{
+			Score:  30,
+			Member: "z",
+		}).Result()
+		assert.NoError(t, err)
+
+		r1, err := c.ZRank("zset", "x").Result()
+		assert.NoError(t, err)
+		assert.Equal(t, int64(0), r1)
+		r1, err = c.ZRank("zset", "y").Result()
+		assert.NoError(t, err)
+		assert.Equal(t, int64(1), r1)
+		r1, err = c.ZRank("zset", "z").Result()
+		assert.NoError(t, err)
+		assert.Equal(t, int64(2), r1)
+
+		r1, err = c.ZRevRank("zset", "x").Result()
+		assert.NoError(t, err)
+		assert.Equal(t, int64(2), r1)
+		r1, err = c.ZRevRank("zset", "y").Result()
+		assert.NoError(t, err)
+		assert.Equal(t, int64(1), r1)
+		r1, err = c.ZRevRank("zset", "z").Result()
+		assert.NoError(t, err)
+		assert.Equal(t, int64(0), r1)
+
+		r2, err := c.ZRank("zset", "foo").Result()
+		assert.Error(t, err)
+		assert.Equal(t, int64(0), r2)
+		r2, err = c.ZRevRank("zset", "foo").Result()
+		assert.Error(t, err)
+		assert.Equal(t, int64(0), r2)
+	}
 }

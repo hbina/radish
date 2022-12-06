@@ -12,11 +12,13 @@ const (
 	SyntaxErr             = "ERR syntax error"
 	InvalidIntErr         = "ERR value is not an integer or out of range"
 	InvalidFloatErr       = "ERR value is not a valid float"
+	InvalidLexErr         = "ERR min or max not valid string range item"
 	WrongTypeErr          = "WRONGTYPE Operation against a key holding the wrong kind of value"
 	WrongNumOfArgsErr     = "ERR wrong number of arguments for '%s' command"
 	ZeroArgumentErr       = "ERR zero argument passed to the handler. This is an implementation bug"
 	DeserializationErr    = "ERR unable to deserialize '%s' into a valid object"
 	OptionNotSupportedErr = "ERR option '%s' is not currently supported"
+	NegativeIntErr        = "ERR %s must be positive"
 )
 
 // This is the redis server.
@@ -58,6 +60,8 @@ func createDefault() *Redis {
 	r := &Redis{
 		mu: mu,
 		handler: func(c *Client, cmd redcon.Command) {
+			fmt.Println(CollectArgs(cmd.Args))
+
 			if len(cmd.Args) == 0 {
 				c.Conn().WriteError(ZeroArgumentErr)
 				return
@@ -68,8 +72,6 @@ func createDefault() *Redis {
 			// fmt.Println(CollectArgs(cmd.Args))
 			cmdl := strings.ToLower(string(cmd.Args[0]))
 			command := c.Redis().Command(cmdl)
-
-			fmt.Println(CollectArgs(cmd.Args))
 
 			if command != nil {
 				if command.flag&CMD_WRITE != 0 {
@@ -164,6 +166,37 @@ func createDefault() *Redis {
 		NewCommand("setrange", SetrangeCommand, CMD_WRITE),
 		NewCommand("getrange", GetrangeCommand, CMD_READONLY),
 		NewCommand("lcs", LcsCommand, CMD_READONLY),
+		NewCommand("zrange", ZrangeCommand, CMD_READONLY),
+		NewCommand("type", TypeCommand, CMD_READONLY),
+		NewCommand("zcard", ZcardCommand, CMD_READONLY),
+		NewCommand("zscore", ZscoreCommand, CMD_READONLY),
+		NewCommand("zincrby", ZincrbyCommand, CMD_WRITE),
+		NewCommand("zrem", ZremCommand, CMD_WRITE),
+		NewCommand("zrevrange", ZrevrangeCommand, CMD_READONLY),
+		NewCommand("zrank", ZrankCommand, CMD_READONLY),
+		NewCommand("zrevrank", ZrevrankCommand, CMD_READONLY),
+		NewCommand("zrangebyscore", ZrangebyscoreCommand, CMD_READONLY),
+		NewCommand("zrevrangebyscore", ZrevrangebyscoreCommand, CMD_READONLY),
+		NewCommand("zcount", ZcountCommand, CMD_READONLY),
+		NewCommand("zrangebylex", ZrangebylexCommand, CMD_READONLY),
+		NewCommand("zrevrangebylex", ZrevrangebylexCommand, CMD_READONLY),
+		NewCommand("zlexcount", ZlexcountCommand, CMD_READONLY),
+		NewCommand("zremrangebyscore", ZremrangebyscoreCommand, CMD_WRITE),
+		NewCommand("zremrangebylex", ZremrangebylexCommand, CMD_WRITE),
+		NewCommand("zremrangebyrank", ZremrangebyrankCommand, CMD_WRITE),
+		NewCommand("zinter", ZinterCommand, CMD_READONLY),
+		NewCommand("zintercard", ZintercardCommand, CMD_READONLY),
+		NewCommand("zinterstore", ZinterstoreCommand, CMD_WRITE),
+		NewCommand("zunion", ZunionCommand, CMD_READONLY),
+		NewCommand("zunioncard", ZunioncardCommand, CMD_READONLY),
+		NewCommand("zunionstore", ZunionstoreCommand, CMD_WRITE),
+		NewCommand("zdiff", ZdiffCommand, CMD_READONLY),
+		NewCommand("zdiffcard", ZdiffcardCommand, CMD_READONLY),
+		NewCommand("zdiffstore", ZdiffstoreCommand, CMD_WRITE),
+		NewCommand("hello", HelloCommand, CMD_WRITE),
+		NewCommand("zpopmin", ZpopminCommand, CMD_WRITE),
+		NewCommand("zpopmax", ZpopmaxCommand, CMD_WRITE),
+		NewCommand("zmpop", ZmpopCommand, CMD_WRITE),
 	})
 
 	// NOTE: Taken by dumping from `CONFIG GET *`.

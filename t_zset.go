@@ -1,6 +1,8 @@
 package redis
 
-import "math"
+import (
+	"math"
+)
 
 var _ Item = (*ZSet)(nil)
 
@@ -64,7 +66,12 @@ func (s *ZSet) Union(o *ZSet, mode int, weight float64) *ZSet {
 			} else if mode == 2 { // Max
 				set.inner.AddOrUpdate(key, math.Max(node.score, otherNode.score*weight))
 			} else { // NOTE: mode _should_ be 0 here, but this might not always be correct :)
-				set.inner.AddOrUpdate(key, node.score+(otherNode.score*weight))
+				if (math.IsInf(node.score, -1) && math.IsInf(otherNode.score, 1)) ||
+					math.IsInf(otherNode.score, -1) && math.IsInf(node.score, 1) {
+					set.inner.AddOrUpdate(key, 0)
+				} else {
+					set.inner.AddOrUpdate(key, node.score+(otherNode.score*weight))
+				}
 			}
 		} else {
 			set.inner.AddOrUpdate(key, node.score)
@@ -93,7 +100,12 @@ func (s *ZSet) Intersect(o *ZSet, mode int, weight float64) *ZSet {
 			} else if mode == 2 { // Max
 				set.inner.AddOrUpdate(key, math.Max(node.score, otherNode.score*weight))
 			} else { // NOTE: It _should_ be 0 here, but this might not always be correct :)
-				set.inner.AddOrUpdate(key, node.score+(otherNode.score*weight))
+				if (math.IsInf(node.score, -1) && math.IsInf(otherNode.score, 1)) ||
+					math.IsInf(otherNode.score, -1) && math.IsInf(node.score, 1) {
+					set.inner.AddOrUpdate(key, 0)
+				} else {
+					set.inner.AddOrUpdate(key, node.score+(otherNode.score*weight))
+				}
 			}
 		}
 	}
@@ -113,8 +125,4 @@ func (s *ZSet) Diff(o *ZSet) *ZSet {
 	}
 
 	return set
-}
-
-func (s *ZSet) WriteResp(c *Client, version int) {
-
 }
