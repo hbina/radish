@@ -53,7 +53,7 @@ func ZpopmaxCommand(c *Client, args [][]byte) {
 		return
 	}
 
-	set := maybeSet.Value().(SortedSet)
+	set := maybeSet.Value().(*SortedSet)
 
 	if count > set.Len() {
 		count = set.Len()

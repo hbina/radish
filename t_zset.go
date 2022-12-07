@@ -12,14 +12,14 @@ type SerdeZSet struct {
 }
 
 type ZSet struct {
-	inner SortedSet
+	inner *SortedSet
 }
 
 func NewZSet() *ZSet {
-	return &ZSet{inner: *NewSortedSet()}
+	return &ZSet{inner: NewSortedSet()}
 }
 
-func NewZSetFromSs(value SortedSet) *ZSet {
+func NewZSetFromSs(value *SortedSet) *ZSet {
 	return &ZSet{inner: value}
 }
 

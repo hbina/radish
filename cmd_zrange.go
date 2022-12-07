@@ -104,7 +104,7 @@ func ZrangeCommand(c *Client, args [][]byte) {
 		return
 	}
 
-	set := maybeSet.Value().(SortedSet)
+	set := maybeSet.Value().(*SortedSet)
 
 	var res []*SortedSetNode
 

@@ -36,7 +36,7 @@ func ZremrangebyrankCommand(c *Client, args [][]byte) {
 		return
 	}
 
-	set := maybeSet.Value().(SortedSet)
+	set := maybeSet.Value().(*SortedSet)
 
 	res := set.GetRangeByIndex(start, stop, GetRangeOptions{
 		reverse:        false,
