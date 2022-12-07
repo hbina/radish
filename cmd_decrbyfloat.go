@@ -32,14 +32,14 @@ func DecrByFloatCommand(c *Client, args [][]byte) {
 		return
 	}
 
-	value, ok := item.Value().(*string)
+	value, ok := item.Value().(string)
 
 	if !ok {
 		c.conn.WriteError(WrongTypeErr)
 		return
 	}
 
-	floatValue, err := strconv.ParseFloat(*value, 64)
+	floatValue, err := strconv.ParseFloat(value, 64)
 
 	if err != nil {
 		c.conn.WriteError(InvalidFloatErr)

@@ -31,14 +31,14 @@ func IncrByCommand(c *Client, args [][]byte) {
 		return
 	}
 
-	value, ok := item.Value().(*string)
+	value, ok := item.Value().(string)
 
 	if !ok {
 		c.conn.WriteError(WrongTypeErr)
 		return
 	}
 
-	intValue, err := strconv.ParseInt(*value, 10, 64)
+	intValue, err := strconv.ParseInt(value, 10, 64)
 
 	if err != nil {
 		c.conn.WriteError(InvalidIntErr)
