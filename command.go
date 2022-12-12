@@ -1,7 +1,5 @@
 package redis
 
-import "github.com/tidwall/redcon"
-
 // Command flags. Please check the command table defined in the redis.c file
 // for more information about the meaning of every flag.
 const (
@@ -43,13 +41,6 @@ type Commands map[string]*Command
 // so if you implement an own Handler make sure the CommandHandler is called.
 type CommandHandler func(c *Client, cmd [][]byte)
 
-// Is called when a request is received,
-// after Accept and if the command is not registered.
-//
-// However UnknownCommand is executed by the Handler,
-// so if you implement an own Handler make sure to include UnknownCommand.
-type UnknownCommand func(c *Client, cmd redcon.Command)
-
 // Gets registered commands name.
 func (cmd *Command) Name() string {
 	return cmd.name
@@ -74,10 +65,4 @@ func (r *Redis) Command(name string) *Command {
 func (r *Redis) Commands() Commands {
 
 	return r.commands
-}
-
-// UnknownCommandFn returns the UnknownCommand function.
-func (r *Redis) UnknownCommandFn() UnknownCommand {
-
-	return r.unknownCommand
 }

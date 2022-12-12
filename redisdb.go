@@ -28,7 +28,7 @@ type Kvp struct {
 
 // A redis database.
 // There can be more than one in a redis instance.
-type RedisDb struct {
+type Db struct {
 	// Database id
 	id uint64
 
@@ -57,8 +57,8 @@ type Item interface {
 }
 
 // NewRedisDb creates a new db.
-func NewRedisDb(id uint64, r *Redis) *RedisDb {
-	return &RedisDb{
+func NewRedisDb(id uint64, r *Redis) *Db {
+	return &Db{
 		id:      id,
 		redis:   r,
 		storage: make(map[string]Item, 0),
@@ -67,22 +67,22 @@ func NewRedisDb(id uint64, r *Redis) *RedisDb {
 }
 
 // RedisDbs gets all redis databases.
-func (r *Redis) RedisDbs() map[uint64]*RedisDb {
-	return r.redisDbs
+func (r *Redis) RedisDbs() map[uint64]*Db {
+	return r.dbs
 }
 
 // Redis gets the redis instance.
-func (db *RedisDb) Redis() *Redis {
+func (db *Db) Redis() *Redis {
 	return db.redis
 }
 
 // Id gets the db id.
-func (db *RedisDb) Id() uint64 {
+func (db *Db) Id() uint64 {
 	return db.id
 }
 
 // Sets a key with an item which can have an expiration time.
-func (db *RedisDb) Set(key string, i Item, ttl time.Time) Item {
+func (db *Db) Set(key string, i Item, ttl time.Time) Item {
 	// Empty item is considered a delete operation because
 	// operations on non-existent key is equivalent to zeroth of that
 	// object type.
@@ -127,25 +127,25 @@ func (db *RedisDb) Set(key string, i Item, ttl time.Time) Item {
 
 // Get returns the item by the key or nil if key does not exists.
 // TODO: Should this returns the exists bool?
-func (db *RedisDb) Get(key string) Item {
+func (db *Db) Get(key string) Item {
 	return db.storage[key]
 }
 
 // GetExpiry returns the item by the key or nil if key does not exists.
-func (db *RedisDb) GetExpiry(key string) (time.Time, bool) {
+func (db *Db) GetExpiry(key string) (time.Time, bool) {
 	v, e := db.ttl[key]
 	return v, e
 }
 
 // SetExpiry sets the expiry of a key
-func (db *RedisDb) SetExpiry(key string, ttl time.Time) (time.Time, bool) {
+func (db *Db) SetExpiry(key string, ttl time.Time) (time.Time, bool) {
 	old, exists := db.ttl[key]
 	db.ttl[key] = ttl
 	return old, exists
 }
 
 // Deletes a key, returns number of deleted keys.
-func (db *RedisDb) Delete(keys ...string) int {
+func (db *Db) Delete(keys ...string) int {
 	var c int
 	for _, k := range keys {
 		_, itemExists := db.storage[k]
@@ -161,7 +161,7 @@ func (db *RedisDb) Delete(keys ...string) int {
 	return c
 }
 
-func (db *RedisDb) DeleteExpired(keys ...string) int {
+func (db *Db) DeleteExpired(keys ...string) int {
 	var c int
 	for _, k := range keys {
 		if db.Expired(k) && db.Delete(k) > 0 {
@@ -173,7 +173,7 @@ func (db *RedisDb) DeleteExpired(keys ...string) int {
 
 // GetOrExpire gets the item or nil if expired or not exists. If 'deleteIfExpired' is true the key will be deleted.
 // TODO: Should this return the exists bool or its enough to return nil?
-func (db *RedisDb) GetOrExpire(key string, deleteIfExpired bool) (Item, time.Time) {
+func (db *Db) GetOrExpire(key string, deleteIfExpired bool) (Item, time.Time) {
 	value, exists := db.storage[key]
 	if !exists {
 		return nil, time.Time{}
@@ -188,25 +188,25 @@ func (db *RedisDb) GetOrExpire(key string, deleteIfExpired bool) (Item, time.Tim
 }
 
 // IsEmpty checks if db is empty.
-func (db *RedisDb) IsEmpty() bool {
+func (db *Db) IsEmpty() bool {
 	return len(db.storage) == 0
 }
 
 // HasExpiringKeys checks if db has any expiring keys.
-func (db *RedisDb) HasExpiringKeys() bool {
+func (db *Db) HasExpiringKeys() bool {
 	return len(db.ttl) != 0
 }
 
 // Exists return whether or not a key exists.
 // Internally, it has the side effect of evicting keys that
 // expires.
-func (db *RedisDb) Exists(key string) bool {
+func (db *Db) Exists(key string) bool {
 	maybeItem, _ := db.GetOrExpire(key, true)
 	return maybeItem != nil
 }
 
 // Expired only check if a key can and is expired.
-func (db *RedisDb) Expired(key string) bool {
+func (db *Db) Expired(key string) bool {
 	ttl, exists := db.Expiry(key)
 	// Since we always write ttl in Set, we need to
 	// check if its zero.
@@ -217,13 +217,13 @@ func (db *RedisDb) Expired(key string) bool {
 }
 
 // Expiry gets the expiry of the key has one.
-func (db *RedisDb) Expiry(key string) (time.Time, bool) {
+func (db *Db) Expiry(key string) (time.Time, bool) {
 	val, ok := db.ttl[key]
 	return val, ok
 }
 
 // DeleteExpiredKeys will delete all the keys that have expired TTL.
-func (db *RedisDb) DeleteExpiredKeys() int {
+func (db *Db) DeleteExpiredKeys() int {
 	count := 0
 	for k := range db.ttl {
 		count += db.DeleteExpired(k)
@@ -231,7 +231,7 @@ func (db *RedisDb) DeleteExpiredKeys() int {
 	return count
 }
 
-func (db *RedisDb) Clear() {
+func (db *Db) Clear() {
 	for k := range db.storage {
 		delete(db.storage, k)
 		delete(db.ttl, k)
@@ -239,6 +239,6 @@ func (db *RedisDb) Clear() {
 }
 
 // Number of keys in the storage
-func (db *RedisDb) Len() int {
+func (db *Db) Len() int {
 	return len(db.storage)
 }

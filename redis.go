@@ -2,10 +2,9 @@ package redis
 
 import (
 	"fmt"
+	"net"
 	"strings"
 	"sync"
-
-	"github.com/tidwall/redcon"
 )
 
 const (
@@ -21,188 +20,123 @@ const (
 	NegativeIntErr        = "ERR %s must be positive"
 )
 
-// This is the redis server.
 type Redis struct {
-	mu *sync.RWMutex
-
-	// databases/keyspaces
-	redisDbs map[uint64]*RedisDb
-	configDb map[string]string
-
-	commands       map[string]*Command
-	unknownCommand UnknownCommand
-
-	handler func(c *Client, cmd redcon.Command)
-
-	keyExpirer *Expirer
-
-	clients map[string]*Client
+	mu       *sync.RWMutex
+	commands map[string]*Command
+	configs  map[string]string
+	clients  map[string]*Client
+	dbs      map[uint64]*Db
 }
 
-var defaultRedis *Redis
-
-// Default redis server.
-// Initializes the default redis if not already.
-// You can change the fields or value behind the pointer
-// of the returned redis pointer to extend/change the default.
 func Default() *Redis {
-	if defaultRedis != nil {
-		return defaultRedis
+	r := &Redis{
+		mu:       new(sync.RWMutex),
+		commands: generateCommands(),
+		configs:  createConfigs(),
+		clients:  make(map[string]*Client),
+		dbs:      make(map[uint64]*Db, 0),
 	}
-	defaultRedis = createDefault()
-	return defaultRedis
+	return r
 }
 
-// createDefault creates a new default redis.
-func createDefault() *Redis {
-	// initialize default redis server
-	mu := new(sync.RWMutex)
-	r := &Redis{
-		mu: mu,
-		handler: func(c *Client, cmd redcon.Command) {
-			fmt.Println(CollectArgs(cmd.Args))
-
-			if len(cmd.Args) == 0 {
-				c.Conn().WriteError(ZeroArgumentErr)
-				return
-			}
-
-			// TODO: Check that args is not empty
-			// TODO: Remove the first argument from argument to command handlers
-			// fmt.Println(CollectArgs(cmd.Args))
-			cmdl := strings.ToLower(string(cmd.Args[0]))
-			command := c.Redis().Command(cmdl)
-
-			if command != nil {
-				if command.flag&CMD_WRITE != 0 {
-					mu.Lock()
-				} else {
-					mu.RLock()
-				}
-
-				(command.handler)(c, cmd.Args)
-
-				if command.flag&CMD_WRITE != 0 {
-					mu.Unlock()
-				} else {
-					mu.RUnlock()
-				}
-			} else {
-				c.Redis().UnknownCommandFn()(c, cmd)
-			}
-		},
-		unknownCommand: func(c *Client, cmd redcon.Command) {
-			c.Conn().WriteError(fmt.Sprintf("ERR unknown command '%s'", cmd.Args[0]))
-		},
-		commands: make(map[string]*Command, 0),
-		clients:  make(map[string]*Client),
-		redisDbs: make(map[uint64]*RedisDb, 0),
+// Flush all keys synchronously
+func (r *Redis) SyncFlushAll() {
+	for _, v := range r.dbs {
+		v.Clear()
 	}
-	r.keyExpirer = NewKeyExpirer(r)
+}
 
-	r.RegisterCommands([]*Command{
-		NewCommand("ping", PingCommand, CMD_READONLY),
-		NewCommand("set", SetCommand, CMD_WRITE),
-		NewCommand("get", GetCommand, CMD_READONLY),
-		NewCommand("del", DelCommand, CMD_WRITE),
-		NewCommand("ttl", TtlCommand, CMD_READONLY),
-		NewCommand("lpush", LPushCommand, CMD_WRITE),
-		NewCommand("rpush", RPushCommand, CMD_WRITE),
-		NewCommand("lpop", LPopCommand, CMD_WRITE),
-		NewCommand("rpop", RPopCommand, CMD_WRITE),
-		NewCommand("lrange", LRangeCommand, CMD_READONLY),
-		NewCommand("config", ConfigCommand, CMD_WRITE),
-		NewCommand("info", InfoCommand, CMD_READONLY),
-		NewCommand("select", SelectCommand, CMD_WRITE),
-		NewCommand("flushall", FlushAllCommand, CMD_WRITE),
-		NewCommand("function", FunctionCommand, CMD_WRITE),
-		NewCommand("incr", IncrCommand, CMD_WRITE),
-		NewCommand("incrby", IncrByCommand, CMD_WRITE),
-		NewCommand("incrbyfloat", IncrByFloatCommand, CMD_WRITE),
-		NewCommand("decr", DecrCommand, CMD_WRITE),
-		NewCommand("decrby", DecrByCommand, CMD_WRITE),
-		NewCommand("decrbyfloat", DecrByFloatCommand, CMD_WRITE),
-		NewCommand("object", ObjectCommand, CMD_READONLY),
-		NewCommand("sadd", SaddCommand, CMD_WRITE),
-		NewCommand("smembers", SmembersCommand, CMD_WRITE),
-		NewCommand("smismember", SmismemberCommand, CMD_WRITE),
-		NewCommand("zadd", ZaddCommand, CMD_WRITE),
-		NewCommand("dump", DumpCommand, CMD_READONLY),
-		NewCommand("exists", ExistsCommand, CMD_READONLY),
-		NewCommand("restore", RestoreCommand, CMD_WRITE),
-		NewCommand("pttl", PttlCommand, CMD_READONLY),
-		NewCommand("debug", DebugCommand, CMD_READONLY),
-		NewCommand("srem", SremCommand, CMD_WRITE),
-		NewCommand("sintercard", SintercardCommand, CMD_READONLY),
-		NewCommand("sinter", SinterCommand, CMD_READONLY),
-		NewCommand("sinterstore", SinterstoreCommand, CMD_WRITE),
-		NewCommand("scard", ScardCommand, CMD_READONLY),
-		NewCommand("sismember", SismemberCommand, CMD_READONLY),
-		NewCommand("sunion", SunionCommand, CMD_READONLY),
-		NewCommand("sunionstore", SunionstoreCommand, CMD_WRITE),
-		NewCommand("sdiff", SdiffCommand, CMD_READONLY),
-		NewCommand("sdiffstore", SdiffstoreCommand, CMD_WRITE),
-		NewCommand("spop", SpopCommand, CMD_WRITE),
-		NewCommand("srandmember", SrandmemberCommand, CMD_READONLY),
-		NewCommand("smove", SmoveCommand, CMD_WRITE),
-		NewCommand("watch", WatchCommand, CMD_READONLY),
-		NewCommand("multi", MultiCommand, CMD_READONLY),
-		NewCommand("exec", ExecCommand, CMD_READONLY),
-		NewCommand("flushdb", FlushDbCommand, CMD_WRITE),
-		NewCommand("dbsize", DbSizeCommand, CMD_READONLY),
-		NewCommand("setx", SetXCommand, CMD_WRITE),
-		NewCommand("setnx", SetNxCommand, CMD_WRITE),
-		NewCommand("expire", ExpireCommand, CMD_WRITE),
-		NewCommand("setex", SetexCommand, CMD_WRITE),
-		NewCommand("getex", GetexCommand, CMD_READONLY),
-		NewCommand("getdel", GetdelCommand, CMD_WRITE),
-		NewCommand("mget", MgetCommand, CMD_WRITE),
-		NewCommand("getset", GetsetCommand, CMD_WRITE),
-		NewCommand("mset", MsetCommand, CMD_READONLY),
-		NewCommand("msetnx", MsetnxCommand, CMD_WRITE),
-		NewCommand("strlen", StrlenCommand, CMD_READONLY),
-		NewCommand("setbit", SetbitCommand, CMD_WRITE),
-		NewCommand("getbit", GetbitCommand, CMD_READONLY),
-		NewCommand("setrange", SetrangeCommand, CMD_WRITE),
-		NewCommand("getrange", GetrangeCommand, CMD_READONLY),
-		NewCommand("lcs", LcsCommand, CMD_READONLY),
-		NewCommand("zrange", ZrangeCommand, CMD_READONLY),
-		NewCommand("type", TypeCommand, CMD_READONLY),
-		NewCommand("zcard", ZcardCommand, CMD_READONLY),
-		NewCommand("zscore", ZscoreCommand, CMD_READONLY),
-		NewCommand("zincrby", ZincrbyCommand, CMD_WRITE),
-		NewCommand("zrem", ZremCommand, CMD_WRITE),
-		NewCommand("zrevrange", ZrevrangeCommand, CMD_READONLY),
-		NewCommand("zrank", ZrankCommand, CMD_READONLY),
-		NewCommand("zrevrank", ZrevrankCommand, CMD_READONLY),
-		NewCommand("zrangebyscore", ZrangebyscoreCommand, CMD_READONLY),
-		NewCommand("zrevrangebyscore", ZrevrangebyscoreCommand, CMD_READONLY),
-		NewCommand("zcount", ZcountCommand, CMD_READONLY),
-		NewCommand("zrangebylex", ZrangebylexCommand, CMD_READONLY),
-		NewCommand("zrevrangebylex", ZrevrangebylexCommand, CMD_READONLY),
-		NewCommand("zlexcount", ZlexcountCommand, CMD_READONLY),
-		NewCommand("zremrangebyscore", ZremrangebyscoreCommand, CMD_WRITE),
-		NewCommand("zremrangebylex", ZremrangebylexCommand, CMD_WRITE),
-		NewCommand("zremrangebyrank", ZremrangebyrankCommand, CMD_WRITE),
-		NewCommand("zinter", ZinterCommand, CMD_READONLY),
-		NewCommand("zintercard", ZintercardCommand, CMD_READONLY),
-		NewCommand("zinterstore", ZinterstoreCommand, CMD_WRITE),
-		NewCommand("zunion", ZunionCommand, CMD_READONLY),
-		NewCommand("zunioncard", ZunioncardCommand, CMD_READONLY),
-		NewCommand("zunionstore", ZunionstoreCommand, CMD_WRITE),
-		NewCommand("zdiff", ZdiffCommand, CMD_READONLY),
-		NewCommand("zdiffcard", ZdiffcardCommand, CMD_READONLY),
-		NewCommand("zdiffstore", ZdiffstoreCommand, CMD_WRITE),
-		NewCommand("hello", HelloCommand, CMD_WRITE),
-		NewCommand("zpopmin", ZpopminCommand, CMD_WRITE),
-		NewCommand("zpopmax", ZpopmaxCommand, CMD_WRITE),
-		NewCommand("zmpop", ZmpopCommand, CMD_WRITE),
-	})
+// Flush the selected db
+func (r *Redis) SyncFlushDb(dbId uint64) {
+	d, exists := r.dbs[dbId]
 
-	// NOTE: Taken by dumping from `CONFIG GET *`.
-	// Is meaningless for the moment.
-	// TODO: Implement parser for redis.conf and remove this.
-	r.configDb = map[string]string{
+	if exists {
+		d.Clear()
+	}
+}
+
+// RedisDb gets the redis database by its id or creates and returns it if not exists.
+func (r *Redis) RedisDb(dbId uint64) *Db {
+	getDb := func() *Db { // returns nil if db not exists
+		if db, ok := r.dbs[dbId]; ok {
+			return db
+		}
+		return nil
+	}
+
+	db := getDb()
+	if db != nil {
+		return db
+	}
+
+	// NOTE: This differs from original Redis because the number of databases are configured
+	// at compile time with redis.conf
+	// However, it should be fine to always return a valid database unless some application
+	// rely on it to fail to stop?
+
+	// now really create db of that id
+	r.dbs[dbId] = NewRedisDb(dbId, r)
+	return r.dbs[dbId]
+}
+
+func (r *Redis) GetConfigValue(key string) *string {
+	v, e := r.configs[key]
+	if e {
+		return &v
+	}
+	return nil
+}
+
+func (r *Redis) SetConfigValue(key string, value string) {
+	r.configs[key] = value
+}
+
+// NewClient creates new client and adds it to the redis.
+func (r *Redis) NewClient(conn net.Conn) *Client {
+	c := &Client{
+		conn:  &Conn{conn: conn},
+		redis: r,
+	}
+	return c
+}
+
+func (r *Redis) HandleRequest(c *Client, args [][]byte) {
+	Logger.Println(CollectArgs(args))
+
+	if len(args) == 0 {
+		c.Conn().WriteError(ZeroArgumentErr)
+		return
+	}
+
+	// TODO: Check that args is not empty
+	// TODO: Remove the first argument from argument to command handlers
+	cmdl := strings.ToLower(string(args[0]))
+	command := c.Redis().Command(cmdl)
+
+	if command != nil {
+		if command.flag&CMD_WRITE != 0 {
+			r.mu.Lock()
+		} else {
+			r.mu.RLock()
+		}
+
+		(command.handler)(c, args)
+
+		if command.flag&CMD_WRITE != 0 {
+			r.mu.Unlock()
+		} else {
+			r.mu.RUnlock()
+		}
+	} else {
+		c.Conn().WriteError(fmt.Sprintf("ERR unknown command '%s'", args))
+	}
+}
+
+// NOTE: Taken by dumping from `CONFIG GET *`.
+// Is meaningless for the moment.
+// TODO: Implement parser for redis.conf and remove this.
+func createConfigs() map[string]string {
+	return map[string]string{
 		"rdbchecksum":                     "yes",
 		"daemonize":                       "no",
 		"io-threads-do-reads":             "no",
@@ -355,66 +289,113 @@ func createDefault() *Redis {
 		"requirepass":                     "",
 		"oom-score-adj-values":            "0 200 800",
 	}
-	return r
 }
 
-// Flush all keys synchronously
-func (r *Redis) SyncFlushAll() {
-	for _, v := range r.redisDbs {
-		v.Clear()
+func generateCommands() map[string]*Command {
+	arr := []*Command{
+		NewCommand("ping", PingCommand, CMD_READONLY),
+		NewCommand("set", SetCommand, CMD_WRITE),
+		NewCommand("get", GetCommand, CMD_READONLY),
+		NewCommand("del", DelCommand, CMD_WRITE),
+		NewCommand("ttl", TtlCommand, CMD_READONLY),
+		NewCommand("lpush", LPushCommand, CMD_WRITE),
+		NewCommand("rpush", RPushCommand, CMD_WRITE),
+		NewCommand("lpop", LPopCommand, CMD_WRITE),
+		NewCommand("rpop", RPopCommand, CMD_WRITE),
+		NewCommand("lrange", LRangeCommand, CMD_READONLY),
+		NewCommand("config", ConfigCommand, CMD_WRITE),
+		NewCommand("info", InfoCommand, CMD_READONLY),
+		NewCommand("select", SelectCommand, CMD_WRITE),
+		NewCommand("flushall", FlushAllCommand, CMD_WRITE),
+		NewCommand("function", FunctionCommand, CMD_WRITE),
+		NewCommand("incr", IncrCommand, CMD_WRITE),
+		NewCommand("incrby", IncrByCommand, CMD_WRITE),
+		NewCommand("incrbyfloat", IncrByFloatCommand, CMD_WRITE),
+		NewCommand("decr", DecrCommand, CMD_WRITE),
+		NewCommand("decrby", DecrByCommand, CMD_WRITE),
+		NewCommand("decrbyfloat", DecrByFloatCommand, CMD_WRITE),
+		NewCommand("object", ObjectCommand, CMD_READONLY),
+		NewCommand("sadd", SaddCommand, CMD_WRITE),
+		NewCommand("smembers", SmembersCommand, CMD_WRITE),
+		NewCommand("smismember", SmismemberCommand, CMD_WRITE),
+		NewCommand("zadd", ZaddCommand, CMD_WRITE),
+		NewCommand("dump", DumpCommand, CMD_READONLY),
+		NewCommand("exists", ExistsCommand, CMD_READONLY),
+		NewCommand("restore", RestoreCommand, CMD_WRITE),
+		NewCommand("pttl", PttlCommand, CMD_READONLY),
+		NewCommand("debug", DebugCommand, CMD_READONLY),
+		NewCommand("srem", SremCommand, CMD_WRITE),
+		NewCommand("sintercard", SintercardCommand, CMD_READONLY),
+		NewCommand("sinter", SinterCommand, CMD_READONLY),
+		NewCommand("sinterstore", SinterstoreCommand, CMD_WRITE),
+		NewCommand("scard", ScardCommand, CMD_READONLY),
+		NewCommand("sismember", SismemberCommand, CMD_READONLY),
+		NewCommand("sunion", SunionCommand, CMD_READONLY),
+		NewCommand("sunionstore", SunionstoreCommand, CMD_WRITE),
+		NewCommand("sdiff", SdiffCommand, CMD_READONLY),
+		NewCommand("sdiffstore", SdiffstoreCommand, CMD_WRITE),
+		NewCommand("spop", SpopCommand, CMD_WRITE),
+		NewCommand("srandmember", SrandmemberCommand, CMD_READONLY),
+		NewCommand("smove", SmoveCommand, CMD_WRITE),
+		NewCommand("watch", WatchCommand, CMD_READONLY),
+		NewCommand("multi", MultiCommand, CMD_READONLY),
+		NewCommand("exec", ExecCommand, CMD_READONLY),
+		NewCommand("flushdb", FlushDbCommand, CMD_WRITE),
+		NewCommand("dbsize", DbSizeCommand, CMD_READONLY),
+		NewCommand("setx", SetXCommand, CMD_WRITE),
+		NewCommand("setnx", SetNxCommand, CMD_WRITE),
+		NewCommand("expire", ExpireCommand, CMD_WRITE),
+		NewCommand("setex", SetexCommand, CMD_WRITE),
+		NewCommand("getex", GetexCommand, CMD_READONLY),
+		NewCommand("getdel", GetdelCommand, CMD_WRITE),
+		NewCommand("mget", MgetCommand, CMD_WRITE),
+		NewCommand("getset", GetsetCommand, CMD_WRITE),
+		NewCommand("mset", MsetCommand, CMD_READONLY),
+		NewCommand("msetnx", MsetnxCommand, CMD_WRITE),
+		NewCommand("strlen", StrlenCommand, CMD_READONLY),
+		NewCommand("setbit", SetbitCommand, CMD_WRITE),
+		NewCommand("getbit", GetbitCommand, CMD_READONLY),
+		NewCommand("setrange", SetrangeCommand, CMD_WRITE),
+		NewCommand("getrange", GetrangeCommand, CMD_READONLY),
+		NewCommand("lcs", LcsCommand, CMD_READONLY),
+		NewCommand("zrange", ZrangeCommand, CMD_READONLY),
+		NewCommand("type", TypeCommand, CMD_READONLY),
+		NewCommand("zcard", ZcardCommand, CMD_READONLY),
+		NewCommand("zscore", ZscoreCommand, CMD_READONLY),
+		NewCommand("zincrby", ZincrbyCommand, CMD_WRITE),
+		NewCommand("zrem", ZremCommand, CMD_WRITE),
+		NewCommand("zrevrange", ZrevrangeCommand, CMD_READONLY),
+		NewCommand("zrank", ZrankCommand, CMD_READONLY),
+		NewCommand("zrevrank", ZrevrankCommand, CMD_READONLY),
+		NewCommand("zrangebyscore", ZrangebyscoreCommand, CMD_READONLY),
+		NewCommand("zrevrangebyscore", ZrevrangebyscoreCommand, CMD_READONLY),
+		NewCommand("zcount", ZcountCommand, CMD_READONLY),
+		NewCommand("zrangebylex", ZrangebylexCommand, CMD_READONLY),
+		NewCommand("zrevrangebylex", ZrevrangebylexCommand, CMD_READONLY),
+		NewCommand("zlexcount", ZlexcountCommand, CMD_READONLY),
+		NewCommand("zremrangebyscore", ZremrangebyscoreCommand, CMD_WRITE),
+		NewCommand("zremrangebylex", ZremrangebylexCommand, CMD_WRITE),
+		NewCommand("zremrangebyrank", ZremrangebyrankCommand, CMD_WRITE),
+		NewCommand("zinter", ZinterCommand, CMD_READONLY),
+		NewCommand("zintercard", ZintercardCommand, CMD_READONLY),
+		NewCommand("zinterstore", ZinterstoreCommand, CMD_WRITE),
+		NewCommand("zunion", ZunionCommand, CMD_READONLY),
+		NewCommand("zunioncard", ZunioncardCommand, CMD_READONLY),
+		NewCommand("zunionstore", ZunionstoreCommand, CMD_WRITE),
+		NewCommand("zdiff", ZdiffCommand, CMD_READONLY),
+		NewCommand("zdiffcard", ZdiffcardCommand, CMD_READONLY),
+		NewCommand("zdiffstore", ZdiffstoreCommand, CMD_WRITE),
+		NewCommand("hello", HelloCommand, CMD_WRITE),
+		NewCommand("zpopmin", ZpopminCommand, CMD_WRITE),
+		NewCommand("zpopmax", ZpopmaxCommand, CMD_WRITE),
+		NewCommand("zmpop", ZmpopCommand, CMD_WRITE),
 	}
-}
 
-// Flush the selected db
-func (r *Redis) SyncFlushDb(dbId uint64) {
-	d, exists := r.redisDbs[dbId]
+	res := make(map[string]*Command, len(arr))
 
-	if exists {
-		d.Clear()
-	}
-}
-
-// RedisDb gets the redis database by its id or creates and returns it if not exists.
-func (r *Redis) RedisDb(dbId uint64) *RedisDb {
-	getDb := func() *RedisDb { // returns nil if db not exists
-		if db, ok := r.redisDbs[dbId]; ok {
-			return db
-		}
-		return nil
+	for _, r := range arr {
+		res[r.name] = r
 	}
 
-	db := getDb()
-	if db != nil {
-		return db
-	}
-
-	// NOTE: This differs from original Redis because the number of databases are configured
-	// at compile time with redis.conf
-	// However, it should be fine to always return a valid database unless some application
-	// rely on it to fail to stop?
-
-	// now really create db of that id
-	r.redisDbs[dbId] = NewRedisDb(dbId, r)
-	return r.redisDbs[dbId]
-}
-
-func (r *Redis) GetConfigValue(key string) *string {
-	v, e := r.configDb[key]
-	if e {
-		return &v
-	}
-	return nil
-}
-
-func (r *Redis) SetConfigValue(key string, value string) {
-	r.configDb[key] = value
-}
-
-// NewClient creates new client and adds it to the redis.
-func (r *Redis) NewClient(conn redcon.Conn) *Client {
-	c := &Client{
-		conn:  conn,
-		redis: r,
-	}
-	return c
+	return res
 }

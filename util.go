@@ -1,11 +1,15 @@
 package redis
 
 import (
+	"log"
 	"math"
+	"os"
 	"strconv"
 	"strings"
 	"time"
 )
+
+var Logger = log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
 
 func ParseTtlFromUnitTime(arg string, multiplier int64) (time.Time, error) {
 	unitTime, err := strconv.ParseInt(string(arg), 10, 64)

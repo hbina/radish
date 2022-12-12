@@ -1,19 +1,18 @@
 package redis
 
 import (
-	"math"
 	"time"
 )
 
-type Expirer struct {
+type KeyExpirer struct {
 	redis *Redis
 	done  chan bool
 }
 
-func NewKeyExpirer(r *Redis) *Expirer {
-	return &Expirer{
+func NewKeyExpirer(r *Redis) *KeyExpirer {
+	return &KeyExpirer{
 		redis: r,
-		done:  make(chan bool, math.MaxInt32),
+		done:  make(chan bool),
 	}
 }
 
@@ -24,12 +23,18 @@ func NewKeyExpirer(r *Redis) *Expirer {
 // randomKeys - Amount of random expiring keys to get checked.
 //
 // againPercentage - If more than x% of keys were expired, start again in same tick.
-func (e *Expirer) Start(tick time.Duration) {
+func (e *KeyExpirer) Start(tick time.Duration) {
 	ticker := time.NewTicker(tick)
 	for {
 		select {
 		case <-ticker.C:
-			e.cleanupExpiredKeys()
+			{
+				for _, db := range e.redis.RedisDbs() {
+					e.redis.mu.Lock()
+					db.DeleteExpiredKeys()
+					e.redis.mu.Lock()
+				}
+			}
 		case <-e.done:
 			ticker.Stop()
 			return
@@ -37,24 +42,9 @@ func (e *Expirer) Start(tick time.Duration) {
 	}
 }
 
-// Stop stops the
-func (e *Expirer) Stop() {
-	if e.done != nil {
-		e.done <- true
-		close(e.done)
+func (ke *KeyExpirer) Stop() {
+	if ke.done != nil {
+		ke.done <- true
+		close(ke.done)
 	}
-}
-
-func (e *Expirer) cleanupExpiredKeys() {
-	var count int = 0
-	e.Redis().mu.Lock()
-	defer e.Redis().mu.Unlock()
-	for _, db := range e.Redis().RedisDbs() {
-		count += db.DeleteExpiredKeys()
-	}
-}
-
-// Redis gets the redis instance.
-func (e *Expirer) Redis() *Redis {
-	return e.redis
 }

@@ -17,7 +17,7 @@ func SelectCommand(c *Client, args [][]byte) {
 	if err != nil {
 		c.Conn().WriteError(InvalidIntErr)
 	} else {
-		c.SelectDb(index)
+		c.SetDb(index)
 		c.Conn().WriteString("OK")
 	}
 }
