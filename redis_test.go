@@ -12,8 +12,8 @@ import (
 )
 
 var dbId int64 = 0
-var port string = "6381"
-var addr string = fmt.Sprintf("localhost:%s", port)
+var port int = 6381
+var addr string = fmt.Sprintf("localhost:%d", port)
 
 func CreateTestClient() *redis.Client {
 	c := redis.NewClient(&redis.Options{

@@ -2,7 +2,9 @@ package redis
 
 import (
 	"fmt"
+	"log"
 	"net"
+	"os"
 	"strings"
 	"sync"
 )
@@ -55,17 +57,11 @@ func (r *Redis) SyncFlushDb(dbId uint64) {
 	}
 }
 
-// RedisDb gets the redis database by its id or creates and returns it if not exists.
-func (r *Redis) RedisDb(dbId uint64) *Db {
-	getDb := func() *Db { // returns nil if db not exists
-		if db, ok := r.dbs[dbId]; ok {
-			return db
-		}
-		return nil
-	}
+// GetDb gets the redis database by its id or creates and returns it if not exists.
+func (r *Redis) GetDb(dbId uint64) *Db {
+	db, ok := r.dbs[dbId]
 
-	db := getDb()
-	if db != nil {
+	if ok {
 		return db
 	}
 
@@ -129,6 +125,62 @@ func (r *Redis) HandleRequest(c *Client, args [][]byte) {
 		}
 	} else {
 		c.Conn().WriteError(fmt.Sprintf("ERR unknown command '%s'", args))
+	}
+}
+
+func Run(port int, shouldLog bool) {
+
+	if shouldLog {
+		Logger = log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
+	} else {
+		Logger = &StubLogger{}
+	}
+
+	listen, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
+
+	if err != nil {
+		Logger.Fatal(err)
+	}
+
+	instance := Default()
+
+	for {
+		conn, err := listen.Accept()
+
+		if err != nil {
+			Logger.Fatal(err)
+		}
+
+		go instance.HandleClient(instance.NewClient(conn))
+	}
+}
+
+func (r *Redis) HandleClient(client *Client) {
+	buffer := make([]byte, 0, 1024)
+	tmp := make([]byte, 1024)
+	count, err := client.Read(tmp)
+
+	if err != nil {
+		Logger.Fatal(err)
+	}
+
+	for {
+		buffer = append(buffer, tmp[:count]...)
+
+		// Try to parse the current buffer as a RESP
+		resp, leftover := ConvertBytesToRespType(buffer)
+
+		if resp != nil {
+			Logger.Println(EscapeString(string(buffer)))
+			buffer = leftover
+			r.HandleRequest(client, ConvertRespToArgs(resp))
+		}
+
+		count, err = client.Read(tmp)
+
+		if err != nil || count == 0 {
+			return
+		}
 	}
 }
 

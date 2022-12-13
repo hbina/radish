@@ -73,5 +73,5 @@ func (c *Client) SetDb(dbId uint64) {
 
 // Db gets the clients selected database.
 func (c *Client) Db() *Db {
-	return c.redis.RedisDb(c.dbId)
+	return c.redis.GetDb(c.dbId)
 }
