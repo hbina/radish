@@ -7,7 +7,14 @@ const (
 	CMD_READONLY        = 1 << 1
 )
 
-// A command can be registered.
+const (
+	BCMD_OK = iota
+	BCMD_RETRY
+)
+
+type CommandHandler func(c *Client, cmd [][]byte)
+type BlockingCommandHandler func(c *Client, cmd [][]byte) int
+
 type Command struct {
 	name    string
 	handler CommandHandler
@@ -15,7 +22,6 @@ type Command struct {
 }
 
 func NewCommand(name string, handler CommandHandler, flag uint64) *Command {
-
 	return &Command{
 		name:    name,
 		handler: handler,
@@ -23,41 +29,38 @@ func NewCommand(name string, handler CommandHandler, flag uint64) *Command {
 	}
 }
 
-// Command flag type.
-type CmdFlag uint
-
-// Commands map
-type Commands map[string]*Command
-
-// The CommandHandler is triggered when the received
-// command equals a registered command.
-//
-// However the CommandHandler is executed by the Handler,
-// so if you implement an own Handler make sure the CommandHandler is called.
-type CommandHandler func(c *Client, cmd [][]byte)
+type BlockingCommand struct {
+	name    string
+	handler BlockingCommandHandler
+	flag    uint64
+}
 
 // Gets registered commands name.
 func (cmd *Command) Name() string {
 	return cmd.name
 }
 
-// RegisterCommands adds commands to the redis instance.
-// If a cmd already exists the handler is overridden.
-func (r *Redis) RegisterCommands(cmds []*Command) {
-
-	for _, cmd := range cmds {
-		r.commands[cmd.Name()] = cmd
+func NewBlockingCommand(name string, handler BlockingCommandHandler, flag uint64) *BlockingCommand {
+	return &BlockingCommand{
+		name:    name,
+		handler: handler,
+		flag:    flag,
 	}
 }
 
-// Command returns the registered command or nil if not exists.
-func (r *Redis) Command(name string) *Command {
-
-	return r.commands[name]
+type BlockedCommand struct {
+	c    *Client
+	args [][]byte
 }
 
-// Commands returns the commands map.
-func (r *Redis) Commands() Commands {
+func (r *Redis) RegisterCommands(cmds []*Command) {
+	for _, cmd := range cmds {
+		r.commands[cmd.name] = cmd
+	}
+}
 
-	return r.commands
+func (r *Redis) RegisterBlockingCommands(cmds []*BlockingCommand) {
+	for _, cmd := range cmds {
+		r.blockingCommands[cmd.name] = cmd
+	}
 }

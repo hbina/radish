@@ -9,8 +9,6 @@ type Conn struct {
 	conn net.Conn
 }
 
-func (c *Conn) WriteResp(resp *RespArray) {}
-
 func (c *Conn) WriteError(value string) {
 	c.conn.Write([]byte(fmt.Sprintf("-%s\r\n", value)))
 }
