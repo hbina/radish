@@ -2,10 +2,11 @@ package redis
 
 import (
 	"fmt"
+	"log"
+	"net"
+	"os"
 	"strings"
 	"sync"
-
-	"github.com/tidwall/redcon"
 )
 
 const (
@@ -21,79 +22,22 @@ const (
 	NegativeIntErr        = "ERR %s must be positive"
 )
 
-// This is the redis server.
 type Redis struct {
-	mu             *sync.RWMutex
-	commands       map[string]*Command
-	configs        map[string]string
-	unknownCommand func(c *Client, cmd redcon.Command)
-	handler        func(c *Client, cmd redcon.Command)
-	keyExpirer     *Expirer
-	clients        map[string]*Client
-	dbs            map[uint64]*Db
+	mu       *sync.RWMutex
+	commands map[string]*Command
+	configs  map[string]string
+	clients  map[string]*Client
+	dbs      map[uint64]*Db
 }
 
-var defaultRedis *Redis
-
-// Default redis server.
-// Initializes the default redis if not already.
-// You can change the fields or value behind the pointer
-// of the returned redis pointer to extend/change the default.
 func Default() *Redis {
-	if defaultRedis != nil {
-		return defaultRedis
-	}
-	defaultRedis = createDefault()
-	return defaultRedis
-}
-
-// createDefault creates a new default redis.
-func createDefault() *Redis {
-	// initialize default redis server
-	mu := new(sync.RWMutex)
 	r := &Redis{
-		mu: mu,
-		handler: func(c *Client, cmd redcon.Command) {
-			fmt.Println(CollectArgs(cmd.Args))
-
-			if len(cmd.Args) == 0 {
-				c.Conn().WriteError(ZeroArgumentErr)
-				return
-			}
-
-			// TODO: Check that args is not empty
-			// TODO: Remove the first argument from argument to command handlers
-			// fmt.Println(CollectArgs(cmd.Args))
-			cmdl := strings.ToLower(string(cmd.Args[0]))
-			command := c.Redis().Command(cmdl)
-
-			if command != nil {
-				if command.flag&CMD_WRITE != 0 {
-					mu.Lock()
-				} else {
-					mu.RLock()
-				}
-
-				(command.handler)(c, cmd.Args)
-
-				if command.flag&CMD_WRITE != 0 {
-					mu.Unlock()
-				} else {
-					mu.RUnlock()
-				}
-			} else {
-				c.Redis().unknownCommand(c, cmd)
-			}
-		},
-		unknownCommand: func(c *Client, cmd redcon.Command) {
-			c.Conn().WriteError(fmt.Sprintf("ERR unknown command '%s'", cmd.Args[0]))
-		},
+		mu:       new(sync.RWMutex),
 		commands: generateCommands(),
 		configs:  createConfigs(),
 		clients:  make(map[string]*Client),
 		dbs:      make(map[uint64]*Db, 0),
 	}
-	r.keyExpirer = NewKeyExpirer(r)
 	return r
 }
 
@@ -113,17 +57,11 @@ func (r *Redis) SyncFlushDb(dbId uint64) {
 	}
 }
 
-// RedisDb gets the redis database by its id or creates and returns it if not exists.
-func (r *Redis) RedisDb(dbId uint64) *Db {
-	getDb := func() *Db { // returns nil if db not exists
-		if db, ok := r.dbs[dbId]; ok {
-			return db
-		}
-		return nil
-	}
+// GetDb gets the redis database by its id or creates and returns it if not exists.
+func (r *Redis) GetDb(dbId uint64) *Db {
+	db, ok := r.dbs[dbId]
 
-	db := getDb()
-	if db != nil {
+	if ok {
 		return db
 	}
 
@@ -150,12 +88,108 @@ func (r *Redis) SetConfigValue(key string, value string) {
 }
 
 // NewClient creates new client and adds it to the redis.
-func (r *Redis) NewClient(conn redcon.Conn) *Client {
+func (r *Redis) NewClient(conn net.Conn) *Client {
 	c := &Client{
-		conn:  conn,
+		conn:  &Conn{conn: conn},
 		redis: r,
 	}
 	return c
+}
+
+func (r *Redis) HandleRequest(c *Client, args [][]byte) {
+	Logger.Println(CollectArgs(args))
+
+	if len(args) == 0 {
+		c.Conn().WriteError(ZeroArgumentErr)
+		return
+	}
+
+	// TODO: Check that args is not empty
+	// TODO: Remove the first argument from argument to command handlers
+	cmdl := strings.ToLower(string(args[0]))
+	command := c.Redis().Command(cmdl)
+
+	if command != nil {
+		if command.flag&CMD_WRITE != 0 {
+			r.mu.Lock()
+		} else {
+			r.mu.RLock()
+		}
+
+		(command.handler)(c, args)
+
+		if command.flag&CMD_WRITE != 0 {
+			r.mu.Unlock()
+		} else {
+			r.mu.RUnlock()
+		}
+	} else {
+		c.Conn().WriteError(fmt.Sprintf("ERR unknown command '%s'", args))
+	}
+}
+
+var started bool = false
+
+func Run(port int, shouldLog bool) {
+
+	if started {
+		return
+	}
+
+	started = true
+
+	if shouldLog {
+		Logger = log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
+	} else {
+		Logger = &StubLogger{}
+	}
+
+	listen, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
+
+	if err != nil {
+		Logger.Fatal(err)
+	}
+
+	instance := Default()
+
+	for {
+		conn, err := listen.Accept()
+
+		if err != nil {
+			Logger.Fatal(err)
+		}
+
+		go instance.HandleClient(instance.NewClient(conn))
+	}
+}
+
+func (r *Redis) HandleClient(client *Client) {
+	buffer := make([]byte, 0, 1024)
+	tmp := make([]byte, 1024)
+	count, err := client.Read(tmp)
+
+	if err != nil {
+		Logger.Fatal(err)
+	}
+
+	for {
+		buffer = append(buffer, tmp[:count]...)
+
+		// Try to parse the current buffer as a RESP
+		resp, leftover := ConvertBytesToRespType(buffer)
+
+		if resp != nil {
+			Logger.Println(EscapeString(string(buffer)))
+			buffer = leftover
+			r.HandleRequest(client, ConvertRespToArgs(resp))
+		}
+
+		count, err = client.Read(tmp)
+
+		if err != nil || count == 0 {
+			return
+		}
+	}
 }
 
 // NOTE: Taken by dumping from `CONFIG GET *`.

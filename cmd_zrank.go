@@ -55,7 +55,7 @@ func implZrankCommand(c *Client, args [][]byte, reverse bool) {
 	if node == nil || node.key != memberKey {
 		if withScore {
 			// We should have a null array
-			c.Conn().WriteRaw([]byte("*-1\r\n"))
+			c.Conn().WriteNullArray()
 		} else {
 			c.Conn().WriteNull()
 		}

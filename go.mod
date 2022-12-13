@@ -6,7 +6,6 @@ require (
 	github.com/go-redis/redis v6.14.2-0.20180920103551-69445c6e87e0+incompatible
 	github.com/pkg/errors v0.8.0
 	github.com/stretchr/testify v1.5.1
-	github.com/tidwall/redcon v0.9.0
 )
 
 require (

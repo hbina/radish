@@ -7,7 +7,7 @@ import (
 )
 
 func StringifyRespBytes(in []byte) (string, bool) {
-	resp, leftover := convertBytesToRespType(in)
+	resp, leftover := ConvertBytesToRespType(in)
 
 	if len(leftover) != 0 || resp == nil {
 		return "", false
@@ -28,11 +28,17 @@ func StringifyRespBytes(in []byte) (string, bool) {
 	return str, true
 }
 
-type RespType interface {
+type Resp interface {
 	TypeId() string
 	Value() interface{}
 	Width() int
 }
+
+var _ Resp = &RespString{}
+var _ Resp = &RespBulkString{}
+var _ Resp = &RespInteger{}
+var _ Resp = &RespNil{}
+var _ Resp = &RespArray{}
 
 type RespString struct {
 	inner []byte
@@ -98,7 +104,7 @@ func (rs *RespNil) Width() int {
 }
 
 type RespArray struct {
-	inner []RespType
+	inner []Resp
 }
 
 func (rs *RespArray) TypeId() string {
@@ -122,7 +128,7 @@ func (rs *RespArray) Width() int {
 	return ourWidth
 }
 
-func stringifyRespType(res RespType, width int, inList bool) (string, bool) {
+func stringifyRespType(res Resp, width int, inList bool) (string, bool) {
 	if res == nil {
 		return "", false
 	} else if res.TypeId() == "bulk-string" || (res.TypeId() == "string" && inList) {
@@ -137,7 +143,7 @@ func stringifyRespType(res RespType, width int, inList bool) (string, bool) {
 		return res.Value().(string), true
 	} else if res.TypeId() == "array" {
 		var str strings.Builder
-		arr := res.Value().([]RespType)
+		arr := res.Value().([]Resp)
 
 		if width > 0 {
 			width += 2
@@ -173,7 +179,7 @@ func stringifyRespType(res RespType, width int, inList bool) (string, bool) {
 	return "", false
 }
 
-func convertBytesToRespType(input []byte) (RespType, []byte) {
+func ConvertBytesToRespType(input []byte) (Resp, []byte) {
 	// We need at least 1 byte for the first redis type byte
 	if len(input) > 0 {
 		currByte := input[0]
@@ -261,14 +267,14 @@ func convertBytesToRespType(input []byte) (RespType, []byte) {
 				return nil, input
 			} else if lenInt64 == 0 {
 				rs := RespArray{
-					inner: make([]RespType, 0),
+					inner: make([]Resp, 0),
 				}
 
 				return &rs, leftover
 			} else {
-				replies := make([]RespType, 0, lenInt64)
+				replies := make([]Resp, 0, lenInt64)
 				for idx := 0; idx < int(lenInt64) && len(nextInput) != 0; idx++ {
-					reply, leftover := convertBytesToRespType(nextInput)
+					reply, leftover := ConvertBytesToRespType(nextInput)
 
 					// If any of the elements are bad or we can't make progress, just bail
 					if reply == nil || len(leftover) == len(nextInput) {
@@ -376,4 +382,51 @@ func ConvertCommandArgToResp(args []string) string {
 	}
 
 	return str.String()
+}
+
+func ConvertRespToArgs(resp Resp) [][]byte {
+	if resp == nil {
+		return [][]byte{}
+	}
+
+	arr, ok := resp.(*RespArray)
+
+	if ok {
+
+		args := make([][]byte, 0)
+
+		for _, r := range arr.inner {
+			str, ok := r.(*RespString)
+
+			if ok {
+				args = append(args, []byte(str.inner))
+				continue
+			}
+
+			bulkStr, ok := r.(*RespBulkString)
+
+			if ok {
+				args = append(args, []byte(bulkStr.inner))
+				continue
+			}
+
+			return [][]byte{}
+		}
+
+		return args
+	}
+
+	str, ok := resp.(*RespString)
+
+	if ok {
+		return [][]byte{[]byte(str.inner)}
+	}
+
+	bulkStr, ok := resp.(*RespBulkString)
+
+	if ok {
+		return [][]byte{[]byte(bulkStr.inner)}
+	}
+
+	return [][]byte{}
 }
