@@ -6,66 +6,43 @@ import (
 )
 
 type Conn struct {
-	conn     net.Conn
-	arrayLen []int
-}
-
-func (c *Conn) checkArrayEnds() {
-	if len(c.arrayLen) != 0 {
-		right := c.arrayLen[len(c.arrayLen)-1]
-		right--
-		if right == 0 {
-			c.conn.Write([]byte("\r\n"))
-			c.arrayLen = c.arrayLen[:len(c.arrayLen)-1]
-		} else {
-			c.arrayLen[len(c.arrayLen)-1] = right
-		}
-	}
+	conn net.Conn
 }
 
 func (c *Conn) WriteError(value string) {
 	c.conn.Write([]byte(fmt.Sprintf("-%s\r\n", value)))
-	c.checkArrayEnds()
 }
 
 func (c *Conn) WriteArray(value int) {
 	c.conn.Write([]byte(fmt.Sprintf("*%d\r\n", value)))
-	c.arrayLen = append(c.arrayLen, value)
 }
 
 func (c *Conn) WriteString(value string) {
 	c.conn.Write([]byte(fmt.Sprintf("+%s\r\n", value)))
-	c.checkArrayEnds()
 }
 
 func (c *Conn) WriteBulkString(value string) {
 	c.conn.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(value), value)))
-	c.checkArrayEnds()
 }
 
 func (c *Conn) WriteInt(value int) {
 	c.conn.Write([]byte(fmt.Sprintf(":%d\r\n", value)))
-	c.checkArrayEnds()
 }
 
 func (c *Conn) WriteInt64(value int64) {
 	c.conn.Write([]byte(fmt.Sprintf(":%d\r\n", value)))
-	c.checkArrayEnds()
 }
 
 func (c *Conn) WriteNull() {
 	c.conn.Write([]byte("$-1\r\n"))
-	c.checkArrayEnds()
 }
 
 func (c *Conn) WriteNullArray() {
 	c.conn.Write([]byte("*-1\r\n"))
-	c.checkArrayEnds()
 }
 
 func (c *Conn) WriteRaw(value []byte) {
 	c.conn.Write(value)
-	c.checkArrayEnds()
 }
 
 // A connected Client.
