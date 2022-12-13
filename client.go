@@ -35,6 +35,6 @@ func (c *Client) DbId() uint64 {
 }
 
 // Db gets the clients selected database.
-func (c *Client) Db() *RedisDb {
+func (c *Client) Db() *Db {
 	return c.Redis().RedisDb(c.DbId())
 }
