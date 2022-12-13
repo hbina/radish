@@ -12,7 +12,8 @@ import (
 // will block until it pops a set.
 func BzmpopCommand(c *Client, args [][]byte) int {
 	if len(args) < 3 {
-		return BCMD_BADARG
+		c.Conn().WriteError(SyntaxErr)
+		return BCMD_OK
 	}
 
 	numKeyStr := string(args[1])
@@ -20,13 +21,15 @@ func BzmpopCommand(c *Client, args [][]byte) int {
 	numKey64, err := strconv.ParseInt(numKeyStr, 10, 32)
 
 	if err != nil || numKey64 < 0 {
-		return BCMD_BADARG
+		c.Conn().WriteError(SyntaxErr)
+		return BCMD_OK
 	}
 
 	numKey := int(numKey64)
 
 	if len(args) < 2+numKey {
-		return BCMD_BADARG
+		c.Conn().WriteError(SyntaxErr)
+		return BCMD_OK
 	}
 
 	keys := make([]string, 0, numKey)
@@ -48,12 +51,14 @@ func BzmpopCommand(c *Client, args [][]byte) int {
 		switch arg {
 		default:
 			{
-				return BCMD_BADARG
+				c.Conn().WriteError(SyntaxErr)
+				return BCMD_OK
 			}
 		case "min":
 			{
 				if mode != -1 {
-					return BCMD_BADARG
+					c.Conn().WriteError(SyntaxErr)
+					return BCMD_OK
 				}
 
 				mode = 0
@@ -61,7 +66,8 @@ func BzmpopCommand(c *Client, args [][]byte) int {
 		case "max":
 			{
 				if mode != -1 {
-					return BCMD_BADARG
+					c.Conn().WriteError(SyntaxErr)
+					return BCMD_OK
 				}
 
 				mode = 1
@@ -69,12 +75,14 @@ func BzmpopCommand(c *Client, args [][]byte) int {
 		case "count":
 			{
 				if count != -1 {
-					return BCMD_BADARG
+					c.Conn().WriteError(SyntaxErr)
+					return BCMD_OK
 				}
 
 				// Need 1 more argument
 				if i+1 >= len(args) {
-					return BCMD_BADARG
+					c.Conn().WriteError(SyntaxErr)
+					return BCMD_OK
 				}
 
 				i++
@@ -83,11 +91,13 @@ func BzmpopCommand(c *Client, args [][]byte) int {
 				count64, err := strconv.ParseInt(countStr, 10, 32)
 
 				if err != nil {
-					return BCMD_BADARG
+					c.Conn().WriteError(SyntaxErr)
+					return BCMD_OK
 				}
 
 				if count64 <= 0 {
-					return BCMD_BADARG
+					c.Conn().WriteError(SyntaxErr)
+					return BCMD_OK
 				}
 
 				count = int(count64)
@@ -148,6 +158,8 @@ func BzmpopCommand(c *Client, args [][]byte) int {
 			c.Conn().WriteBulkString(n.key)
 			c.Conn().WriteBulkString(fmt.Sprint(n.score))
 		}
+
+		return BCMD_OK
 	}
 
 	return BCMD_RETRY

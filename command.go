@@ -7,15 +7,12 @@ const (
 	CMD_READONLY        = 1 << 1
 )
 
-type CommandHandler func(c *Client, cmd [][]byte)
-
 const (
 	BCMD_OK = iota
 	BCMD_RETRY
-	BCMD_BADARG
 )
 
-// The int here is the BCMD_* above
+type CommandHandler func(c *Client, cmd [][]byte)
 type BlockingCommandHandler func(c *Client, cmd [][]byte) int
 
 type Command struct {
@@ -36,6 +33,11 @@ type BlockingCommand struct {
 	name    string
 	handler BlockingCommandHandler
 	flag    uint64
+}
+
+// Gets registered commands name.
+func (cmd *Command) Name() string {
+	return cmd.name
 }
 
 func NewBlockingCommand(name string, handler BlockingCommandHandler, flag uint64) *BlockingCommand {
