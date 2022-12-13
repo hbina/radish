@@ -132,7 +132,7 @@ func (r *Redis) HandleRequest(c *Client, args [][]byte) {
 			r.AddBlockedRequest(c, args)
 		}
 	} else {
-		c.Conn().WriteError(fmt.Sprintf("ERR unknown command '%s'", args))
+		c.Conn().WriteError(fmt.Sprintf("ERR unknown command '%s' with args '%s'", string(args[0]), args[1:]))
 	}
 
 	if cmdWrite {

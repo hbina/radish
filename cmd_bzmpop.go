@@ -7,16 +7,27 @@ import (
 )
 
 // https://redis.io/commands/bzmpop/
-// BZMPOP numkeys key [key ...] <MIN | MAX> [COUNT count]
+// BZMPOP timeout numkeys key [key ...] <MIN | MAX> [COUNT count]
 // This command should behave exactly like ZMPOP except that it
 // will block until it pops a set.
 func BzmpopCommand(c *Client, args [][]byte) int {
-	if len(args) < 3 {
+	if len(args) < 4 {
 		c.Conn().WriteError(SyntaxErr)
 		return BCMD_OK
 	}
 
-	numKeyStr := string(args[1])
+	timeoutStr := string(args[1])
+
+	timeout64, err := strconv.ParseInt(timeoutStr, 10, 32)
+
+	if err != nil || timeout64 < 0 {
+		c.Conn().WriteError(SyntaxErr)
+		return BCMD_OK
+	}
+
+	fmt.Println(timeout64)
+
+	numKeyStr := string(args[2])
 
 	numKey64, err := strconv.ParseInt(numKeyStr, 10, 32)
 
@@ -27,50 +38,49 @@ func BzmpopCommand(c *Client, args [][]byte) int {
 
 	numKey := int(numKey64)
 
-	if len(args) < 2+numKey {
+	if len(args) < 3+numKey {
 		c.Conn().WriteError(SyntaxErr)
 		return BCMD_OK
 	}
 
 	keys := make([]string, 0, numKey)
 
-	for i := 2; i < 2+numKey; i++ {
+	for i := 3; i < 3+numKey; i++ {
 		keys = append(keys, string(args[i]))
 	}
 
-	// Parse options
-	// -1 -> not set
-	count := -1
 	// -1 -> not set
 	// 0  -> min
 	// 1  -> max
 	mode := -1
 
-	for i := 2 + numKey; i < len(args); i++ {
+	if len(args) < 3+numKey+1 {
+		c.Conn().WriteError(SyntaxErr)
+		return BCMD_OK
+	}
+
+	modeStr := strings.ToLower(string(args[3+numKey+1]))
+
+	if modeStr == "min" {
+		mode = 0
+	} else if modeStr == "max" {
+		mode = 1
+	} else {
+		c.Conn().WriteError(SyntaxErr)
+		return BCMD_OK
+	}
+
+	// Parse options
+	// -1 -> not set
+	count := -1
+
+	for i := 3 + numKey + 1; i < len(args); i++ {
 		arg := strings.ToLower(string(args[i]))
 		switch arg {
 		default:
 			{
 				c.Conn().WriteError(SyntaxErr)
 				return BCMD_OK
-			}
-		case "min":
-			{
-				if mode != -1 {
-					c.Conn().WriteError(SyntaxErr)
-					return BCMD_OK
-				}
-
-				mode = 0
-			}
-		case "max":
-			{
-				if mode != -1 {
-					c.Conn().WriteError(SyntaxErr)
-					return BCMD_OK
-				}
-
-				mode = 1
 			}
 		case "count":
 			{
@@ -108,11 +118,6 @@ func BzmpopCommand(c *Client, args [][]byte) int {
 	// If not set then default
 	if count == -1 {
 		count = 1
-	}
-
-	// If not set then default
-	if mode == -1 {
-		mode = 0
 	}
 
 	db := c.Db()

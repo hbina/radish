@@ -26,12 +26,12 @@ func ConfigCommand(c *Client, args [][]byte) {
 			k := string(args[i])
 			v := c.Redis().GetConfigValue(k)
 			if v != nil {
-				result = append(result, fmt.Sprintf("\"%s\"", k), fmt.Sprintf("\"%s\"", *v))
+				result = append(result, k, *v)
 			}
 		}
 		c.Conn().WriteArray(len(result))
 		for _, v := range result {
-			c.Conn().WriteString(v)
+			c.Conn().WriteBulkString(v)
 		}
 	} else if strings.ToLower(subcommand) == "set" {
 		if len(args) < 4 {
