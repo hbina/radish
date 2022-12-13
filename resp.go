@@ -295,6 +295,18 @@ func ConvertBytesToRespType(input []byte) (Resp, []byte) {
 
 				return &rs, nextInput
 			}
+		} else {
+			str, leftover, ok := TakeBytesUntilClrf(input)
+
+			if !ok {
+				return nil, input
+			}
+
+			rs := RespString{
+				inner: str,
+			}
+
+			return &rs, leftover
 		}
 	}
 
