@@ -9,14 +9,9 @@ const (
 
 // A command can be registered.
 type Command struct {
-	// The command name.
-	name string
-
-	// Handler
+	name    string
 	handler CommandHandler
-
-	// Command flag
-	flag uint64
+	flag    uint64
 }
 
 func NewCommand(name string, handler CommandHandler, flag uint64) *Command {
