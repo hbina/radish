@@ -13,14 +13,18 @@ import (
 
 var dbId int64 = 0
 var port int = 6381
-var addr string = fmt.Sprintf("localhost:%d", port)
 
 func CreateTestClient() *redis.Client {
 	c := redis.NewClient(&redis.Options{
-		Addr: addr,
+		Addr: fmt.Sprintf("localhost:%d", port),
 		DB:   int(atomic.AddInt64(&dbId, 1)),
 	})
 	return c
+}
+
+func init() {
+	go Run(port, false)
+	time.Sleep(1 * time.Second)
 }
 
 func TestPingCommand(t *testing.T) {

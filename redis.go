@@ -128,7 +128,15 @@ func (r *Redis) HandleRequest(c *Client, args [][]byte) {
 	}
 }
 
+var started bool = false
+
 func Run(port int, shouldLog bool) {
+
+	if started {
+		return
+	}
+
+	started = true
 
 	if shouldLog {
 		Logger = log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
