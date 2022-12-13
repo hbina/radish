@@ -36,7 +36,7 @@ func SmoveCommand(c *pkg.Client, args [][]byte) {
 	maybeDest, destTtl := db.GetOrExpire(destinationKey, true)
 
 	if maybeDest == nil {
-		maybeDest = NewSetEmpty()
+		maybeDest = types.NewSetEmpty()
 	} else if maybeDest.Type() != types.ValueTypeSet {
 		c.Conn().WriteError(pkg.WrongTypeErr)
 		return

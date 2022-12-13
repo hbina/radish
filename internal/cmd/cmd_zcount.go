@@ -5,6 +5,7 @@ import (
 
 	"github.com/hbina/radish/internal/pkg"
 	"github.com/hbina/radish/internal/types"
+	"github.com/hbina/radish/internal/util"
 )
 
 // https://redis.io/commands/zcount/
@@ -19,7 +20,7 @@ func ZcountCommand(c *pkg.Client, args [][]byte) {
 	startStr := string(args[2])
 	stopStr := string(args[3])
 
-	start, startExclusive, stop, stopExclusive, err := ParseFloatRange(startStr, stopStr)
+	start, startExclusive, stop, stopExclusive, err := util.ParseFloatRange(startStr, stopStr)
 
 	if err {
 		c.Conn().WriteError(pkg.InvalidFloatErr)
@@ -29,7 +30,7 @@ func ZcountCommand(c *pkg.Client, args [][]byte) {
 	maybeSet := c.Db().Get(key)
 
 	if maybeSet == nil {
-		maybeSet = NewZSet()
+		maybeSet = types.NewZSet()
 	}
 
 	if maybeSet.Type() != types.ValueTypeZSet {
@@ -40,8 +41,8 @@ func ZcountCommand(c *pkg.Client, args [][]byte) {
 	set := maybeSet.Value().(*types.SortedSet)
 
 	options := types.DefaultRangeOptions()
-	options.startExclusive = startExclusive
-	options.stopExclusive = stopExclusive
+	options.StartExclusive = startExclusive
+	options.StopExclusive = stopExclusive
 
 	res := set.GetRangeByScore(start, stop, options)
 

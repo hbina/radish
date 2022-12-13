@@ -211,7 +211,7 @@ func implZSetSetOperationCommand(c *pkg.Client, args [][]byte,
 	}
 
 	db := c.Db()
-	var result *ZSet = nil
+	var result *types.ZSet = nil
 
 	for idx, key := range keys {
 		weight := 1.0
@@ -223,10 +223,10 @@ func implZSetSetOperationCommand(c *pkg.Client, args [][]byte,
 		maybeSet, _ := db.GetOrExpire(key, true)
 
 		if maybeSet == nil {
-			maybeSet = NewZSet()
+			maybeSet = types.NewZSet()
 		}
 
-		var set *ZSet = nil
+		var set *types.ZSet = nil
 
 		if maybeSet.Type() == types.ValueTypeZSet {
 			set = maybeSet.(*types.ZSet)
@@ -239,7 +239,7 @@ func implZSetSetOperationCommand(c *pkg.Client, args [][]byte,
 
 		if result == nil {
 			// We initialize a new set using the weights
-			result = NewZSet().Union(set, aggregateMode, weight)
+			result = types.NewZSet().Union(set, aggregateMode, weight)
 		} else {
 			if operation == ZSetOperationUnion {
 				result = result.Union(set, aggregateMode, weight)
@@ -259,7 +259,7 @@ func implZSetSetOperationCommand(c *pkg.Client, args [][]byte,
 	}
 
 	if result == nil {
-		result = NewZSet()
+		result = types.NewZSet()
 	}
 
 	if card {
@@ -274,14 +274,14 @@ func implZSetSetOperationCommand(c *pkg.Client, args [][]byte,
 	} else {
 		if withScores {
 			c.Conn().WriteArray(result.Len() * 2)
-			for _, node := range result.inner.GetRangeByRank(1, result.Len(), DefaultRangeOptions()) {
-				c.Conn().WriteBulkString(node.key)
-				c.Conn().WriteBulkString(fmt.Sprint(node.score))
+			for _, node := range result.Inner.GetRangeByRank(1, result.Len(), types.DefaultRangeOptions()) {
+				c.Conn().WriteBulkString(node.Key)
+				c.Conn().WriteBulkString(fmt.Sprint(node.Score))
 			}
 		} else {
 			c.Conn().WriteArray(result.Len())
-			for _, node := range result.inner.GetRangeByRank(1, result.Len(), DefaultRangeOptions()) {
-				c.Conn().WriteBulkString(node.key)
+			for _, node := range result.Inner.GetRangeByRank(1, result.Len(), types.DefaultRangeOptions()) {
+				c.Conn().WriteBulkString(node.Key)
 			}
 		}
 	}

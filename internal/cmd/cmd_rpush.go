@@ -21,13 +21,13 @@ func RPushCommand(c *pkg.Client, args [][]byte) {
 	maybeItem, _ := db.GetOrExpire(key, true)
 
 	if maybeItem == nil {
-		maybeItem = NewList()
+		maybeItem = types.NewList()
 	} else if maybeItem.Type() != types.ValueTypeList {
 		c.Conn().WriteError(pkg.WrongTypeErr)
 		return
 	}
 
-	list := maybeItem.(*List)
+	list := maybeItem.(*types.List)
 
 	for i := 2; i < len(args); i++ {
 		list.RPush(string(args[i]))

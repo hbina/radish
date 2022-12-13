@@ -26,7 +26,7 @@ func LPopCommand(c *pkg.Client, args [][]byte) {
 		return
 	}
 
-	l := item.(*List)
+	l := item.(*types.List)
 	value, valid := l.LPop()
 
 	if valid {

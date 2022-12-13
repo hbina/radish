@@ -365,7 +365,7 @@ func (ss *SortedSet) GetRangeByLex(start string, end string, options GetRangeOpt
 		options.StartExclusive, options.StopExclusive = options.StopExclusive, options.StartExclusive
 	}
 
-	startNode, startRank := ss.findNodeByLex(start)
+	startNode, startRank := ss.FindNodeByLex(start)
 
 	if startNode == nil {
 		return []*SortedSetNode{}
@@ -375,7 +375,7 @@ func (ss *SortedSet) GetRangeByLex(start string, end string, options GetRangeOpt
 		startRank += 1
 	}
 
-	endNode, endRank := ss.findNodeByLex(end)
+	endNode, endRank := ss.FindNodeByLex(end)
 
 	if (options.StopExclusive && endNode.Key == end) || endNode.Key > end {
 		endRank -= 1
@@ -487,10 +487,10 @@ func (ss *SortedSet) findNodeByScore(score float64, forward bool) (*SortedSetNod
 	return node, nodeRank
 }
 
-// findNodeByLex returns the node with the requested key
+// FindNodeByLex returns the node with the requested key
 //
 // Time complexity: O(log(N)) with high probability
-func (ss *SortedSet) findNodeByLex(key string) (*SortedSetNode, int) {
+func (ss *SortedSet) FindNodeByLex(key string) (*SortedSetNode, int) {
 	node := ss.header
 	nodeRank := 0
 
@@ -602,7 +602,7 @@ func (ss *SortedSet) GetByKey(key string) *SortedSetNode {
 //
 // Time complexity: O(log(N)) with high probability
 func (ss *SortedSet) FindRankOfKey(key string) int {
-	node, rank := ss.findNodeByLex(key)
+	node, rank := ss.FindNodeByLex(key)
 	if node == nil || node == ss.header || node.Key != key {
 		return 0
 	}

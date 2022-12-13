@@ -142,23 +142,23 @@ func ZmpopCommand(c *pkg.Client, args [][]byte) {
 		if mode == 0 {
 			res = set.GetRangeByRank(1, count, options)
 		} else {
-			options.reverse = true
+			options.Reverse = true
 			res = set.GetRangeByRank(set.Len()+1-count, set.Len(), options)
 		}
 
 		for _, n := range res {
-			set.Remove(n.key)
+			set.Remove(n.Key)
 		}
 
-		db.Set(key, NewZSetFromSs(set), ttl)
+		db.Set(key, types.NewZSetFromSs(set), ttl)
 
 		c.Conn().WriteArray(2)
 		c.Conn().WriteBulkString(key)
 		c.Conn().WriteArray(len(res))
 		for _, n := range res {
 			c.Conn().WriteArray(2)
-			c.Conn().WriteBulkString(n.key)
-			c.Conn().WriteBulkString(fmt.Sprint(n.score))
+			c.Conn().WriteBulkString(n.Key)
+			c.Conn().WriteBulkString(fmt.Sprint(n.Score))
 		}
 
 		return

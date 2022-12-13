@@ -33,7 +33,10 @@ func Run(port int, shouldLog bool) {
 		util.Logger.Fatal(err)
 	}
 
-	instance := pkg.Default(cmd.GenerateCommands(), cmd.GenerateBlockingCommands())
+	instance := pkg.Default(
+		cmd.GenerateCommands(),
+		cmd.GenerateBlockingCommands(),
+		cmd.GenerateConfigs())
 
 	for {
 		conn, err := listen.Accept()

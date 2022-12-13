@@ -6,6 +6,7 @@ import (
 
 	"github.com/hbina/radish/internal/pkg"
 	"github.com/hbina/radish/internal/types"
+	"github.com/hbina/radish/internal/util"
 )
 
 // https://redis.io/commands/setex/
@@ -21,7 +22,7 @@ func SetexCommand(c *pkg.Client, args [][]byte) {
 	seconds := string(args[2])
 	value := string(args[3])
 
-	newTtl, err := ParseTtlFromUnitTime(seconds, int64(time.Second))
+	newTtl, err := util.ParseTtlFromUnitTime(seconds, int64(time.Second))
 
 	if err != nil {
 		c.Conn().WriteError(pkg.InvalidIntErr)

@@ -32,7 +32,7 @@ func ZpopmaxCommand(c *pkg.Client, args [][]byte) {
 		}
 
 		if count64 < 0 {
-			c.Conn().WriteError(fmt.Sprintf(MustBePositiveErr, "count"))
+			c.Conn().WriteError(fmt.Sprintf(pkg.MustBePositiveErr, "count"))
 			return
 		}
 
@@ -43,7 +43,7 @@ func ZpopmaxCommand(c *pkg.Client, args [][]byte) {
 	maybeSet, ttl := db.GetOrExpire(key, true)
 
 	if maybeSet == nil {
-		maybeSet = NewZSet()
+		maybeSet = types.NewZSet()
 	}
 
 	if maybeSet.Type() != types.ValueTypeZSet {
@@ -63,18 +63,18 @@ func ZpopmaxCommand(c *pkg.Client, args [][]byte) {
 	}
 
 	options := types.DefaultRangeOptions()
-	options.reverse = true
+	options.Reverse = true
 	res := set.GetRangeByRank(set.Len()+1-count, set.Len(), options)
 
 	for _, n := range res {
-		set.Remove(n.key)
+		set.Remove(n.Key)
 	}
 
-	db.Set(key, NewZSetFromSs(set), ttl)
+	db.Set(key, types.NewZSetFromSs(set), ttl)
 
 	c.Conn().WriteArray(len(res) * 2)
 	for _, n := range res {
-		c.Conn().WriteBulkString(n.key)
-		c.Conn().WriteBulkString(fmt.Sprint(n.score))
+		c.Conn().WriteBulkString(n.Key)
+		c.Conn().WriteBulkString(fmt.Sprint(n.Score))
 	}
 }

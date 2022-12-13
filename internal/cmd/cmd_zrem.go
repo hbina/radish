@@ -21,7 +21,7 @@ func ZremCommand(c *pkg.Client, args [][]byte) {
 	maybeSet, ttl := db.GetOrExpire(key, true)
 
 	if maybeSet == nil {
-		maybeSet = NewZSet()
+		maybeSet = types.NewZSet()
 	}
 
 	if maybeSet.Type() != types.ValueTypeZSet {
@@ -33,7 +33,7 @@ func ZremCommand(c *pkg.Client, args [][]byte) {
 
 	count := 0
 	for i := 2; i < len(args); i++ {
-		res := set.inner.Remove(string(args[i]))
+		res := set.Inner.Remove(string(args[i]))
 		if res != nil {
 			count++
 		}

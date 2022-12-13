@@ -6,6 +6,7 @@ import (
 
 	"github.com/hbina/radish/internal/pkg"
 	"github.com/hbina/radish/internal/types"
+	"github.com/hbina/radish/internal/util"
 )
 
 // https://redis.io/commands/zrevrange/
@@ -20,7 +21,7 @@ func ZrevrangeCommand(c *pkg.Client, args [][]byte) {
 	startStr := string(args[2])
 	stopStr := string(args[3])
 
-	start, startExclusive, stop, stopExclusive, err := ParseIntRange(startStr, stopStr)
+	start, startExclusive, stop, stopExclusive, err := util.ParseIntRange(startStr, stopStr)
 
 	if err {
 		c.Conn().WriteError(pkg.InvalidIntErr)
@@ -48,7 +49,7 @@ func ZrevrangeCommand(c *pkg.Client, args [][]byte) {
 	maybeSet := c.Db().Get(key)
 
 	if maybeSet == nil {
-		maybeSet = NewZSet()
+		maybeSet = types.NewZSet()
 	}
 
 	if maybeSet.Type() != types.ValueTypeZSet {
@@ -59,9 +60,9 @@ func ZrevrangeCommand(c *pkg.Client, args [][]byte) {
 	set := maybeSet.Value().(*types.SortedSet)
 
 	options := types.DefaultRangeOptions()
-	options.reverse = true
-	options.startExclusive = startExclusive
-	options.stopExclusive = stopExclusive
+	options.Reverse = true
+	options.StartExclusive = startExclusive
+	options.StopExclusive = stopExclusive
 
 	res := set.GetRangeByIndex(start, stop, options)
 
@@ -69,14 +70,14 @@ func ZrevrangeCommand(c *pkg.Client, args [][]byte) {
 		c.Conn().WriteArray(len(res) * 2)
 
 		for _, ssn := range res {
-			c.Conn().WriteBulkString(ssn.key)
-			c.Conn().WriteBulkString(fmt.Sprint(ssn.score))
+			c.Conn().WriteBulkString(ssn.Key)
+			c.Conn().WriteBulkString(fmt.Sprint(ssn.Score))
 		}
 	} else {
 		c.Conn().WriteArray(len(res))
 
 		for _, ssn := range res {
-			c.Conn().WriteBulkString(ssn.key)
+			c.Conn().WriteBulkString(ssn.Key)
 		}
 	}
 }

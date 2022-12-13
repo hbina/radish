@@ -27,7 +27,7 @@ func SinterstoreCommand(c *pkg.Client, args [][]byte) {
 	}
 
 	db := c.Db()
-	var intersection *Set = nil
+	var intersection *types.Set = nil
 
 	//NOTE: Cannot optimize the following loop because we need to verify that each keys consist of sets/empty.
 	for _, key := range keys {
@@ -35,7 +35,7 @@ func SinterstoreCommand(c *pkg.Client, args [][]byte) {
 
 		// If any of the sets are nil, then the intersections must be 0
 		if maybeSet == nil {
-			maybeSet = NewSetEmpty()
+			maybeSet = types.NewSetEmpty()
 		} else if maybeSet.Type() != types.ValueTypeSet {
 			c.Conn().WriteError(pkg.WrongTypeErr)
 			return

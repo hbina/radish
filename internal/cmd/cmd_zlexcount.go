@@ -8,6 +8,7 @@ import (
 
 	"github.com/hbina/radish/internal/pkg"
 	"github.com/hbina/radish/internal/types"
+	"github.com/hbina/radish/internal/util"
 )
 
 // https://redis.io/commands/zlexcount/
@@ -22,7 +23,7 @@ func ZlexcountCommand(c *pkg.Client, args [][]byte) {
 	startStr := string(args[2])
 	stopStr := string(args[3])
 
-	start, startExclusive, stop, stopExclusive, err := ParseLexRange(startStr, stopStr)
+	start, startExclusive, stop, stopExclusive, err := util.ParseLexRange(startStr, stopStr)
 
 	if err {
 		c.Conn().WriteError("ERR min or max not valid string range item")
@@ -78,7 +79,7 @@ func ZlexcountCommand(c *pkg.Client, args [][]byte) {
 	maybeSet := c.Db().Get(key)
 
 	if maybeSet == nil {
-		maybeSet = NewZSet()
+		maybeSet = types.NewZSet()
 	}
 
 	if maybeSet.Type() != types.ValueTypeZSet {
@@ -88,12 +89,12 @@ func ZlexcountCommand(c *pkg.Client, args [][]byte) {
 
 	set := maybeSet.Value().(*types.SortedSet)
 
-	res := set.GetRangeByLex(start, stop, GetRangeOptions{
-		reverse:        false,
-		offset:         offset,
-		limit:          limit,
-		startExclusive: startExclusive,
-		stopExclusive:  stopExclusive,
+	res := set.GetRangeByLex(start, stop, types.GetRangeOptions{
+		Reverse:        false,
+		Offset:         offset,
+		Limit:          limit,
+		StartExclusive: startExclusive,
+		StopExclusive:  stopExclusive,
 	})
 
 	c.Conn().WriteInt(len(res))

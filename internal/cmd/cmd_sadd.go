@@ -19,7 +19,7 @@ func SaddCommand(c *pkg.Client, args [][]byte) {
 	maybeSet := c.Db().Get(key)
 
 	if maybeSet == nil {
-		maybeSet = NewSetEmpty()
+		maybeSet = types.NewSetEmpty()
 	}
 
 	if maybeSet.Type() != types.ValueTypeSet {
@@ -42,7 +42,7 @@ func SaddCommand(c *pkg.Client, args [][]byte) {
 
 	}
 
-	c.Db().Set(key, NewSetFromMap(set), time.Time{})
+	c.Db().Set(key, types.NewSetFromMap(set), time.Time{})
 
 	c.Conn().WriteInt(count)
 }

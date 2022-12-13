@@ -8,6 +8,7 @@ import (
 
 	"github.com/hbina/radish/internal/pkg"
 	"github.com/hbina/radish/internal/types"
+	"github.com/hbina/radish/internal/util"
 )
 
 // https://redis.io/commands/zrevrangebylex/
@@ -22,10 +23,10 @@ func ZrevrangebylexCommand(c *pkg.Client, args [][]byte) {
 	startStr := string(args[2])
 	stopStr := string(args[3])
 
-	start, startExclusive, stop, stopExclusive, err := ParseLexRange(startStr, stopStr)
+	start, startExclusive, stop, stopExclusive, err := util.ParseLexRange(startStr, stopStr)
 
 	if err {
-		c.Conn().WriteError(InvalidLexErr)
+		c.Conn().WriteError(pkg.InvalidLexErr)
 		return
 	}
 
@@ -77,7 +78,7 @@ func ZrevrangebylexCommand(c *pkg.Client, args [][]byte) {
 	maybeSet := c.Db().Get(key)
 
 	if maybeSet == nil {
-		maybeSet = NewZSet()
+		maybeSet = types.NewZSet()
 	}
 
 	if maybeSet.Type() != types.ValueTypeZSet {
@@ -87,17 +88,17 @@ func ZrevrangebylexCommand(c *pkg.Client, args [][]byte) {
 
 	set := maybeSet.Value().(*types.SortedSet)
 
-	res := set.GetRangeByLex(start, stop, GetRangeOptions{
-		reverse:        true,
-		offset:         offset,
-		limit:          limit,
-		startExclusive: startExclusive,
-		stopExclusive:  stopExclusive,
+	res := set.GetRangeByLex(start, stop, types.GetRangeOptions{
+		Reverse:        true,
+		Offset:         offset,
+		Limit:          limit,
+		StartExclusive: startExclusive,
+		StopExclusive:  stopExclusive,
 	})
 
 	c.Conn().WriteArray(len(res))
 
 	for _, ssn := range res {
-		c.Conn().WriteBulkString(ssn.key)
+		c.Conn().WriteBulkString(ssn.Key)
 	}
 }

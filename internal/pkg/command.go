@@ -47,15 +47,3 @@ type BlockedCommand struct {
 	c    *Client
 	args [][]byte
 }
-
-func (r *Redis) RegisterCommands(cmds []*Command) {
-	for _, cmd := range cmds {
-		r.commands[cmd.Name] = cmd
-	}
-}
-
-func (r *Redis) RegisterBlockingCommands(cmds []*BlockingCommand) {
-	for _, cmd := range cmds {
-		r.blockingCommands[cmd.Name] = cmd
-	}
-}

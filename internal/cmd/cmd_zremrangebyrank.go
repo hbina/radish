@@ -6,6 +6,7 @@ import (
 
 	"github.com/hbina/radish/internal/pkg"
 	"github.com/hbina/radish/internal/types"
+	"github.com/hbina/radish/internal/util"
 )
 
 // https://redis.io/commands/zremrangebyrank/
@@ -20,7 +21,7 @@ func ZremrangebyrankCommand(c *pkg.Client, args [][]byte) {
 	startStr := string(args[2])
 	stopStr := string(args[3])
 
-	start, startExclusive, stop, stopExclusive, err := ParseIntRange(startStr, stopStr)
+	start, startExclusive, stop, stopExclusive, err := util.ParseIntRange(startStr, stopStr)
 
 	if err {
 		c.Conn().WriteError(pkg.InvalidFloatErr)
@@ -31,7 +32,7 @@ func ZremrangebyrankCommand(c *pkg.Client, args [][]byte) {
 	maybeSet := db.Get(key)
 
 	if maybeSet == nil {
-		maybeSet = NewZSet()
+		maybeSet = types.NewZSet()
 	}
 
 	if maybeSet.Type() != types.ValueTypeZSet {
@@ -41,17 +42,17 @@ func ZremrangebyrankCommand(c *pkg.Client, args [][]byte) {
 
 	set := maybeSet.Value().(*types.SortedSet)
 
-	res := set.GetRangeByIndex(start, stop, GetRangeOptions{
-		reverse:        false,
-		offset:         0,
-		limit:          math.MaxInt,
-		startExclusive: startExclusive,
-		stopExclusive:  stopExclusive,
+	res := set.GetRangeByIndex(start, stop, types.GetRangeOptions{
+		Reverse:        false,
+		Offset:         0,
+		Limit:          math.MaxInt,
+		StartExclusive: startExclusive,
+		StopExclusive:  stopExclusive,
 	})
 
 	count := 0
 	for _, r := range res {
-		if set.Remove(r.key) != nil {
+		if set.Remove(r.Key) != nil {
 			count++
 		}
 	}

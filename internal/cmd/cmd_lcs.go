@@ -70,8 +70,8 @@ func LcsCommand(c *pkg.Client, args [][]byte) {
 		return
 	}
 
-	valueX := maybeValueX.(*String)
-	valueY := maybeValueY.(*String)
+	valueX := maybeValueX.(*types.String)
+	valueY := maybeValueY.(*types.String)
 
 	// Add 1 to each axes to include the initial 0s
 	lcs := make([][]int, 0, valueY.Len()+1)
@@ -176,7 +176,7 @@ func LcsCommand(c *pkg.Client, args [][]byte) {
 	var result strings.Builder
 	// TODO: Calculate the total length
 	for i := matchCount - 1; i >= 0; i-- {
-		result.WriteString(valueX.inner[valueXMatchIdx[i*2] : valueXMatchIdx[(i*2)+1]+1])
+		result.WriteString(valueX.Inner[valueXMatchIdx[i*2] : valueXMatchIdx[(i*2)+1]+1])
 	}
 
 	if isIdx {

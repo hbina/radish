@@ -131,7 +131,7 @@ func ZaddCommand(c *pkg.Client, args [][]byte) {
 	maybeSet := c.Db().Get(key)
 
 	if maybeSet == nil {
-		maybeSet = NewZSet()
+		maybeSet = types.NewZSet()
 	}
 
 	if maybeSet.Type() != types.ValueTypeZSet {
@@ -150,19 +150,19 @@ func ZaddCommand(c *pkg.Client, args [][]byte) {
 		old := set.GetByKey(member)
 
 		if old != nil && incrEnabled {
-			score += old.Score()
+			score += old.Score
 		}
 
 		if (old != nil && insertMode == ZaddInsertNx) ||
 			(old == nil && insertMode == ZaddInsertXx) ||
-			(old != nil && compareMode == ZaddCompareGt && score <= old.Score()) ||
-			(old != nil && compareMode == ZaddCompareLt && score >= old.Score()) {
+			(old != nil && compareMode == ZaddCompareGt && score <= old.Score) ||
+			(old != nil && compareMode == ZaddCompareLt && score >= old.Score) {
 			continue
 		}
 
 		added := set.AddOrUpdate(member, score)
 
-		if added || (chEnabled && old != nil && old.Score() != score) {
+		if added || (chEnabled && old != nil && old.Score != score) {
 			addedCount++
 		}
 
@@ -173,7 +173,7 @@ func ZaddCommand(c *pkg.Client, args [][]byte) {
 		}
 	}
 
-	c.Db().Set(key, NewZSetFromSs(set), time.Time{})
+	c.Db().Set(key, types.NewZSetFromSs(set), time.Time{})
 
 	if incrEnabled {
 		if newScore == nil {

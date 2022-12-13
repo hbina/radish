@@ -32,7 +32,7 @@ func ZincrbyCommand(c *pkg.Client, args [][]byte) {
 	maybeSet, ttl := db.GetOrExpire(key, true)
 
 	if maybeSet == nil {
-		maybeSet = NewZSet()
+		maybeSet = types.NewZSet()
 	}
 
 	if maybeSet.Type() != types.ValueTypeZSet {
@@ -42,20 +42,20 @@ func ZincrbyCommand(c *pkg.Client, args [][]byte) {
 
 	set := maybeSet.(*types.ZSet)
 
-	maybeMember := set.inner.GetByKey(memberKey)
+	maybeMember := set.Inner.GetByKey(memberKey)
 
 	if maybeMember == nil {
-		set.inner.AddOrUpdate(memberKey, increment)
+		set.Inner.AddOrUpdate(memberKey, increment)
 		db.Set(key, set, ttl)
 		c.Conn().WriteString(fmt.Sprint(increment))
 	} else {
-		newScore := maybeMember.Score() + increment
+		newScore := maybeMember.Score + increment
 
 		if math.IsNaN(newScore) {
 			c.Conn().WriteError("ERR resulting score is not a number (NaN)")
 			return
 		}
-		set.inner.AddOrUpdate(memberKey, newScore)
+		set.Inner.AddOrUpdate(memberKey, newScore)
 		db.Set(key, set, ttl)
 		c.Conn().WriteString(fmt.Sprint(newScore))
 	}

@@ -83,7 +83,7 @@ func SrandmemberCommand(c *pkg.Client, args [][]byte) {
 			// Go says that iterating over map is semi-random
 			// This check will always be enough to fill up result because
 			// we already truncated count to be at most as big as set
-			for k := range set.inner {
+			for k := range set.Inner {
 				if len(set2) == count {
 					break
 				}

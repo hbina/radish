@@ -23,7 +23,7 @@ func SunionCommand(c *pkg.Client, args [][]byte) {
 	}
 
 	db := c.Db()
-	union := NewSetEmpty()
+	union := types.NewSetEmpty()
 
 	for _, key := range keys {
 		maybeSet, _ := db.GetOrExpire(key, true)

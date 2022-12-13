@@ -8,6 +8,7 @@ import (
 
 	"github.com/hbina/radish/internal/pkg"
 	"github.com/hbina/radish/internal/types"
+	"github.com/hbina/radish/internal/util"
 )
 
 // https://redis.io/commands/zrangebylex/
@@ -22,10 +23,10 @@ func ZrangebylexCommand(c *pkg.Client, args [][]byte) {
 	startStr := string(args[2])
 	stopStr := string(args[3])
 
-	start, startExclusive, stop, stopExclusive, err := ParseLexRange(startStr, stopStr)
+	start, startExclusive, stop, stopExclusive, err := util.ParseLexRange(startStr, stopStr)
 
 	if err {
-		c.Conn().WriteError(InvalidLexErr)
+		c.Conn().WriteError(pkg.InvalidLexErr)
 		return
 	}
 
@@ -88,17 +89,17 @@ func ZrangebylexCommand(c *pkg.Client, args [][]byte) {
 
 	set := maybeSet.Value().(*types.SortedSet)
 
-	res := set.GetRangeByLex(start, stop, GetRangeOptions{
-		reverse:        false,
-		offset:         offset,
-		limit:          limit,
-		startExclusive: startExclusive,
-		stopExclusive:  stopExclusive,
+	res := set.GetRangeByLex(start, stop, types.GetRangeOptions{
+		Reverse:        false,
+		Offset:         offset,
+		Limit:          limit,
+		StartExclusive: startExclusive,
+		StopExclusive:  stopExclusive,
 	})
 
 	c.Conn().WriteArray(len(res))
 
 	for _, ssn := range res {
-		c.Conn().WriteBulkString(ssn.key)
+		c.Conn().WriteBulkString(ssn.Key)
 	}
 }

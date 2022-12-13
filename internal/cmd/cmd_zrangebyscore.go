@@ -8,6 +8,7 @@ import (
 
 	"github.com/hbina/radish/internal/pkg"
 	"github.com/hbina/radish/internal/types"
+	"github.com/hbina/radish/internal/util"
 )
 
 // https://redis.io/commands/zrangebyscore/
@@ -22,7 +23,7 @@ func ZrangebyscoreCommand(c *pkg.Client, args [][]byte) {
 	startStr := string(args[2])
 	stopStr := string(args[3])
 
-	start, startExclusive, stop, stopExclusive, err := ParseFloatRange(startStr, stopStr)
+	start, startExclusive, stop, stopExclusive, err := util.ParseFloatRange(startStr, stopStr)
 
 	if err || math.IsNaN(start) || math.IsNaN(stop) {
 		c.Conn().WriteError(pkg.InvalidFloatErr)
@@ -82,7 +83,7 @@ func ZrangebyscoreCommand(c *pkg.Client, args [][]byte) {
 	maybeSet := c.Db().Get(key)
 
 	if maybeSet == nil {
-		maybeSet = NewZSet()
+		maybeSet = types.NewZSet()
 	}
 
 	if maybeSet.Type() != types.ValueTypeZSet {
@@ -92,26 +93,26 @@ func ZrangebyscoreCommand(c *pkg.Client, args [][]byte) {
 
 	set := maybeSet.Value().(*types.SortedSet)
 
-	res := set.GetRangeByScore(start, stop, GetRangeOptions{
-		reverse:        false,
-		offset:         offset,
-		limit:          limit,
-		startExclusive: startExclusive,
-		stopExclusive:  stopExclusive,
+	res := set.GetRangeByScore(start, stop, types.GetRangeOptions{
+		Reverse:        false,
+		Offset:         offset,
+		Limit:          limit,
+		StartExclusive: startExclusive,
+		StopExclusive:  stopExclusive,
 	})
 
 	if withScores {
 		c.Conn().WriteArray(len(res) * 2)
 
 		for _, ssn := range res {
-			c.Conn().WriteBulkString(ssn.key)
-			c.Conn().WriteBulkString(fmt.Sprint(ssn.score))
+			c.Conn().WriteBulkString(ssn.Key)
+			c.Conn().WriteBulkString(fmt.Sprint(ssn.Score))
 		}
 	} else {
 		c.Conn().WriteArray(len(res))
 
 		for _, ssn := range res {
-			c.Conn().WriteBulkString(ssn.key)
+			c.Conn().WriteBulkString(ssn.Key)
 		}
 	}
 }

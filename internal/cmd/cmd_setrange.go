@@ -51,19 +51,19 @@ func SetrangeCommand(c *pkg.Client, args [][]byte) {
 				return
 			}
 
-			maybeItem = NewString(string(make([]byte, byteOffset)))
+			maybeItem = types.NewString(string(make([]byte, byteOffset)))
 		}
 
-		item := maybeItem.(*String)
+		item := maybeItem.(*types.String)
 
 		// Need to append item to have enough spaces for byteOffset
 		// TODO: Optimize to use StringBuilder
 		if item.Len() <= int(byteOffset) {
-			newStr := item.inner + string(make([]byte, byteOffset-item.Len())) + value
-			item = NewString(newStr)
+			newStr := item.Inner + string(make([]byte, byteOffset-item.Len())) + value
+			item = types.NewString(newStr)
 		} else {
-			newStr := item.inner[:byteOffset] + value + item.inner[byteOffset+len(value):]
-			item = NewString(newStr)
+			newStr := item.Inner[:byteOffset] + value + item.Inner[byteOffset+len(value):]
+			item = types.NewString(newStr)
 		}
 
 		db.Set(key, item, time.Time{})

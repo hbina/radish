@@ -25,7 +25,7 @@ func StrlenCommand(c *pkg.Client, args [][]byte) {
 	} else if maybeItem.Type() != types.ValueTypeString {
 		c.Conn().WriteError(pkg.WrongTypeErr)
 	} else {
-		item := maybeItem.(*String)
+		item := maybeItem.(*types.String)
 		c.Conn().WriteInt(item.Len())
 	}
 }

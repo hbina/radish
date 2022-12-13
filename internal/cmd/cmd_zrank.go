@@ -53,9 +53,9 @@ func implZrankCommand(c *pkg.Client, args [][]byte, reverse bool) {
 
 	set := maybeSet.(*types.ZSet)
 
-	node, rank := set.inner.findNodeByLex(memberKey)
+	node, rank := set.Inner.FindNodeByLex(memberKey)
 
-	if node == nil || node.key != memberKey {
+	if node == nil || node.Key != memberKey {
 		if withScore {
 			// We should have a null array
 			c.Conn().WriteNullArray()
@@ -72,7 +72,7 @@ func implZrankCommand(c *pkg.Client, args [][]byte, reverse bool) {
 		} else {
 			c.Conn().WriteBulkString(fmt.Sprint(rank - 1))
 		}
-		c.Conn().WriteBulkString(fmt.Sprint(node.score))
+		c.Conn().WriteBulkString(fmt.Sprint(node.Score))
 	} else {
 		if reverse {
 			c.Conn().WriteInt(set.Len() - rank)

@@ -8,6 +8,7 @@ import (
 
 	"github.com/hbina/radish/internal/pkg"
 	"github.com/hbina/radish/internal/types"
+	"github.com/hbina/radish/internal/util"
 )
 
 // https://redis.io/commands/zrange/
@@ -99,7 +100,7 @@ func ZrangeCommand(c *pkg.Client, args [][]byte) {
 	maybeSet := c.Db().Get(key)
 
 	if maybeSet == nil {
-		maybeSet = NewZSet()
+		maybeSet = types.NewZSet()
 	}
 
 	if maybeSet.Type() != types.ValueTypeZSet {
@@ -112,49 +113,49 @@ func ZrangeCommand(c *pkg.Client, args [][]byte) {
 	var res []*types.SortedSetNode
 
 	if sortByLex {
-		start, startExclusive, stop, stopExclusive, err := ParseLexRange(startStr, stopStr)
+		start, startExclusive, stop, stopExclusive, err := util.ParseLexRange(startStr, stopStr)
 
 		if err {
-			c.Conn().WriteError(InvalidLexErr)
+			c.Conn().WriteError(pkg.InvalidLexErr)
 			return
 		}
 
-		res = set.GetRangeByLex(start, stop, GetRangeOptions{
-			reverse:        reverse,
-			offset:         offset,
-			limit:          limit,
-			startExclusive: startExclusive,
-			stopExclusive:  stopExclusive,
+		res = set.GetRangeByLex(start, stop, types.GetRangeOptions{
+			Reverse:        reverse,
+			Offset:         offset,
+			Limit:          limit,
+			StartExclusive: startExclusive,
+			StopExclusive:  stopExclusive,
 		})
 	} else if sortByScore {
-		start, startExclusive, stop, stopExclusive, err := ParseFloatRange(startStr, stopStr)
+		start, startExclusive, stop, stopExclusive, err := util.ParseFloatRange(startStr, stopStr)
 
 		if err {
 			c.Conn().WriteError(pkg.InvalidFloatErr)
 			return
 		}
 
-		res = set.GetRangeByScore(start, stop, GetRangeOptions{
-			reverse:        reverse,
-			offset:         offset,
-			limit:          limit,
-			startExclusive: startExclusive,
-			stopExclusive:  stopExclusive,
+		res = set.GetRangeByScore(start, stop, types.GetRangeOptions{
+			Reverse:        reverse,
+			Offset:         offset,
+			Limit:          limit,
+			StartExclusive: startExclusive,
+			StopExclusive:  stopExclusive,
 		})
 	} else {
-		start, startExclusive, stop, stopExclusive, err := ParseIntRange(startStr, stopStr)
+		start, startExclusive, stop, stopExclusive, err := util.ParseIntRange(startStr, stopStr)
 
 		if err {
 			c.Conn().WriteError(pkg.InvalidIntErr)
 			return
 		}
 
-		res = set.GetRangeByIndex(start, stop, GetRangeOptions{
-			reverse:        reverse,
-			offset:         offset,
-			limit:          limit,
-			startExclusive: startExclusive,
-			stopExclusive:  stopExclusive,
+		res = set.GetRangeByIndex(start, stop, types.GetRangeOptions{
+			Reverse:        reverse,
+			Offset:         offset,
+			Limit:          limit,
+			StartExclusive: startExclusive,
+			StopExclusive:  stopExclusive,
 		})
 	}
 
@@ -162,14 +163,14 @@ func ZrangeCommand(c *pkg.Client, args [][]byte) {
 		c.Conn().WriteArray(len(res) * 2)
 
 		for _, ssn := range res {
-			c.Conn().WriteBulkString(ssn.key)
-			c.Conn().WriteBulkString(fmt.Sprint(ssn.score))
+			c.Conn().WriteBulkString(ssn.Key)
+			c.Conn().WriteBulkString(fmt.Sprint(ssn.Score))
 		}
 	} else {
 		c.Conn().WriteArray(len(res))
 
 		for _, ssn := range res {
-			c.Conn().WriteBulkString(ssn.key)
+			c.Conn().WriteBulkString(ssn.Key)
 		}
 	}
 }

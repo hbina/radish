@@ -19,7 +19,7 @@ func SismemberCommand(c *pkg.Client, args [][]byte) {
 	maybeSet := c.Db().Get(key)
 
 	if maybeSet == nil {
-		maybeSet = NewSetEmpty()
+		maybeSet = types.NewSetEmpty()
 	}
 
 	if maybeSet.Type() != types.ValueTypeSet {

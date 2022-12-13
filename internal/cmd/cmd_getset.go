@@ -34,6 +34,6 @@ func GetsetCommand(c *pkg.Client, args [][]byte) {
 		c.Conn().WriteNull()
 	} else {
 		// We already asserted that maybeItem is not nil and that it is a string
-		c.Conn().WriteBulkString(maybeItem.(*String).inner)
+		c.Conn().WriteBulkString(maybeItem.(*types.String).Inner)
 	}
 }

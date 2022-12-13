@@ -10,7 +10,7 @@ import (
 	"os/signal"
 	"runtime"
 
-	redis "github.com/hbina/radish"
+	"github.com/hbina/radish/internal/util"
 )
 
 var (
@@ -88,13 +88,13 @@ func main() {
 			inputStr = inputStr[:len(inputStr)-1]
 		}
 
-		args, valid := redis.SplitStringIntoArgs(inputStr)
+		args, valid := util.SplitStringIntoArgs(inputStr)
 
 		if !valid || len(args) == 0 {
 			continue
 		}
 
-		respInput := redis.ConvertCommandArgToResp(args)
+		respInput := util.ConvertCommandArgToResp(args)
 
 		_, err = tcpConn.Write([]byte(respInput))
 
@@ -121,10 +121,10 @@ func main() {
 
 			response = append(response, buffer...)
 
-			responseDisplay, ok := redis.StringifyRespBytes(response)
+			responseDisplay, ok := util.StringifyRespBytes(response)
 
 			if ok {
-				fmt.Println(redis.EscapeString(string(response)))
+				fmt.Println(util.EscapeString(string(response)))
 				fmt.Println(responseDisplay)
 				break
 			}

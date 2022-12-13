@@ -21,7 +21,7 @@ func ZscoreCommand(c *pkg.Client, args [][]byte) {
 	maybeSet := c.Db().Get(key)
 
 	if maybeSet == nil {
-		maybeSet = NewZSet()
+		maybeSet = types.NewZSet()
 	}
 
 	if maybeSet.Type() != types.ValueTypeZSet {
@@ -31,20 +31,20 @@ func ZscoreCommand(c *pkg.Client, args [][]byte) {
 
 	set := maybeSet.(*types.ZSet)
 
-	maybeMember := set.inner.GetByKey(memberKey)
+	maybeMember := set.Inner.GetByKey(memberKey)
 
 	if maybeMember == nil {
 		c.Conn().WriteNull()
 		return
 	}
 
-	if math.IsNaN(maybeMember.score) {
+	if math.IsNaN(maybeMember.Score) {
 		c.Conn().WriteString("nan")
-	} else if math.IsInf(maybeMember.score, -1) {
+	} else if math.IsInf(maybeMember.Score, -1) {
 		c.Conn().WriteString("-inf")
-	} else if math.IsInf(maybeMember.score, 1) {
+	} else if math.IsInf(maybeMember.Score, 1) {
 		c.Conn().WriteString("inf")
 	} else {
-		c.Conn().WriteString(fmt.Sprint(maybeMember.score))
+		c.Conn().WriteString(fmt.Sprint(maybeMember.Score))
 	}
 }

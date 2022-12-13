@@ -8,6 +8,7 @@ import (
 
 	"github.com/hbina/radish/internal/pkg"
 	"github.com/hbina/radish/internal/types"
+	"github.com/hbina/radish/internal/util"
 )
 
 // https://redis.io/commands/restore/
@@ -19,7 +20,7 @@ func RestoreCommand(c *pkg.Client, args [][]byte) {
 	}
 
 	key := string(args[1])
-	ttl, err := ParseTtlFromUnitTime(string(args[2]), int64(time.Millisecond))
+	ttl, err := util.ParseTtlFromUnitTime(string(args[2]), int64(time.Millisecond))
 
 	// Do not fail on time.Time{}, RESTORE will simply ignore it
 	if err != nil {
@@ -36,7 +37,7 @@ func RestoreCommand(c *pkg.Client, args [][]byte) {
 		case "replace":
 			isRestore = true
 		case "absttl":
-			newTtl, err := ParseTtlFromTimestamp(string(args[2]), time.Millisecond)
+			newTtl, err := util.ParseTtlFromTimestamp(string(args[2]), time.Millisecond)
 
 			// Do not fail on time.Time{}, RESTORE will simply ignore it
 			if err != nil {
@@ -70,56 +71,56 @@ func RestoreCommand(c *pkg.Client, args [][]byte) {
 		return
 	}
 
-	var kvp Kvp
+	var kvp pkg.Kvp
 	err = json.Unmarshal(args[3], &kvp)
 
 	if err != nil {
-		c.Conn().WriteError(fmt.Sprintf(DeserializationErr, string(args[3])))
+		c.Conn().WriteError(fmt.Sprintf(pkg.DeserializationErr, string(args[3])))
 		return
 	}
 
-	if kvp.Type == ValueTypeFancyString {
+	if kvp.Type == types.ValueTypeFancyString {
 		str, ok := kvp.Value.(string)
 
 		if !ok {
-			c.Conn().WriteError(fmt.Sprintf(DeserializationErr, string(args[3])))
+			c.Conn().WriteError(fmt.Sprintf(pkg.DeserializationErr, string(args[3])))
 			return
 		}
 
 		db.Set(key, types.NewString(str), ttl)
-	} else if kvp.Type == ValueTypeFancyList {
+	} else if kvp.Type == types.ValueTypeFancyList {
 		arr, ok := kvp.Value.([]string)
 
 		if !ok {
-			c.Conn().WriteError(fmt.Sprintf(DeserializationErr, string(args[3])))
+			c.Conn().WriteError(fmt.Sprintf(pkg.DeserializationErr, string(args[3])))
 			return
 		}
 
-		db.Set(key, NewListFromArr(arr), ttl)
-	} else if kvp.Type == ValueTypeFancySet {
+		db.Set(key, types.NewListFromArr(arr), ttl)
+	} else if kvp.Type == types.ValueTypeFancySet {
 		set, ok := kvp.Value.(map[string]struct{})
 
 		if !ok {
-			c.Conn().WriteError(fmt.Sprintf(DeserializationErr, string(args[3])))
+			c.Conn().WriteError(fmt.Sprintf(pkg.DeserializationErr, string(args[3])))
 			return
 		}
 
-		db.Set(key, NewSetFromMap(set), ttl)
-	} else if kvp.Type == ValueTypeFancyZSet {
+		db.Set(key, types.NewSetFromMap(set), ttl)
+	} else if kvp.Type == types.ValueTypeFancyZSet {
 		pair, ok := kvp.Value.(map[string]interface{})
 
 		if !ok {
-			c.Conn().WriteError(fmt.Sprintf(DeserializationErr, string(args[3])))
+			c.Conn().WriteError(fmt.Sprintf(pkg.DeserializationErr, string(args[3])))
 			return
 		}
 
-		set := NewZSet()
+		set := types.NewZSet()
 
 		keys, ok1 := pair["keys"].([]interface{})
 		scores, ok2 := pair["scores"].([]interface{})
 
 		if !ok1 || !ok2 || len(keys) != len(scores) {
-			c.Conn().WriteError(fmt.Sprintf(DeserializationErr, string(args[3])))
+			c.Conn().WriteError(fmt.Sprintf(pkg.DeserializationErr, string(args[3])))
 			return
 		}
 
@@ -128,11 +129,11 @@ func RestoreCommand(c *pkg.Client, args [][]byte) {
 			score, ok4 := scores[i].(float64)
 
 			if !ok3 || !ok4 {
-				c.Conn().WriteError(fmt.Sprintf(DeserializationErr, string(args[3])))
+				c.Conn().WriteError(fmt.Sprintf(pkg.DeserializationErr, string(args[3])))
 				return
 			}
 
-			set.inner.AddOrUpdate(key, score)
+			set.Inner.AddOrUpdate(key, score)
 		}
 
 		db.Set(key, set, ttl)

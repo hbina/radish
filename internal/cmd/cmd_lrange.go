@@ -19,13 +19,13 @@ func LRangeCommand(c *pkg.Client, args [][]byte) {
 
 	start, err := strconv.Atoi(string(args[2]))
 	if err != nil {
-		c.Conn().WriteError(fmt.Sprintf("%s: %s", InvalidIntErr, err.Error()))
+		c.Conn().WriteError(fmt.Sprintf("%s: %s", pkg.InvalidIntErr, err.Error()))
 		return
 	}
 
 	end, err := strconv.Atoi(string(args[3]))
 	if err != nil {
-		c.Conn().WriteError(fmt.Sprintf("%s: %s", InvalidIntErr, err.Error()))
+		c.Conn().WriteError(fmt.Sprintf("%s: %s", pkg.InvalidIntErr, err.Error()))
 		return
 	}
 
@@ -40,7 +40,7 @@ func LRangeCommand(c *pkg.Client, args [][]byte) {
 		return
 	}
 
-	l := item.(*List)
+	l := item.(*types.List)
 	values := l.LRange(start, end)
 
 	c.Conn().WriteArray(len(values))

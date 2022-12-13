@@ -7,6 +7,7 @@ import (
 
 	"github.com/hbina/radish/internal/pkg"
 	"github.com/hbina/radish/internal/types"
+	"github.com/hbina/radish/internal/util"
 )
 
 const (
@@ -62,7 +63,7 @@ func SetCommand(c *pkg.Client, args [][]byte) {
 			}
 			i++
 
-			ttl, err := ParseTtlFromUnitTime(string(args[i]), int64(time.Second))
+			ttl, err := util.ParseTtlFromUnitTime(string(args[i]), int64(time.Second))
 
 			if ttl.IsZero() || err != nil {
 				c.Conn().WriteError(pkg.InvalidIntErr)
@@ -84,7 +85,7 @@ func SetCommand(c *pkg.Client, args [][]byte) {
 			}
 			i++
 
-			ttl, err := ParseTtlFromUnitTime(string(args[i]), int64(time.Millisecond))
+			ttl, err := util.ParseTtlFromUnitTime(string(args[i]), int64(time.Millisecond))
 
 			if ttl.IsZero() || err != nil {
 				c.Conn().WriteError(pkg.InvalidIntErr)
@@ -122,7 +123,7 @@ func SetCommand(c *pkg.Client, args [][]byte) {
 			}
 			i++
 
-			ttl, err := ParseTtlFromTimestamp(string(args[i]), time.Second)
+			ttl, err := util.ParseTtlFromTimestamp(string(args[i]), time.Second)
 
 			if err != nil || ttl.IsZero() {
 				c.Conn().WriteError(pkg.InvalidIntErr)
@@ -144,7 +145,7 @@ func SetCommand(c *pkg.Client, args [][]byte) {
 			}
 			i++
 
-			ttl, err := ParseTtlFromTimestamp(string(args[i]), time.Millisecond)
+			ttl, err := util.ParseTtlFromTimestamp(string(args[i]), time.Millisecond)
 
 			if err != nil || ttl.IsZero() {
 				c.Conn().WriteError(pkg.InvalidIntErr)
@@ -159,13 +160,13 @@ func SetCommand(c *pkg.Client, args [][]byte) {
 		}
 	}
 
-	var foundStr *String = nil
+	var foundStr *types.String = nil
 
 	if shouldGet {
 		item, _ := c.Db().GetOrExpire(key, true)
 		if item != nil {
 			if item.Type() == types.ValueTypeString {
-				foundStr = item.(*String)
+				foundStr = item.(*types.String)
 			} else {
 				c.Conn().WriteError(pkg.WrongTypeErr)
 				return
@@ -181,7 +182,7 @@ func SetCommand(c *pkg.Client, args [][]byte) {
 			if foundStr == nil {
 				c.Conn().WriteNull()
 			} else {
-				c.Conn().WriteBulkString(foundStr.inner)
+				c.Conn().WriteBulkString(foundStr.Inner)
 			}
 		} else {
 			c.Conn().WriteNull()
@@ -195,8 +196,8 @@ func SetCommand(c *pkg.Client, args [][]byte) {
 		if foundStr == nil {
 			c.Conn().WriteNull()
 		} else {
-			// We already checked that foundStr is a *String
-			c.Conn().WriteBulkString(foundStr.inner)
+			// We already checked that foundStr is a *types.String
+			c.Conn().WriteBulkString(foundStr.Inner)
 		}
 	} else {
 		c.Conn().WriteString("OK")

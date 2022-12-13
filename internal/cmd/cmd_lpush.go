@@ -18,13 +18,13 @@ func LPushCommand(c *pkg.Client, args [][]byte) {
 	value, exp := db.GetOrExpire(key, true)
 
 	if value == nil {
-		value = NewList()
+		value = types.NewList()
 	} else if value.Type() != types.ValueTypeList {
-		c.Conn().WriteError(fmt.Sprintf("%s: key is a %s not a %s", WrongTypeErr, value.TypeFancy(), ValueTypeFancyList))
+		c.Conn().WriteError(fmt.Sprintf("%s: key is a %s not a %s", pkg.WrongTypeErr, value.TypeFancy(), types.ValueTypeFancyList))
 		return
 	}
 
-	list := value.(*List)
+	list := value.(*types.List)
 	var length int
 	for j := 2; j < len(args); j++ {
 		v := string(args[j])

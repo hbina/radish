@@ -29,8 +29,8 @@ func MgetCommand(c *pkg.Client, args [][]byte) {
 		if maybeItem == nil || maybeItem.Type() != types.ValueTypeString {
 			c.Conn().WriteNull()
 		} else {
-			item := maybeItem.(*String)
-			c.Conn().WriteBulkString(item.inner)
+			item := maybeItem.(*types.String)
+			c.Conn().WriteBulkString(item.Inner)
 		}
 	}
 }
