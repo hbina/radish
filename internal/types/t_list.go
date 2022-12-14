@@ -2,6 +2,7 @@ package types
 
 import (
 	"container/list"
+	"encoding/json"
 
 	"github.com/pkg/errors"
 )
@@ -265,4 +266,26 @@ func abs(x int) int {
 		return -x
 	}
 	return x
+}
+
+func (s *List) Marshal() ([]byte, error) {
+	arr := make([]string, 0, s.Len())
+
+	s.ForEachF(func(a string) {
+		arr = append(arr, a)
+	})
+
+	str, err := json.Marshal(arr)
+	return str, err
+}
+
+func ListUnmarshal(data []byte) (*List, bool) {
+	var set []string
+	err := json.Unmarshal(data, &set)
+
+	if err != nil {
+		return nil, false
+	}
+
+	return NewListFromArr(set), true
 }

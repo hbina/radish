@@ -53,7 +53,7 @@ func implZrankCommand(c *pkg.Client, args [][]byte, reverse bool) {
 
 	set := maybeSet.(*types.ZSet)
 
-	node, rank := set.Inner.FindNodeByLex(memberKey)
+	node, rank := set.FindNodeByLex(memberKey)
 
 	if node == nil || node.Key != memberKey {
 		if withScore {

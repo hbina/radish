@@ -48,10 +48,9 @@ func GetbitCommand(c *pkg.Client, args [][]byte) {
 		item := maybeItem.(*types.String)
 
 		if item.Len() > byteOffset {
-			bytes := []byte(item.Inner)
 			oldBit := 0
 
-			if mask&bytes[byteOffset] > 0 {
+			if mask&item.AsBytes()[byteOffset] > 0 {
 				oldBit++
 			}
 

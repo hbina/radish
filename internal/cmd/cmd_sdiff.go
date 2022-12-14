@@ -49,7 +49,8 @@ func SdiffCommand(c *pkg.Client, args [][]byte) {
 	}
 
 	c.Conn().WriteArray(diff.Len())
-	diff.ForEachF(func(a string) {
+	diff.ForEachF(func(a string) bool {
 		c.Conn().WriteBulkString(a)
+		return true
 	})
 }

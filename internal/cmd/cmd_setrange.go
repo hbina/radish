@@ -59,10 +59,10 @@ func SetrangeCommand(c *pkg.Client, args [][]byte) {
 		// Need to append item to have enough spaces for byteOffset
 		// TODO: Optimize to use StringBuilder
 		if item.Len() <= int(byteOffset) {
-			newStr := item.Inner + string(make([]byte, byteOffset-item.Len())) + value
+			newStr := item.AsString() + string(make([]byte, byteOffset-item.Len())) + value
 			item = types.NewString(newStr)
 		} else {
-			newStr := item.Inner[:byteOffset] + value + item.Inner[byteOffset+len(value):]
+			newStr := item.SubString(0, byteOffset) + value + item.SubString(byteOffset+len(value), item.Len())
 			item = types.NewString(newStr)
 		}
 

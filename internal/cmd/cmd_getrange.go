@@ -83,7 +83,7 @@ func GetrangeCommand(c *pkg.Client, args [][]byte) {
 			end = item.Len()
 		}
 
-		str := item.Inner[start:end]
+		str := item.SubString(start, end)
 		c.Conn().WriteBulkString(str)
 	}
 }

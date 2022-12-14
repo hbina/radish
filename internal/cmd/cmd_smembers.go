@@ -29,8 +29,9 @@ func SmembersCommand(c *pkg.Client, args [][]byte) {
 	set := maybeSet.(*types.Set)
 
 	result := make([]string, 0)
-	set.ForEachF(func(k string) {
+	set.ForEachF(func(k string) bool {
 		result = append(result, k)
+		return true
 	})
 
 	c.Conn().WriteArray(len(result))

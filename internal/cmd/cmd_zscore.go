@@ -31,7 +31,7 @@ func ZscoreCommand(c *pkg.Client, args [][]byte) {
 
 	set := maybeSet.(*types.ZSet)
 
-	maybeMember := set.Inner.GetByKey(memberKey)
+	maybeMember := set.GetByKey(memberKey)
 
 	if maybeMember == nil {
 		c.Conn().WriteNull()

@@ -69,11 +69,11 @@ func SetbitCommand(c *pkg.Client, args [][]byte) {
 
 		// Need to append item to have enough spaces for byteOffset
 		if item.Len() <= int(byteOffset) {
-			newStr := item.Inner + string(make([]byte, byteOffset+1-item.Len()))
+			newStr := item.AsString() + string(make([]byte, byteOffset+1-item.Len()))
 			item = types.NewString(newStr)
 		}
 
-		bytes := []byte(item.Inner)
+		bytes := item.AsBytes()
 		oldBit := 0
 
 		if mask&bytes[byteOffset] > 0 {

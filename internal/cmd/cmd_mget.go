@@ -30,7 +30,7 @@ func MgetCommand(c *pkg.Client, args [][]byte) {
 			c.Conn().WriteNull()
 		} else {
 			item := maybeItem.(*types.String)
-			c.Conn().WriteBulkString(item.Inner)
+			c.Conn().WriteBulkString(item.AsString())
 		}
 	}
 }
