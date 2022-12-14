@@ -83,12 +83,13 @@ func SrandmemberCommand(c *pkg.Client, args [][]byte) {
 			// Go says that iterating over map is semi-random
 			// This check will always be enough to fill up result because
 			// we already truncated count to be at most as big as set
-			for k := range set.Inner {
+			set.ForEachF(func(k string) bool {
 				if len(set2) == count {
-					break
+					return false
 				}
 				set2[k] = struct{}{}
-			}
+				return true
+			})
 
 			// Finally, map set to result
 			for k := range set2 {

@@ -80,60 +80,38 @@ func RestoreCommand(c *pkg.Client, args [][]byte) {
 	}
 
 	if kvp.Type == types.ValueTypeFancyString {
-		str, ok := kvp.Value.(string)
+		set, ok := types.StringUnmarshal(kvp.Data)
 
 		if !ok {
 			c.Conn().WriteError(fmt.Sprintf(pkg.DeserializationErr, string(args[3])))
 			return
 		}
 
-		db.Set(key, types.NewString(str), ttl)
+		db.Set(key, set, ttl)
 	} else if kvp.Type == types.ValueTypeFancyList {
-		arr, ok := kvp.Value.([]string)
+		set, ok := types.ListUnmarshal(kvp.Data)
 
 		if !ok {
 			c.Conn().WriteError(fmt.Sprintf(pkg.DeserializationErr, string(args[3])))
 			return
 		}
 
-		db.Set(key, types.NewListFromArr(arr), ttl)
+		db.Set(key, set, ttl)
 	} else if kvp.Type == types.ValueTypeFancySet {
-		set, ok := kvp.Value.(map[string]struct{})
+		set, ok := types.SetUnmarshal(kvp.Data)
 
 		if !ok {
 			c.Conn().WriteError(fmt.Sprintf(pkg.DeserializationErr, string(args[3])))
 			return
 		}
 
-		db.Set(key, types.NewSetFromMap(set), ttl)
+		db.Set(key, set, ttl)
 	} else if kvp.Type == types.ValueTypeFancyZSet {
-		pair, ok := kvp.Value.(map[string]interface{})
+		set, ok := types.ZSetUnmarshal(kvp.Data)
 
 		if !ok {
 			c.Conn().WriteError(fmt.Sprintf(pkg.DeserializationErr, string(args[3])))
 			return
-		}
-
-		set := types.NewZSet()
-
-		keys, ok1 := pair["keys"].([]interface{})
-		scores, ok2 := pair["scores"].([]interface{})
-
-		if !ok1 || !ok2 || len(keys) != len(scores) {
-			c.Conn().WriteError(fmt.Sprintf(pkg.DeserializationErr, string(args[3])))
-			return
-		}
-
-		for i := range keys {
-			key, ok3 := keys[i].(string)
-			score, ok4 := scores[i].(float64)
-
-			if !ok3 || !ok4 {
-				c.Conn().WriteError(fmt.Sprintf(pkg.DeserializationErr, string(args[3])))
-				return
-			}
-
-			set.Inner.AddOrUpdate(key, score)
 		}
 
 		db.Set(key, set, ttl)

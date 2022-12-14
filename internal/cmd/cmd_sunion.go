@@ -41,7 +41,8 @@ func SunionCommand(c *pkg.Client, args [][]byte) {
 	}
 
 	c.Conn().WriteArray(union.Len())
-	union.ForEachF(func(a string) {
+	union.ForEachF(func(a string) bool {
 		c.Conn().WriteBulkString(a)
+		return true
 	})
 }

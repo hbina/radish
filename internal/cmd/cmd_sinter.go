@@ -52,7 +52,8 @@ func SinterCommand(c *pkg.Client, args [][]byte) {
 	}
 
 	c.Conn().WriteArray(intersection.Len())
-	intersection.ForEachF(func(a string) {
+	intersection.ForEachF(func(a string) bool {
 		c.Conn().WriteBulkString(a)
+		return true
 	})
 }

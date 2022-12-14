@@ -33,7 +33,7 @@ func ZremCommand(c *pkg.Client, args [][]byte) {
 
 	count := 0
 	for i := 2; i < len(args); i++ {
-		res := set.Inner.Remove(string(args[i]))
+		res := set.Remove(string(args[i]))
 		if res != nil {
 			count++
 		}

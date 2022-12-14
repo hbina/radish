@@ -24,10 +24,17 @@ func DumpCommand(c *pkg.Client, args [][]byte) {
 	}
 
 	if value.Type() == types.ValueTypeString {
+		data, err := value.(*types.String).Marshal()
+
+		if err != nil {
+			c.Conn().WriteError(err.Error())
+			return
+		}
+
 		str, err := json.Marshal(pkg.Kvp{
-			Key:   key,
-			Type:  value.TypeFancy(),
-			Value: value.Value(),
+			Key:  key,
+			Type: value.TypeFancy(),
+			Data: data,
 		})
 
 		if err != nil {
@@ -39,16 +46,17 @@ func DumpCommand(c *pkg.Client, args [][]byte) {
 
 		return
 	} else if value.Type() == types.ValueTypeList {
-		arr := make([]string, 0)
+		data, err := value.(*types.List).Marshal()
 
-		value.(*types.List).ForEachF(func(a string) {
-			arr = append(arr, a)
-		})
+		if err != nil {
+			c.Conn().WriteError(err.Error())
+			return
+		}
 
 		str, err := json.Marshal(pkg.Kvp{
-			Key:   key,
-			Type:  value.TypeFancy(),
-			Value: arr,
+			Key:  key,
+			Type: value.TypeFancy(),
+			Data: data,
 		})
 
 		if err != nil {
@@ -60,10 +68,17 @@ func DumpCommand(c *pkg.Client, args [][]byte) {
 
 		return
 	} else if value.Type() == types.ValueTypeSet {
+		data, err := value.(*types.Set).Marshal()
+
+		if err != nil {
+			c.Conn().WriteError(err.Error())
+			return
+		}
+
 		str, err := json.Marshal(pkg.Kvp{
-			Key:   key,
-			Type:  value.TypeFancy(),
-			Value: value.(*types.Set).Inner,
+			Key:  key,
+			Type: value.TypeFancy(),
+			Data: data,
 		})
 
 		if err != nil {
@@ -75,23 +90,17 @@ func DumpCommand(c *pkg.Client, args [][]byte) {
 
 		return
 	} else if value.Type() == types.ValueTypeZSet {
-		keys := make([]string, 0)
-		scores := make([]float64, 0)
+		data, err := value.(*types.ZSet).Marshal()
 
-		for key, node := range value.(*types.ZSet).Inner.Dict {
-			keys = append(keys, key)
-			scores = append(scores, node.Score)
-		}
-
-		pair := types.SerdeZSet{
-			Keys:   keys,
-			Scores: scores,
+		if err != nil {
+			c.Conn().WriteError(err.Error())
+			return
 		}
 
 		str, err := json.Marshal(pkg.Kvp{
-			Key:   key,
-			Type:  value.TypeFancy(),
-			Value: pair,
+			Key:  key,
+			Type: value.TypeFancy(),
+			Data: data,
 		})
 
 		if err != nil {

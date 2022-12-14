@@ -9,9 +9,9 @@ import (
 // Key-value pair.
 // Will be used when serializing/deserializing redis objects.
 type Kvp struct {
-	Key   string      `json:"key"`
-	Type  string      `json:"type"`
-	Value interface{} `json:"value"`
+	Key  string `json:"key"`
+	Type string `json:"type"`
+	Data []byte `json:"value"`
 }
 
 // A redis database.

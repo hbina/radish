@@ -182,7 +182,7 @@ func SetCommand(c *pkg.Client, args [][]byte) {
 			if foundStr == nil {
 				c.Conn().WriteNull()
 			} else {
-				c.Conn().WriteBulkString(foundStr.Inner)
+				c.Conn().WriteBulkString(foundStr.AsString())
 			}
 		} else {
 			c.Conn().WriteNull()
@@ -197,7 +197,7 @@ func SetCommand(c *pkg.Client, args [][]byte) {
 			c.Conn().WriteNull()
 		} else {
 			// We already checked that foundStr is a *types.String
-			c.Conn().WriteBulkString(foundStr.Inner)
+			c.Conn().WriteBulkString(foundStr.AsString())
 		}
 	} else {
 		c.Conn().WriteString("OK")
