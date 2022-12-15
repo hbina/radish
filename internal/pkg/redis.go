@@ -5,17 +5,18 @@ import (
 	"net"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/hbina/radish/internal/util"
 )
 
 type Redis struct {
-	mu               *sync.RWMutex
-	commands         map[string]*Command
-	configs          map[string]string
-	dbs              map[uint64]*Db
-	blockingCommands map[string]*BlockingCommand
-	retryList        []BlockedCommand
+	mu      *sync.RWMutex               // Lock to the database
+	cmds    map[string]*Command         // List of supported commands
+	configs map[string]string           // Configurations (Currently unused)
+	dbs     map[uint64]*Db              // List of database currently maintained
+	bcmds   map[string]*BlockingCommand // List of supported blocked commands
+	rlist   map[*Client]*BlockedCommand // List of commands to be retried for which clients
 }
 
 func Default(
@@ -23,11 +24,12 @@ func Default(
 	blockingCommands map[string]*BlockingCommand,
 	configs map[string]string) *Redis {
 	r := &Redis{
-		mu:               new(sync.RWMutex),
-		commands:         commands,
-		blockingCommands: blockingCommands,
-		configs:          configs,
-		dbs:              make(map[uint64]*Db, 0),
+		mu:      new(sync.RWMutex),
+		cmds:    commands,
+		bcmds:   blockingCommands,
+		configs: configs,
+		dbs:     make(map[uint64]*Db, 0),
+		rlist:   make(map[*Client]*BlockedCommand, 0),
 	}
 	return r
 }
@@ -98,8 +100,8 @@ func (r *Redis) HandleRequest(c *Client, args [][]byte) {
 	// TODO: Check that args is not empty
 	// TODO: Remove the first argument from argument to command handlers
 	cmdName := strings.ToLower(string(args[0]))
-	cmd := r.commands[cmdName]
-	bcmd := r.blockingCommands[cmdName]
+	cmd := r.cmds[cmdName]
+	bcmd := r.bcmds[cmdName]
 
 	cmdWrite := (cmd != nil && cmd.Flag&CMD_WRITE != 0) ||
 		(bcmd != nil && bcmd.Flag&CMD_WRITE != 0)
@@ -118,8 +120,8 @@ func (r *Redis) HandleRequest(c *Client, args [][]byte) {
 	} else if bcmd != nil {
 		err := (bcmd.Handler)(c, args)
 
-		if err == BCMD_RETRY {
-			r.AddBlockedRequest(c, args)
+		if err != nil {
+			r.rlist[err.c] = err
 		}
 	} else {
 		c.Conn().WriteError(fmt.Sprintf("ERR unknown command '%s' with args '%s'", string(args[0]), args[1:]))
@@ -132,29 +134,24 @@ func (r *Redis) HandleRequest(c *Client, args [][]byte) {
 	}
 }
 
+// SAFETY: Some of the checks here have been ommitted because
+// we already checked for them when we first received the command
 func (r *Redis) HandleBlockedRequests() {
-	unfinished := make([]BlockedCommand, 0)
+	for _, bcmd := range r.rlist {
+		if !bcmd.ttl.IsZero() && bcmd.ttl.After(time.Now()) {
+			delete(r.rlist, bcmd.c)
+		} else {
+			cmdName := strings.ToLower(string(bcmd.args[0]))
+			cmd := r.bcmds[cmdName]
+			err := (cmd.Handler)(bcmd.c, bcmd.args)
 
-	for _, blockedCommand := range r.retryList {
-		c := blockedCommand.c
-		args := blockedCommand.args
-		cmdName := strings.ToLower(string(args[0]))
-		cmd := r.blockingCommands[cmdName]
-		err := (cmd.Handler)(c, args)
-
-		if err == BCMD_RETRY {
-			unfinished = append(unfinished, blockedCommand)
+			if err != nil {
+				r.rlist[err.c] = err
+			} else {
+				delete(r.rlist, bcmd.c)
+			}
 		}
 	}
-
-	r.retryList = unfinished
-}
-
-func (r *Redis) AddBlockedRequest(c *Client, args [][]byte) {
-	r.retryList = append(r.retryList, BlockedCommand{
-		c:    c,
-		args: args,
-	})
 }
 
 func (r *Redis) HandleClient(client *Client) {
@@ -188,12 +185,12 @@ func (r *Redis) HandleClient(client *Client) {
 
 func (r *Redis) RegisterCommands(cmds []*Command) {
 	for _, cmd := range cmds {
-		r.commands[cmd.Name] = cmd
+		r.cmds[cmd.Name] = cmd
 	}
 }
 
 func (r *Redis) RegisterBlockingCommands(cmds []*BlockingCommand) {
 	for _, cmd := range cmds {
-		r.blockingCommands[cmd.Name] = cmd
+		r.bcmds[cmd.Name] = cmd
 	}
 }

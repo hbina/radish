@@ -201,6 +201,7 @@ func (ss *SortedSet) delete(score float64, key string) bool {
 		}
 		update[i] = x
 	}
+
 	/* We may have multiple elements with the same score, what we need
 	 * is to find the element with both the right score and object. */
 	x = x.level[0].forward
@@ -304,6 +305,18 @@ func (ss *SortedSet) Remove(key string) *SortedSetNode {
 	if found != nil {
 		ss.delete(found.Score, found.Key)
 		return found
+	}
+	return nil
+}
+
+// Delete element specified by rank
+//
+// Time complexity: O(log(N)) with high probability
+func (ss *SortedSet) RemoveByRank(rank int) *SortedSetNode {
+	node, _ := ss.findNodeByRank(rank)
+	if node != nil {
+		ss.delete(node.Score, node.Key)
+		return node
 	}
 	return nil
 }
@@ -439,7 +452,7 @@ func (ss *SortedSet) SanitizeIndex(start int, end int, reverse bool) (int, int) 
 	return start, end
 }
 
-// findNodeByRank returns the node just before the requested rank and its rank.
+// findNodeByRank returns the node with the requested rank
 //
 // Time complexity: O(log(N)) with high probability.
 func (ss *SortedSet) findNodeByRank(start int) (*SortedSetNode, int) {
