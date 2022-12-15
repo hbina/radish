@@ -41,7 +41,7 @@ func ZpopminCommand(c *pkg.Client, args [][]byte) {
 	}
 
 	db := c.Db()
-	maybeSet, ttl := db.GetOrExpire(key, true)
+	maybeSet, ttl := db.Get(key)
 
 	if maybeSet == nil {
 		maybeSet = types.NewZSet()

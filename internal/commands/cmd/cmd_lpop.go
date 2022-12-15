@@ -17,7 +17,7 @@ func LPopCommand(c *pkg.Client, args [][]byte) {
 
 	key := string(args[1])
 	db := c.Db()
-	item, _ := db.GetOrExpire(key, true)
+	item, _ := db.Get(key)
 
 	if item == nil {
 		c.Conn().WriteNull()

@@ -36,7 +36,7 @@ func GetbitCommand(c *pkg.Client, args [][]byte) {
 	// Recalibrate byteOffset because we can only get 1 byte at a time
 	byteOffset /= 8
 
-	maybeItem, _ := db.GetOrExpire(key, true)
+	maybeItem, _ := db.Get(key)
 
 	if maybeItem == nil {
 		c.Conn().WriteInt(0)

@@ -20,7 +20,7 @@ func GetexCommand(c *pkg.Client, args [][]byte) {
 
 	key := string(args[1])
 	db := c.Db()
-	item, _ := db.GetOrExpire(key, true)
+	item, _ := db.Get(key)
 
 	var newTtl time.Time
 	expireMode := SetExpireMode

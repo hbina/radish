@@ -16,7 +16,7 @@ func GetCommand(c *pkg.Client, args [][]byte) {
 	}
 
 	key := string(args[1])
-	item, _ := c.Db().GetOrExpire(key, true)
+	item, _ := c.Db().Get(key)
 
 	if item == nil {
 		c.Conn().WriteNull()

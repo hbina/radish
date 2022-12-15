@@ -45,7 +45,7 @@ func GetrangeCommand(c *pkg.Client, args [][]byte) {
 	// TODO: this might be buggy in 32-bit computer
 	end := int(end64) + 1
 
-	maybeItem, _ := db.GetOrExpire(key, true)
+	maybeItem, _ := db.Get(key)
 
 	if maybeItem != nil && maybeItem.Type() != types.ValueTypeString {
 		c.Conn().WriteError(util.WrongTypeErr)

@@ -69,7 +69,7 @@ func ExpireCommand(c *pkg.Client, args [][]byte) {
 		return
 	}
 
-	item, oldTtl := c.Db().GetOrExpire(key, true)
+	item, oldTtl := c.Db().Get(key)
 
 	if item == nil {
 		c.Conn().WriteInt(0)

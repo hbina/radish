@@ -163,7 +163,7 @@ func SetCommand(c *pkg.Client, args [][]byte) {
 	var foundStr *types.String = nil
 
 	if shouldGet {
-		item, _ := c.Db().GetOrExpire(key, true)
+		item, _ := c.Db().Get(key)
 		if item != nil {
 			if item.Type() == types.ValueTypeString {
 				foundStr = item.(*types.String)

@@ -27,7 +27,7 @@ func ZcountCommand(c *pkg.Client, args [][]byte) {
 		return
 	}
 
-	maybeSet := c.Db().Get(key)
+	maybeSet, _ := c.Db().Get(key)
 
 	if maybeSet == nil {
 		maybeSet = types.NewZSet()

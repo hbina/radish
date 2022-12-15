@@ -35,7 +35,7 @@ func SrandmemberCommand(c *pkg.Client, args [][]byte) {
 
 	db := c.Db()
 
-	maybeSet, _ := db.GetOrExpire(key, true)
+	maybeSet, _ := db.Get(key)
 
 	// If any of the sets are nil, then the intersections must be 0
 	if maybeSet == nil {

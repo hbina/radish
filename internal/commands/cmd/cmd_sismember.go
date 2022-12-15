@@ -17,7 +17,7 @@ func SismemberCommand(c *pkg.Client, args [][]byte) {
 
 	key := string(args[1])
 	member := string(args[2])
-	maybeSet := c.Db().Get(key)
+	maybeSet, _ := c.Db().Get(key)
 
 	if maybeSet == nil {
 		maybeSet = types.NewSetEmpty()

@@ -18,7 +18,8 @@ func ExistsCommand(c *pkg.Client, args [][]byte) {
 	count := 0
 
 	for i := 1; i < len(args); i++ {
-		value, _ := db.GetOrExpire(string(args[i]), true)
+		key := string(args[i])
+		value, _ := db.Get(key)
 		if value != nil {
 			count++
 		}

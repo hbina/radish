@@ -221,7 +221,7 @@ func implZSetSetOperationCommand(c *pkg.Client, args [][]byte,
 			weight = weights[idx]
 		}
 
-		maybeSet, _ := db.GetOrExpire(key, true)
+		maybeSet, _ := db.Get(key)
 
 		if maybeSet == nil {
 			maybeSet = types.NewZSet()
