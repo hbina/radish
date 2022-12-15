@@ -53,7 +53,7 @@ func SetbitCommand(c *pkg.Client, args [][]byte) {
 		return
 	}
 
-	maybeItem, _ := db.GetOrExpire(key, true)
+	maybeItem, _ := db.Get(key)
 
 	if maybeItem != nil && maybeItem.Type() != types.ValueTypeString {
 		c.Conn().WriteError(util.WrongTypeErr)

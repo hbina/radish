@@ -17,7 +17,7 @@ func ZcardCommand(c *pkg.Client, args [][]byte) {
 	}
 
 	key := string(args[1])
-	maybeSet := c.Db().Get(key)
+	maybeSet, _ := c.Db().Get(key)
 
 	if maybeSet == nil {
 		maybeSet = types.NewZSet()

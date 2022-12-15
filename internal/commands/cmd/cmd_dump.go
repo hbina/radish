@@ -17,7 +17,7 @@ func DumpCommand(c *pkg.Client, args [][]byte) {
 	}
 
 	key := string(args[1])
-	value, _ := c.Db().GetOrExpire(key, true)
+	value, _ := c.Db().Get(key)
 
 	if value == nil {
 		c.Conn().WriteNull()

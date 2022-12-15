@@ -40,7 +40,7 @@ func implZrankCommand(c *pkg.Client, args [][]byte, reverse bool) {
 		}
 	}
 
-	maybeSet := c.Db().Get(key)
+	maybeSet, _ := c.Db().Get(key)
 
 	if maybeSet == nil {
 		c.Conn().WriteNull()

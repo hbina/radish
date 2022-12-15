@@ -18,7 +18,7 @@ func SremCommand(c *pkg.Client, args [][]byte) {
 
 	db := c.Db()
 	key := string(args[1])
-	maybeSet, ttl := db.GetOrExpire(key, true)
+	maybeSet, ttl := db.Get(key)
 
 	if maybeSet == nil {
 		c.Conn().WriteInt(0)

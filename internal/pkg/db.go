@@ -101,12 +101,6 @@ func (db *Db) Set(key string, i types.Item, ttl time.Time) types.Item {
 	}
 }
 
-// Get returns the item by the key or nil if key does not exists.
-// TODO: Should this returns the exists bool?
-func (db *Db) Get(key string) types.Item {
-	return db.Storage[key]
-}
-
 // GetExpiry returns the item by the key or nil if key does not exists.
 func (db *Db) GetExpiry(key string) (time.Time, bool) {
 	v, e := db.Ttl[key]
@@ -147,17 +141,15 @@ func (db *Db) DeleteExpired(keys ...string) int {
 	return c
 }
 
-// GetOrExpire gets the item or nil if expired or not exists. If 'deleteIfExpired' is true the key will be deleted.
+// Get gets the item or nil if expired or not exists. If 'deleteIfExpired' is true the key will be deleted.
 // TODO: Should this return the exists bool or its enough to return nil?
-func (db *Db) GetOrExpire(key string, deleteIfExpired bool) (types.Item, time.Time) {
+func (db *Db) Get(key string) (types.Item, time.Time) {
 	value, exists := db.Storage[key]
 	if !exists {
 		return nil, time.Time{}
 	}
 	if db.Expired(key) {
-		if deleteIfExpired {
-			db.Delete(key)
-		}
+		db.Delete(key)
 		return nil, time.Time{}
 	}
 	return value, db.Ttl[key]
@@ -177,7 +169,7 @@ func (db *Db) HasExpiringKeys() bool {
 // Internally, it has the side effect of evicting keys that
 // expires.
 func (db *Db) Exists(key string) bool {
-	maybeItem, _ := db.GetOrExpire(key, true)
+	maybeItem, _ := db.Get(key)
 	return maybeItem != nil
 }
 

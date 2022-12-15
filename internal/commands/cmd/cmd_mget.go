@@ -25,7 +25,7 @@ func MgetCommand(c *pkg.Client, args [][]byte) {
 
 	c.Conn().WriteArray(len(keys))
 	for _, key := range keys {
-		maybeItem, _ := db.GetOrExpire(key, true)
+		maybeItem, _ := db.Get(key)
 
 		if maybeItem == nil || maybeItem.Type() != types.ValueTypeString {
 			c.Conn().WriteNull()
