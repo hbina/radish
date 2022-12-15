@@ -6,7 +6,7 @@ import (
 	"net"
 	"os"
 
-	"github.com/hbina/radish/internal/cmd"
+	"github.com/hbina/radish/internal/commands"
 	"github.com/hbina/radish/internal/pkg"
 	"github.com/hbina/radish/internal/util"
 )
@@ -34,9 +34,9 @@ func Run(port int, shouldLog bool) {
 	}
 
 	instance := pkg.Default(
-		cmd.GenerateCommands(),
-		cmd.GenerateBlockingCommands(),
-		cmd.GenerateConfigs())
+		commands.GenerateCommands(),
+		commands.GenerateBlockingCommands(),
+		commands.GenerateConfigs())
 
 	for {
 		conn, err := listen.Accept()
