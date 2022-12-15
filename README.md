@@ -40,6 +40,11 @@ After cloning the `redis` repository,
 ```
 
 From this command, we are currently ignoring replication and encoding features.
+Or if you want to only execute a certain test, you can do,
+
+```
+./runtest --host 127.0.0.1 --port 6380 --tags -needs:repl --ignore-encoding --single unit/types/set
+```
 
 [Link](https://github.com/redis/redis/blob/203b12e41ff7981f0fae5b23819f072d61594813/tests/README.md) for explanations of some these options.
 
@@ -61,6 +66,8 @@ From this command, we are currently ignoring replication and encoding features.
   - [ ] ...
 - [ ] Tests
   - [x] unit/types/set
+  - [x] unit/types/string
+  - [x] unit/printver
 
 ### TODO beside Roadmap
 
