@@ -16,7 +16,7 @@ func LPushCommand(c *pkg.Client, args [][]byte) {
 	}
 	key := string(args[1])
 	db := c.Db()
-	value, exp := db.GetOrExpire(key, true)
+	value, exp := db.Get(key)
 
 	if value == nil {
 		value = types.NewList()

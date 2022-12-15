@@ -19,7 +19,7 @@ func StrlenCommand(c *pkg.Client, args [][]byte) {
 	db := c.Db()
 	key := string(args[1])
 
-	maybeItem, _ := db.GetOrExpire(key, true)
+	maybeItem, _ := db.Get(key)
 
 	if maybeItem == nil {
 		c.Conn().WriteInt(0)

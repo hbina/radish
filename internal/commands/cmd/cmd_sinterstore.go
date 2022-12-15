@@ -32,7 +32,7 @@ func SinterstoreCommand(c *pkg.Client, args [][]byte) {
 
 	//NOTE: Cannot optimize the following loop because we need to verify that each keys consist of sets/empty.
 	for _, key := range keys {
-		maybeSet, _ := db.GetOrExpire(key, true)
+		maybeSet, _ := db.Get(key)
 
 		// If any of the sets are nil, then the intersections must be 0
 		if maybeSet == nil {

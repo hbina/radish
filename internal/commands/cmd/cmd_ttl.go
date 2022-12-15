@@ -19,7 +19,7 @@ func TtlCommand(c *pkg.Client, args [][]byte) {
 	db := c.Db()
 	key := string(args[1])
 
-	item, ttl := db.GetOrExpire(key, true)
+	item, ttl := db.Get(key)
 
 	if item == nil {
 		c.Conn().WriteInt(-2)

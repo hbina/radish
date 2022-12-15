@@ -16,7 +16,7 @@ func TypeCommand(c *pkg.Client, args [][]byte) {
 	key := string(args[1])
 	db := c.Db()
 
-	maybeItem, _ := db.GetOrExpire(key, true)
+	maybeItem, _ := db.Get(key)
 
 	if maybeItem == nil {
 		c.Conn().WriteString("none")

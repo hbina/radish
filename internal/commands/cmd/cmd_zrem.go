@@ -19,7 +19,7 @@ func ZremCommand(c *pkg.Client, args [][]byte) {
 	key := string(args[1])
 	db := c.Db()
 
-	maybeSet, ttl := db.GetOrExpire(key, true)
+	maybeSet, ttl := db.Get(key)
 
 	if maybeSet == nil {
 		maybeSet = types.NewZSet()

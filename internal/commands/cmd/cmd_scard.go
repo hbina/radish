@@ -20,7 +20,7 @@ func ScardCommand(c *pkg.Client, args [][]byte) {
 
 	db := c.Db()
 
-	maybeSet, _ := db.GetOrExpire(key, true)
+	maybeSet, _ := db.Get(key)
 
 	if maybeSet == nil {
 		c.Conn().WriteInt(0)

@@ -76,7 +76,7 @@ func ZlexcountCommand(c *pkg.Client, args [][]byte) {
 		}
 	}
 
-	maybeSet := c.Db().Get(key)
+	maybeSet, _ := c.Db().Get(key)
 
 	if maybeSet == nil {
 		maybeSet = types.NewZSet()

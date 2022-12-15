@@ -60,8 +60,8 @@ func LcsCommand(c *pkg.Client, args [][]byte) {
 	key1 := string(args[1])
 	key2 := string(args[2])
 
-	maybeValueX, _ := db.GetOrExpire(key1, true)
-	maybeValueY, _ := db.GetOrExpire(key2, true)
+	maybeValueX, _ := db.Get(key1)
+	maybeValueY, _ := db.Get(key2)
 
 	if maybeValueY == nil ||
 		maybeValueY.Type() != types.ValueTypeString ||

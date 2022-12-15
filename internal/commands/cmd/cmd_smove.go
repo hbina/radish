@@ -22,7 +22,7 @@ func SmoveCommand(c *pkg.Client, args [][]byte) {
 	destinationKey := string(args[2])
 	memberKey := string(args[3])
 
-	maybeSource, sourceTtl := db.GetOrExpire(sourceKey, true)
+	maybeSource, sourceTtl := db.Get(sourceKey)
 
 	if maybeSource == nil {
 		c.Conn().WriteInt(0)
@@ -34,7 +34,7 @@ func SmoveCommand(c *pkg.Client, args [][]byte) {
 
 	sourceSet := maybeSource.(*types.Set)
 
-	maybeDest, destTtl := db.GetOrExpire(destinationKey, true)
+	maybeDest, destTtl := db.Get(destinationKey)
 
 	if maybeDest == nil {
 		maybeDest = types.NewSetEmpty()

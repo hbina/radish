@@ -30,7 +30,7 @@ func ZincrbyCommand(c *pkg.Client, args [][]byte) {
 		return
 	}
 
-	maybeSet, ttl := db.GetOrExpire(key, true)
+	maybeSet, ttl := db.Get(key)
 
 	if maybeSet == nil {
 		maybeSet = types.NewZSet()

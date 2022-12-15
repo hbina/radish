@@ -29,7 +29,7 @@ func ZremrangebyscoreCommand(c *pkg.Client, args [][]byte) {
 	}
 
 	db := c.Db()
-	maybeSet := db.Get(key)
+	maybeSet, _ := db.Get(key)
 
 	if maybeSet == nil {
 		maybeSet = types.NewZSet()

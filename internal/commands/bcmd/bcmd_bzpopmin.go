@@ -42,7 +42,7 @@ func BzpopminCommand(c *pkg.Client, args [][]byte) *pkg.BlockedCommand {
 	db := c.Db()
 
 	for _, key := range keys {
-		maybeSet, ttl := db.GetOrExpire(key, true)
+		maybeSet, ttl := db.Get(key)
 
 		if maybeSet == nil {
 			continue

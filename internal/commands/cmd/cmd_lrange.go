@@ -31,7 +31,7 @@ func LRangeCommand(c *pkg.Client, args [][]byte) {
 	}
 
 	db := c.Db()
-	item, _ := db.GetOrExpire(key, true)
+	item, _ := db.Get(key)
 
 	if item == nil {
 		c.Conn().WriteArray(0)

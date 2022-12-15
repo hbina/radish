@@ -22,7 +22,7 @@ func GetsetCommand(c *pkg.Client, args [][]byte) {
 	key := string(args[1])
 	value := string(args[2])
 
-	maybeItem, _ := db.GetOrExpire(key, true)
+	maybeItem, _ := db.Get(key)
 
 	if maybeItem != nil && maybeItem.Type() != types.ValueTypeString {
 		c.Conn().WriteError(util.WrongTypeErr)
