@@ -7,13 +7,14 @@ import (
 
 	"github.com/hbina/radish/internal/pkg"
 	"github.com/hbina/radish/internal/types"
+	"github.com/hbina/radish/internal/util"
 )
 
 // https://redis.io/commands/bzmpopmin/
 // BZPOPMIN key [key ...] timeout
 func BzmpopminCommand(c *pkg.Client, args [][]byte) int {
 	if len(args) < 4 {
-		c.Conn().WriteError(pkg.SyntaxErr)
+		c.Conn().WriteError(util.SyntaxErr)
 		return pkg.BCMD_OK
 	}
 
@@ -22,7 +23,7 @@ func BzmpopminCommand(c *pkg.Client, args [][]byte) int {
 	timeout64, err := strconv.ParseInt(timeoutStr, 10, 32)
 
 	if err != nil || timeout64 < 0 {
-		c.Conn().WriteError(pkg.SyntaxErr)
+		c.Conn().WriteError(util.SyntaxErr)
 		return pkg.BCMD_OK
 	}
 
@@ -33,14 +34,14 @@ func BzmpopminCommand(c *pkg.Client, args [][]byte) int {
 	numKey64, err := strconv.ParseInt(numKeyStr, 10, 32)
 
 	if err != nil || numKey64 < 0 {
-		c.Conn().WriteError(pkg.SyntaxErr)
+		c.Conn().WriteError(util.SyntaxErr)
 		return pkg.BCMD_OK
 	}
 
 	numKey := int(numKey64)
 
 	if len(args) < 3+numKey {
-		c.Conn().WriteError(pkg.SyntaxErr)
+		c.Conn().WriteError(util.SyntaxErr)
 		return pkg.BCMD_OK
 	}
 
@@ -56,7 +57,7 @@ func BzmpopminCommand(c *pkg.Client, args [][]byte) int {
 	mode := -1
 
 	if len(args) < 3+numKey+1 {
-		c.Conn().WriteError(pkg.SyntaxErr)
+		c.Conn().WriteError(util.SyntaxErr)
 		return pkg.BCMD_OK
 	}
 
@@ -67,7 +68,7 @@ func BzmpopminCommand(c *pkg.Client, args [][]byte) int {
 	} else if modeStr == "max" {
 		mode = 1
 	} else {
-		c.Conn().WriteError(pkg.SyntaxErr)
+		c.Conn().WriteError(util.SyntaxErr)
 		return pkg.BCMD_OK
 	}
 
@@ -80,19 +81,19 @@ func BzmpopminCommand(c *pkg.Client, args [][]byte) int {
 		switch arg {
 		default:
 			{
-				c.Conn().WriteError(pkg.SyntaxErr)
+				c.Conn().WriteError(util.SyntaxErr)
 				return pkg.BCMD_OK
 			}
 		case "count":
 			{
 				if count != -1 {
-					c.Conn().WriteError(pkg.SyntaxErr)
+					c.Conn().WriteError(util.SyntaxErr)
 					return pkg.BCMD_OK
 				}
 
 				// Need 1 more argument
 				if i+1 >= len(args) {
-					c.Conn().WriteError(pkg.SyntaxErr)
+					c.Conn().WriteError(util.SyntaxErr)
 					return pkg.BCMD_OK
 				}
 
@@ -102,12 +103,12 @@ func BzmpopminCommand(c *pkg.Client, args [][]byte) int {
 				count64, err := strconv.ParseInt(countStr, 10, 32)
 
 				if err != nil {
-					c.Conn().WriteError(pkg.SyntaxErr)
+					c.Conn().WriteError(util.SyntaxErr)
 					return pkg.BCMD_OK
 				}
 
 				if count64 <= 0 {
-					c.Conn().WriteError(pkg.SyntaxErr)
+					c.Conn().WriteError(util.SyntaxErr)
 					return pkg.BCMD_OK
 				}
 

@@ -5,12 +5,13 @@ import (
 
 	"github.com/hbina/radish/internal/pkg"
 	"github.com/hbina/radish/internal/types"
+	"github.com/hbina/radish/internal/util"
 )
 
 // https://redis.io/commands/rpop/
 func RPopCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 2 {
-		c.Conn().WriteError(fmt.Sprintf(pkg.WrongNumOfArgsErr, "rpop"))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, "rpop"))
 		return
 	}
 
@@ -22,7 +23,7 @@ func RPopCommand(c *pkg.Client, args [][]byte) {
 		c.Conn().WriteNull()
 		return
 	} else if item.Type() != types.ValueTypeList {
-		c.Conn().WriteError(pkg.WrongTypeErr)
+		c.Conn().WriteError(util.WrongTypeErr)
 		return
 	}
 

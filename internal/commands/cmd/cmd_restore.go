@@ -15,7 +15,7 @@ import (
 // RESTORE key ttl serialized-value [REPLACE] [ABSTTL] [IDLETIME seconds] [FREQ frequency]
 func RestoreCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 4 {
-		c.Conn().WriteError(fmt.Sprintf(pkg.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -24,7 +24,7 @@ func RestoreCommand(c *pkg.Client, args [][]byte) {
 
 	// Do not fail on time.Time{}, RESTORE will simply ignore it
 	if err != nil {
-		c.Conn().WriteError(pkg.InvalidIntErr)
+		c.Conn().WriteError(util.InvalidIntErr)
 		return
 	}
 
@@ -41,7 +41,7 @@ func RestoreCommand(c *pkg.Client, args [][]byte) {
 
 			// Do not fail on time.Time{}, RESTORE will simply ignore it
 			if err != nil {
-				c.Conn().WriteError(pkg.InvalidIntErr)
+				c.Conn().WriteError(util.InvalidIntErr)
 				return
 			}
 
@@ -50,7 +50,7 @@ func RestoreCommand(c *pkg.Client, args [][]byte) {
 
 			// We need 1 more argument for the time
 			if len(args) == i+1 {
-				c.Conn().WriteError(pkg.SyntaxErr)
+				c.Conn().WriteError(util.SyntaxErr)
 			}
 
 			i++
@@ -58,7 +58,7 @@ func RestoreCommand(c *pkg.Client, args [][]byte) {
 			// TODO: Use the given idle time.
 		case "freq":
 		default:
-			c.Conn().WriteError(pkg.SyntaxErr)
+			c.Conn().WriteError(util.SyntaxErr)
 			return
 		}
 	}
@@ -75,7 +75,7 @@ func RestoreCommand(c *pkg.Client, args [][]byte) {
 	err = json.Unmarshal(args[3], &kvp)
 
 	if err != nil {
-		c.Conn().WriteError(fmt.Sprintf(pkg.DeserializationErr, string(args[3])))
+		c.Conn().WriteError(fmt.Sprintf(util.DeserializationErr, string(args[3])))
 		return
 	}
 
@@ -83,7 +83,7 @@ func RestoreCommand(c *pkg.Client, args [][]byte) {
 		set, ok := types.StringUnmarshal(kvp.Data)
 
 		if !ok {
-			c.Conn().WriteError(fmt.Sprintf(pkg.DeserializationErr, string(args[3])))
+			c.Conn().WriteError(fmt.Sprintf(util.DeserializationErr, string(args[3])))
 			return
 		}
 
@@ -92,7 +92,7 @@ func RestoreCommand(c *pkg.Client, args [][]byte) {
 		set, ok := types.ListUnmarshal(kvp.Data)
 
 		if !ok {
-			c.Conn().WriteError(fmt.Sprintf(pkg.DeserializationErr, string(args[3])))
+			c.Conn().WriteError(fmt.Sprintf(util.DeserializationErr, string(args[3])))
 			return
 		}
 
@@ -101,7 +101,7 @@ func RestoreCommand(c *pkg.Client, args [][]byte) {
 		set, ok := types.SetUnmarshal(kvp.Data)
 
 		if !ok {
-			c.Conn().WriteError(fmt.Sprintf(pkg.DeserializationErr, string(args[3])))
+			c.Conn().WriteError(fmt.Sprintf(util.DeserializationErr, string(args[3])))
 			return
 		}
 
@@ -110,7 +110,7 @@ func RestoreCommand(c *pkg.Client, args [][]byte) {
 		set, ok := types.ZSetUnmarshal(kvp.Data)
 
 		if !ok {
-			c.Conn().WriteError(fmt.Sprintf(pkg.DeserializationErr, string(args[3])))
+			c.Conn().WriteError(fmt.Sprintf(util.DeserializationErr, string(args[3])))
 			return
 		}
 

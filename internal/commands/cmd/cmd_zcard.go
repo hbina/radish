@@ -5,13 +5,14 @@ import (
 
 	"github.com/hbina/radish/internal/pkg"
 	"github.com/hbina/radish/internal/types"
+	"github.com/hbina/radish/internal/util"
 )
 
 // https://redis.io/commands/zcard/
 // ZCARD key
 func ZcardCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 2 {
-		c.Conn().WriteError(fmt.Sprintf(pkg.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -23,7 +24,7 @@ func ZcardCommand(c *pkg.Client, args [][]byte) {
 	}
 
 	if maybeSet.Type() != types.ValueTypeZSet {
-		c.Conn().WriteError(pkg.WrongTypeErr)
+		c.Conn().WriteError(util.WrongTypeErr)
 		return
 	}
 

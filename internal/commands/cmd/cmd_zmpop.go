@@ -7,13 +7,14 @@ import (
 
 	"github.com/hbina/radish/internal/pkg"
 	"github.com/hbina/radish/internal/types"
+	"github.com/hbina/radish/internal/util"
 )
 
 // https://redis.io/commands/zmpop/
 // ZMPOP numkeys key [key ...] <MIN | MAX> [COUNT count]
 func ZmpopCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 3 {
-		c.Conn().WriteError(fmt.Sprintf(pkg.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -22,14 +23,14 @@ func ZmpopCommand(c *pkg.Client, args [][]byte) {
 	numKey64, err := strconv.ParseInt(numKeyStr, 10, 32)
 
 	if err != nil || numKey64 < 0 {
-		c.Conn().WriteError(pkg.SyntaxErr)
+		c.Conn().WriteError(util.SyntaxErr)
 		return
 	}
 
 	numKey := int(numKey64)
 
 	if len(args) < 2+numKey {
-		c.Conn().WriteError(pkg.SyntaxErr)
+		c.Conn().WriteError(util.SyntaxErr)
 		return
 	}
 
@@ -52,13 +53,13 @@ func ZmpopCommand(c *pkg.Client, args [][]byte) {
 		switch arg {
 		default:
 			{
-				c.Conn().WriteError(pkg.SyntaxErr)
+				c.Conn().WriteError(util.SyntaxErr)
 				return
 			}
 		case "min":
 			{
 				if mode != -1 {
-					c.Conn().WriteError(pkg.SyntaxErr)
+					c.Conn().WriteError(util.SyntaxErr)
 					return
 				}
 
@@ -67,7 +68,7 @@ func ZmpopCommand(c *pkg.Client, args [][]byte) {
 		case "max":
 			{
 				if mode != -1 {
-					c.Conn().WriteError(pkg.SyntaxErr)
+					c.Conn().WriteError(util.SyntaxErr)
 					return
 				}
 
@@ -76,13 +77,13 @@ func ZmpopCommand(c *pkg.Client, args [][]byte) {
 		case "count":
 			{
 				if count != -1 {
-					c.Conn().WriteError(pkg.SyntaxErr)
+					c.Conn().WriteError(util.SyntaxErr)
 					return
 				}
 
 				// Need 1 more argument
 				if i+1 >= len(args) {
-					c.Conn().WriteError(pkg.SyntaxErr)
+					c.Conn().WriteError(util.SyntaxErr)
 					return
 				}
 
@@ -92,7 +93,7 @@ func ZmpopCommand(c *pkg.Client, args [][]byte) {
 				count64, err := strconv.ParseInt(countStr, 10, 32)
 
 				if err != nil {
-					c.Conn().WriteError(pkg.SyntaxErr)
+					c.Conn().WriteError(util.SyntaxErr)
 					return
 				}
 
@@ -126,7 +127,7 @@ func ZmpopCommand(c *pkg.Client, args [][]byte) {
 		}
 
 		if maybeSet.Type() != types.ValueTypeZSet {
-			c.Conn().WriteError(pkg.WrongTypeErr)
+			c.Conn().WriteError(util.WrongTypeErr)
 			return
 		}
 

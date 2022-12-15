@@ -14,7 +14,7 @@ import (
 // This is equivalent to calling `SET key value EX seconds`
 func SetexCommand(c *pkg.Client, args [][]byte) {
 	if len(args) != 4 {
-		c.Conn().WriteError(fmt.Sprintf(pkg.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -25,7 +25,7 @@ func SetexCommand(c *pkg.Client, args [][]byte) {
 	newTtl, err := util.ParseTtlFromUnitTime(seconds, int64(time.Second))
 
 	if err != nil {
-		c.Conn().WriteError(pkg.InvalidIntErr)
+		c.Conn().WriteError(util.InvalidIntErr)
 		return
 	}
 

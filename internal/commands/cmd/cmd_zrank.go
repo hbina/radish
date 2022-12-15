@@ -6,6 +6,7 @@ import (
 
 	"github.com/hbina/radish/internal/pkg"
 	"github.com/hbina/radish/internal/types"
+	"github.com/hbina/radish/internal/util"
 )
 
 // https://redis.io/commands/zrank/
@@ -16,7 +17,7 @@ func ZrankCommand(c *pkg.Client, args [][]byte) {
 
 func implZrankCommand(c *pkg.Client, args [][]byte, reverse bool) {
 	if len(args) < 3 {
-		c.Conn().WriteError(fmt.Sprintf(pkg.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -29,7 +30,7 @@ func implZrankCommand(c *pkg.Client, args [][]byte, reverse bool) {
 		switch strings.ToLower(string(args[i])) {
 		default:
 			{
-				c.Conn().WriteError(pkg.SyntaxErr)
+				c.Conn().WriteError(util.SyntaxErr)
 				return
 			}
 		case "withscore":
@@ -47,7 +48,7 @@ func implZrankCommand(c *pkg.Client, args [][]byte, reverse bool) {
 	}
 
 	if maybeSet.Type() != types.ValueTypeZSet {
-		c.Conn().WriteError(pkg.WrongTypeErr)
+		c.Conn().WriteError(util.WrongTypeErr)
 		return
 	}
 

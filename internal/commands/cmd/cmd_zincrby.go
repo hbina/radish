@@ -7,13 +7,14 @@ import (
 
 	"github.com/hbina/radish/internal/pkg"
 	"github.com/hbina/radish/internal/types"
+	"github.com/hbina/radish/internal/util"
 )
 
 // https://redis.io/commands/zincrby/
 // ZINCRBY key increment member
 func ZincrbyCommand(c *pkg.Client, args [][]byte) {
 	if len(args) != 4 {
-		c.Conn().WriteError(fmt.Sprintf(pkg.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -25,7 +26,7 @@ func ZincrbyCommand(c *pkg.Client, args [][]byte) {
 	increment, err := strconv.ParseFloat(incrementStr, 64)
 
 	if err != nil || math.IsNaN(increment) {
-		c.Conn().WriteError(pkg.InvalidFloatErr)
+		c.Conn().WriteError(util.InvalidFloatErr)
 		return
 	}
 
@@ -36,7 +37,7 @@ func ZincrbyCommand(c *pkg.Client, args [][]byte) {
 	}
 
 	if maybeSet.Type() != types.ValueTypeZSet {
-		c.Conn().WriteError(pkg.WrongTypeErr)
+		c.Conn().WriteError(util.WrongTypeErr)
 		return
 	}
 

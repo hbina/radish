@@ -5,13 +5,14 @@ import (
 
 	"github.com/hbina/radish/internal/pkg"
 	"github.com/hbina/radish/internal/types"
+	"github.com/hbina/radish/internal/util"
 )
 
 // https://redis.io/commands/smove/
 // SMOVE source destination member
 func SmoveCommand(c *pkg.Client, args [][]byte) {
 	if len(args) != 4 {
-		c.Conn().WriteError(fmt.Sprintf(pkg.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -27,7 +28,7 @@ func SmoveCommand(c *pkg.Client, args [][]byte) {
 		c.Conn().WriteInt(0)
 		return
 	} else if maybeSource.Type() != types.ValueTypeSet {
-		c.Conn().WriteError(pkg.WrongTypeErr)
+		c.Conn().WriteError(util.WrongTypeErr)
 		return
 	}
 
@@ -38,7 +39,7 @@ func SmoveCommand(c *pkg.Client, args [][]byte) {
 	if maybeDest == nil {
 		maybeDest = types.NewSetEmpty()
 	} else if maybeDest.Type() != types.ValueTypeSet {
-		c.Conn().WriteError(pkg.WrongTypeErr)
+		c.Conn().WriteError(util.WrongTypeErr)
 		return
 	}
 

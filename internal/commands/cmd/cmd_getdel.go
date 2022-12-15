@@ -5,13 +5,14 @@ import (
 
 	"github.com/hbina/radish/internal/pkg"
 	"github.com/hbina/radish/internal/types"
+	"github.com/hbina/radish/internal/util"
 )
 
 // https://redis.io/commands/getdel/
 // GETDEL key
 func GetdelCommand(c *pkg.Client, args [][]byte) {
 	if len(args) != 2 {
-		c.Conn().WriteError(fmt.Sprintf(pkg.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -31,7 +32,7 @@ func GetdelCommand(c *pkg.Client, args [][]byte) {
 		db.Delete(key)
 		return
 	} else {
-		c.Conn().WriteError(fmt.Sprintf("%s: key is a %s not a %s", pkg.WrongTypeErr, item.TypeFancy(), types.ValueTypeFancyString))
+		c.Conn().WriteError(fmt.Sprintf("%s: key is a %s not a %s", util.WrongTypeErr, item.TypeFancy(), types.ValueTypeFancyString))
 		return
 	}
 }
