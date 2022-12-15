@@ -90,8 +90,6 @@ func (r *Redis) NewClient(conn net.Conn) *Client {
 }
 
 func (r *Redis) HandleRequest(c *Client, args [][]byte) {
-	util.Logger.Println(util.CollectArgs(args))
-
 	if len(args) == 0 {
 		c.Conn().WriteError(util.ZeroArgumentErr)
 		return
@@ -103,14 +101,7 @@ func (r *Redis) HandleRequest(c *Client, args [][]byte) {
 	cmd := r.cmds[cmdName]
 	bcmd := r.bcmds[cmdName]
 
-	cmdWrite := (cmd != nil && cmd.Flag&CMD_WRITE != 0) ||
-		(bcmd != nil && bcmd.Flag&CMD_WRITE != 0)
-
-	if cmdWrite {
-		r.mu.Lock()
-	} else {
-		r.mu.RLock()
-	}
+	r.mu.Lock()
 
 	if cmd != nil {
 		(cmd.Handler)(c, args)
@@ -127,11 +118,7 @@ func (r *Redis) HandleRequest(c *Client, args [][]byte) {
 		c.Conn().WriteError(fmt.Sprintf("ERR unknown command '%s' with args '%s'", string(args[0]), args[1:]))
 	}
 
-	if cmdWrite {
-		r.mu.Unlock()
-	} else {
-		r.mu.RUnlock()
-	}
+	r.mu.Unlock()
 }
 
 // SAFETY: Some of the checks here have been ommitted because
@@ -169,10 +156,11 @@ func (r *Redis) HandleClient(client *Client) {
 		// Try to parse the current buffer as a RESP
 		resp, leftover := util.ConvertBytesToRespType(buffer)
 
-		if resp != nil {
+		for resp != nil {
 			util.Logger.Println(util.EscapeString(string(buffer)))
-			buffer = leftover
 			r.HandleRequest(client, util.ConvertRespToArgs(resp))
+			buffer = leftover
+			resp, leftover = util.ConvertBytesToRespType(buffer)
 		}
 
 		count, err = client.Read(tmp)
