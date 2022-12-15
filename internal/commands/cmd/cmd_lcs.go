@@ -8,13 +8,14 @@ import (
 
 	"github.com/hbina/radish/internal/pkg"
 	"github.com/hbina/radish/internal/types"
+	"github.com/hbina/radish/internal/util"
 )
 
 // https://redis.io/commands/lcs/
 // LCS key1 key2 [LEN] [IDX] [MINMATCHLEN len] [WITHMATCHLEN]
 func LcsCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 3 {
-		c.Conn().WriteError(fmt.Sprintf(pkg.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -33,7 +34,7 @@ func LcsCommand(c *pkg.Client, args [][]byte) {
 			isIdx = true
 		case "minmatchlen":
 			if i+1 == len(args) {
-				c.Conn().WriteError(pkg.SyntaxErr)
+				c.Conn().WriteError(util.SyntaxErr)
 			}
 
 			i++
@@ -41,7 +42,7 @@ func LcsCommand(c *pkg.Client, args [][]byte) {
 			len64, err := strconv.ParseInt(string(args[i]), 10, 32)
 
 			if err != nil || len64 < 0 {
-				c.Conn().WriteError(pkg.InvalidIntErr)
+				c.Conn().WriteError(util.InvalidIntErr)
 				return
 			}
 
@@ -50,7 +51,7 @@ func LcsCommand(c *pkg.Client, args [][]byte) {
 		case "withmatchlen":
 			isWithMatchLen = true
 		default:
-			c.Conn().WriteError(pkg.SyntaxErr)
+			c.Conn().WriteError(util.SyntaxErr)
 			return
 		}
 	}
@@ -66,7 +67,7 @@ func LcsCommand(c *pkg.Client, args [][]byte) {
 		maybeValueY.Type() != types.ValueTypeString ||
 		maybeValueX == nil ||
 		maybeValueX.Type() != types.ValueTypeString {
-		c.Conn().WriteError(pkg.WrongTypeErr)
+		c.Conn().WriteError(util.WrongTypeErr)
 		return
 	}
 

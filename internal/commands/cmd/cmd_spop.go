@@ -6,13 +6,14 @@ import (
 
 	"github.com/hbina/radish/internal/pkg"
 	"github.com/hbina/radish/internal/types"
+	"github.com/hbina/radish/internal/util"
 )
 
 // https://redis.io/commands/spop/
 // SPOP key [count]
 func SpopCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 2 {
-		c.Conn().WriteError(fmt.Sprintf(pkg.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -23,7 +24,7 @@ func SpopCommand(c *pkg.Client, args [][]byte) {
 		count64, err := strconv.ParseInt(string(args[2]), 10, 32)
 
 		if err != nil || count64 < 0 {
-			c.Conn().WriteError(pkg.InvalidIntErr)
+			c.Conn().WriteError(util.InvalidIntErr)
 		}
 
 		count32 := int(count64)
@@ -39,7 +40,7 @@ func SpopCommand(c *pkg.Client, args [][]byte) {
 		c.Conn().WriteNull()
 		return
 	} else if maybeSet.Type() != types.ValueTypeSet {
-		c.Conn().WriteError(pkg.WrongTypeErr)
+		c.Conn().WriteError(util.WrongTypeErr)
 		return
 	}
 

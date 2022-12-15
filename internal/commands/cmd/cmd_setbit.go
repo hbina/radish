@@ -7,13 +7,14 @@ import (
 
 	"github.com/hbina/radish/internal/pkg"
 	"github.com/hbina/radish/internal/types"
+	"github.com/hbina/radish/internal/util"
 )
 
 // https://redis.io/commands/setbit/
 // SETBIT key offset value
 func SetbitCommand(c *pkg.Client, args [][]byte) {
 	if len(args) != 4 {
-		c.Conn().WriteError(fmt.Sprintf(pkg.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -40,7 +41,7 @@ func SetbitCommand(c *pkg.Client, args [][]byte) {
 
 	// Parse bitOffset
 	if bitStr != "0" && bitStr != "1" {
-		c.Conn().WriteError(pkg.InvalidIntErr)
+		c.Conn().WriteError(util.InvalidIntErr)
 		return
 	}
 
@@ -48,14 +49,14 @@ func SetbitCommand(c *pkg.Client, args [][]byte) {
 
 	// Should not happen but you never know
 	if err != nil {
-		c.Conn().WriteError(pkg.SyntaxErr)
+		c.Conn().WriteError(util.SyntaxErr)
 		return
 	}
 
 	maybeItem, _ := db.GetOrExpire(key, true)
 
 	if maybeItem != nil && maybeItem.Type() != types.ValueTypeString {
-		c.Conn().WriteError(pkg.WrongTypeErr)
+		c.Conn().WriteError(util.WrongTypeErr)
 	} else {
 		// Some tricky bit operations.
 		// Please verify!

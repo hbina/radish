@@ -13,7 +13,7 @@ import (
 // ZREMRANGEBYRANK key min max
 func ZremrangebyrankCommand(c *pkg.Client, args [][]byte) {
 	if len(args) != 4 {
-		c.Conn().WriteError(fmt.Sprintf(pkg.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -24,7 +24,7 @@ func ZremrangebyrankCommand(c *pkg.Client, args [][]byte) {
 	start, startExclusive, stop, stopExclusive, err := util.ParseIntRange(startStr, stopStr)
 
 	if err {
-		c.Conn().WriteError(pkg.InvalidFloatErr)
+		c.Conn().WriteError(util.InvalidFloatErr)
 		return
 	}
 
@@ -36,7 +36,7 @@ func ZremrangebyrankCommand(c *pkg.Client, args [][]byte) {
 	}
 
 	if maybeSet.Type() != types.ValueTypeZSet {
-		c.Conn().WriteError(pkg.WrongTypeErr)
+		c.Conn().WriteError(util.WrongTypeErr)
 		return
 	}
 

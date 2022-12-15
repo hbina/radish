@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/hbina/radish/internal/pkg"
+	"github.com/hbina/radish/internal/util"
 )
 
 // https://redis.io/commands/ping/
@@ -17,6 +18,6 @@ func PingCommand(c *pkg.Client, args [][]byte) {
 		s := buf.String()
 		c.Conn().WriteBulkString(s)
 	} else {
-		c.Conn().WriteError(fmt.Sprintf(pkg.WrongNumOfArgsErr, "ping"))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, "ping"))
 	}
 }

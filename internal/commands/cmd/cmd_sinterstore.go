@@ -6,6 +6,7 @@ import (
 
 	"github.com/hbina/radish/internal/pkg"
 	"github.com/hbina/radish/internal/types"
+	"github.com/hbina/radish/internal/util"
 )
 
 // https://redis.io/commands/sinterstore/
@@ -13,7 +14,7 @@ import (
 // TODO: Cleanup this mess. It feels like this shouldn't be as complicated as this?
 func SinterstoreCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 3 {
-		c.Conn().WriteError(fmt.Sprintf(pkg.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -37,7 +38,7 @@ func SinterstoreCommand(c *pkg.Client, args [][]byte) {
 		if maybeSet == nil {
 			maybeSet = types.NewSetEmpty()
 		} else if maybeSet.Type() != types.ValueTypeSet {
-			c.Conn().WriteError(pkg.WrongTypeErr)
+			c.Conn().WriteError(util.WrongTypeErr)
 			return
 		}
 

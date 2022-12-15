@@ -7,12 +7,13 @@ import (
 
 	"github.com/hbina/radish/internal/pkg"
 	"github.com/hbina/radish/internal/types"
+	"github.com/hbina/radish/internal/util"
 )
 
 // https://redis.io/commands/decr/
 func DecrCommand(c *pkg.Client, args [][]byte) {
 	if len(args) == 1 {
-		c.Conn().WriteError(fmt.Sprintf(pkg.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -31,14 +32,14 @@ func DecrCommand(c *pkg.Client, args [][]byte) {
 	value, ok := item.Value().(string)
 
 	if !ok {
-		c.Conn().WriteError(pkg.InvalidIntErr)
+		c.Conn().WriteError(util.InvalidIntErr)
 		return
 	}
 
 	intValue, err := strconv.ParseInt(value, 10, 64)
 
 	if err != nil {
-		c.Conn().WriteError(pkg.WrongTypeErr)
+		c.Conn().WriteError(util.WrongTypeErr)
 		return
 	}
 

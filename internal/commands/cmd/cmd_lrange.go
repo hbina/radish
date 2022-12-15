@@ -6,12 +6,13 @@ import (
 
 	"github.com/hbina/radish/internal/pkg"
 	"github.com/hbina/radish/internal/types"
+	"github.com/hbina/radish/internal/util"
 )
 
 // https://redis.io/commands/lrange/
 func LRangeCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 3 {
-		c.Conn().WriteError(fmt.Sprintf(pkg.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -19,13 +20,13 @@ func LRangeCommand(c *pkg.Client, args [][]byte) {
 
 	start, err := strconv.Atoi(string(args[2]))
 	if err != nil {
-		c.Conn().WriteError(fmt.Sprintf("%s: %s", pkg.InvalidIntErr, err.Error()))
+		c.Conn().WriteError(fmt.Sprintf("%s: %s", util.InvalidIntErr, err.Error()))
 		return
 	}
 
 	end, err := strconv.Atoi(string(args[3]))
 	if err != nil {
-		c.Conn().WriteError(fmt.Sprintf("%s: %s", pkg.InvalidIntErr, err.Error()))
+		c.Conn().WriteError(fmt.Sprintf("%s: %s", util.InvalidIntErr, err.Error()))
 		return
 	}
 
@@ -36,7 +37,7 @@ func LRangeCommand(c *pkg.Client, args [][]byte) {
 		c.Conn().WriteArray(0)
 		return
 	} else if item.Type() != types.ValueTypeList {
-		c.Conn().WriteError(pkg.WrongTypeErr)
+		c.Conn().WriteError(util.WrongTypeErr)
 		return
 	}
 

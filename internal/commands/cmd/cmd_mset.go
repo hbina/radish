@@ -6,6 +6,7 @@ import (
 
 	"github.com/hbina/radish/internal/pkg"
 	"github.com/hbina/radish/internal/types"
+	"github.com/hbina/radish/internal/util"
 )
 
 // https://redis.io/commands/mset/
@@ -14,7 +15,7 @@ func MsetCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 3 || len(args)%2 != 1 {
 		// If the number of arguments (excluding the command name) is not even,
 		// return syntax error
-		c.Conn().WriteError(fmt.Sprintf(pkg.WrongNumOfArgsErr, string(args[0])))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, string(args[0])))
 		return
 	}
 

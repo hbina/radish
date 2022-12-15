@@ -1,12 +1,15 @@
 package cmd
 
-import "github.com/hbina/radish/internal/pkg"
+import (
+	"github.com/hbina/radish/internal/pkg"
+	"github.com/hbina/radish/internal/util"
+)
 
 // https://redis.io/commands/type/
 // TYPE key
 func TypeCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 2 {
-		c.Conn().WriteError(pkg.WrongNumOfArgsErr)
+		c.Conn().WriteError(util.WrongNumOfArgsErr)
 		return
 	}
 

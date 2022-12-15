@@ -9,6 +9,7 @@ import (
 
 	"github.com/hbina/radish/internal/pkg"
 	"github.com/hbina/radish/internal/types"
+	"github.com/hbina/radish/internal/util"
 )
 
 const (
@@ -27,7 +28,7 @@ const (
 // ZADD key [NX | XX] [GT | LT] [CH] [INCR] score member [score member ...]
 func ZaddCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 4 {
-		c.Conn().WriteError(fmt.Sprintf(pkg.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -54,7 +55,7 @@ func ZaddCommand(c *pkg.Client, args [][]byte) {
 		case "xx":
 			{
 				if insertMode != ZaddInsertMode {
-					c.Conn().WriteError(pkg.SyntaxErr)
+					c.Conn().WriteError(util.SyntaxErr)
 					return
 				}
 				insertMode = ZaddInsertXx
@@ -63,7 +64,7 @@ func ZaddCommand(c *pkg.Client, args [][]byte) {
 		case "nx":
 			{
 				if insertMode != ZaddInsertMode || compareMode != ZaddCompareMode {
-					c.Conn().WriteError(pkg.SyntaxErr)
+					c.Conn().WriteError(util.SyntaxErr)
 					return
 				}
 				insertMode = ZaddInsertNx
@@ -72,7 +73,7 @@ func ZaddCommand(c *pkg.Client, args [][]byte) {
 		case "gt":
 			{
 				if compareMode != ZaddCompareMode || insertMode == ZaddInsertNx {
-					c.Conn().WriteError(pkg.SyntaxErr)
+					c.Conn().WriteError(util.SyntaxErr)
 					return
 				}
 				compareMode = ZaddCompareGt
@@ -81,7 +82,7 @@ func ZaddCommand(c *pkg.Client, args [][]byte) {
 		case "lt":
 			{
 				if compareMode != ZaddCompareMode || insertMode == ZaddInsertNx {
-					c.Conn().WriteError(pkg.SyntaxErr)
+					c.Conn().WriteError(util.SyntaxErr)
 					return
 				}
 				compareMode = ZaddCompareLt
@@ -102,13 +103,13 @@ func ZaddCommand(c *pkg.Client, args [][]byte) {
 
 	// Cannot find any score member pairs
 	if len(args)-(optionCount+2) == 0 {
-		c.Conn().WriteError(pkg.WrongNumOfArgsErr)
+		c.Conn().WriteError(util.WrongNumOfArgsErr)
 		return
 	}
 
 	// Check if there are score member pairs before we even proceed
 	if (len(args)-(optionCount+2))%2 == 1 {
-		c.Conn().WriteError(pkg.SyntaxErr)
+		c.Conn().WriteError(util.SyntaxErr)
 		return
 	}
 
@@ -116,7 +117,7 @@ func ZaddCommand(c *pkg.Client, args [][]byte) {
 	for i := 2 + optionCount; i < len(args); i += 2 {
 		score, err := strconv.ParseFloat(string(args[i]), 64)
 		if err != nil || math.IsNaN(score) {
-			c.Conn().WriteError(pkg.InvalidFloatErr)
+			c.Conn().WriteError(util.InvalidFloatErr)
 			return
 		}
 	}
@@ -135,7 +136,7 @@ func ZaddCommand(c *pkg.Client, args [][]byte) {
 	}
 
 	if maybeSet.Type() != types.ValueTypeZSet {
-		c.Conn().WriteError(pkg.WrongTypeErr)
+		c.Conn().WriteError(util.WrongTypeErr)
 		return
 	}
 

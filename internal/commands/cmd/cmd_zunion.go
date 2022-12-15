@@ -9,6 +9,7 @@ import (
 
 	"github.com/hbina/radish/internal/pkg"
 	"github.com/hbina/radish/internal/types"
+	"github.com/hbina/radish/internal/util"
 )
 
 // https://redis.io/commands/zunion/
@@ -45,7 +46,7 @@ func implZSetSetOperationCommand(c *pkg.Client, args [][]byte,
 
 	// Check if we have the minimum number of args
 	if len(args) < offsetToKeys {
-		c.Conn().WriteError(fmt.Sprintf(pkg.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -54,7 +55,7 @@ func implZSetSetOperationCommand(c *pkg.Client, args [][]byte,
 	numKey64, err := strconv.ParseInt(numKeyStr, 10, 32)
 
 	if err != nil {
-		c.Conn().WriteError(pkg.InvalidIntErr)
+		c.Conn().WriteError(util.InvalidIntErr)
 		return
 	}
 
@@ -67,7 +68,7 @@ func implZSetSetOperationCommand(c *pkg.Client, args [][]byte,
 
 	// Verify there's enough args for the given numKey
 	if len(args)-offsetToKeys < numKey {
-		c.Conn().WriteError(pkg.SyntaxErr)
+		c.Conn().WriteError(util.SyntaxErr)
 		return
 	}
 
@@ -80,7 +81,7 @@ func implZSetSetOperationCommand(c *pkg.Client, args [][]byte,
 
 	// Verify there's enough args for the given numKey
 	if len(args)-offsetToKeys < numKey {
-		c.Conn().WriteError(pkg.SyntaxErr)
+		c.Conn().WriteError(util.SyntaxErr)
 		return
 	}
 
@@ -107,7 +108,7 @@ func implZSetSetOperationCommand(c *pkg.Client, args [][]byte,
 			}
 
 			if len(keys) != len(weights) {
-				c.Conn().WriteError(pkg.SyntaxErr)
+				c.Conn().WriteError(util.SyntaxErr)
 				return
 			}
 		}
@@ -131,20 +132,20 @@ func implZSetSetOperationCommand(c *pkg.Client, args [][]byte,
 		switch strings.ToLower(string(args[i])) {
 		default:
 			{
-				c.Conn().WriteError(pkg.SyntaxErr)
+				c.Conn().WriteError(util.SyntaxErr)
 				return
 			}
 		case "aggregate":
 			{
 				if card || operation == ZSetOperationDiff {
-					c.Conn().WriteError(pkg.SyntaxErr)
+					c.Conn().WriteError(util.SyntaxErr)
 					return
 				}
 
 				// Requires 1 more argument and check if
 				// we have found aggregate option before
 				if i+1 >= len(args) || aggregateMode != -1 {
-					c.Conn().WriteError(pkg.SyntaxErr)
+					c.Conn().WriteError(util.SyntaxErr)
 					return
 				}
 
@@ -167,7 +168,7 @@ func implZSetSetOperationCommand(c *pkg.Client, args [][]byte,
 		case "withscores":
 			{
 				if store || card {
-					c.Conn().WriteError(pkg.SyntaxErr)
+					c.Conn().WriteError(util.SyntaxErr)
 					return
 				}
 
@@ -176,12 +177,12 @@ func implZSetSetOperationCommand(c *pkg.Client, args [][]byte,
 		case "limit":
 			{
 				if !card || operation == ZSetOperationDiff {
-					c.Conn().WriteError(pkg.SyntaxErr)
+					c.Conn().WriteError(util.SyntaxErr)
 					return
 				}
 
 				if i+1 >= len(args) {
-					c.Conn().WriteError(pkg.SyntaxErr)
+					c.Conn().WriteError(util.SyntaxErr)
 					return
 				}
 
@@ -233,7 +234,7 @@ func implZSetSetOperationCommand(c *pkg.Client, args [][]byte,
 		} else if maybeSet.Type() == types.ValueTypeSet {
 			set = maybeSet.(*types.Set).ToZSet()
 		} else {
-			c.Conn().WriteError(pkg.WrongTypeErr)
+			c.Conn().WriteError(util.WrongTypeErr)
 			return
 		}
 
@@ -248,7 +249,7 @@ func implZSetSetOperationCommand(c *pkg.Client, args [][]byte,
 			} else if operation == ZSetOperationDiff {
 				result = result.Diff(set)
 			} else {
-				c.Conn().WriteError(pkg.SyntaxErr)
+				c.Conn().WriteError(util.SyntaxErr)
 				return
 			}
 		}

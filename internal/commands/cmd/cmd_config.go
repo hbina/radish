@@ -5,13 +5,14 @@ import (
 	"strings"
 
 	"github.com/hbina/radish/internal/pkg"
+	"github.com/hbina/radish/internal/util"
 )
 
 // https://redis.io/commands/config-get/
 // https://redis.io/commands/config-set/
 func ConfigCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 2 {
-		c.Conn().WriteError(fmt.Sprintf(pkg.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -19,7 +20,7 @@ func ConfigCommand(c *pkg.Client, args [][]byte) {
 
 	if strings.ToLower(subcommand) == "get" {
 		if len(args) < 3 {
-			c.Conn().WriteError(fmt.Sprintf(pkg.WrongNumOfArgsErr, string(args[0])))
+			c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, string(args[0])))
 			return
 		}
 

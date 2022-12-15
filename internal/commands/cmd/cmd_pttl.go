@@ -5,12 +5,13 @@ import (
 	"time"
 
 	"github.com/hbina/radish/internal/pkg"
+	"github.com/hbina/radish/internal/util"
 )
 
 // https://redis.io/commands/pttl/
 func PttlCommand(c *pkg.Client, args [][]byte) {
 	if len(args) != 2 {
-		c.Conn().WriteError(fmt.Sprintf(pkg.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
