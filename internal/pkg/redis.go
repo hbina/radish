@@ -158,8 +158,8 @@ func (r *Redis) HandleClient(client *Client) {
 
 		for resp != nil {
 			util.Logger.Println(util.EscapeString(string(buffer)))
-			r.HandleRequest(client, util.ConvertRespToArgs(resp))
 			buffer = leftover
+			r.HandleRequest(client, util.ConvertRespToArgs(resp))
 			resp, leftover = util.ConvertBytesToRespType(buffer)
 		}
 
@@ -181,4 +181,18 @@ func (r *Redis) RegisterBlockingCommands(cmds []*BlockingCommand) {
 	for _, cmd := range cmds {
 		r.bcmds[cmd.Name] = cmd
 	}
+}
+
+func (r *Redis) StartKeyExpiryJob(tick time.Duration) {
+	f := func() {
+		ticker := time.NewTicker(tick)
+		for range ticker.C {
+			for _, db := range r.RedisDbs() {
+				r.mu.Lock()
+				db.DeleteExpiredKeys()
+				r.mu.Lock()
+			}
+		}
+	}
+	go f()
 }
