@@ -46,16 +46,18 @@ func NewBlockingCommand(name string, handler BlockingCommandHandler, flag uint64
 }
 
 type BlockedCommand struct {
-	c    *Client
-	args [][]byte
-	ttl  time.Time
+	c        *Client
+	args     [][]byte
+	ttl      time.Time
+	duration time.Duration
 }
 
-func NewBlockedCommand(c *Client, args [][]byte, ttl time.Time) *BlockedCommand {
+func NewBlockedCommand(c *Client, args [][]byte, ttl time.Time, duration time.Duration) *BlockedCommand {
 	return &BlockedCommand{
-		c:    c,
-		args: args,
-		ttl:  ttl,
+		c:        c,
+		args:     args,
+		ttl:      ttl,
+		duration: duration,
 	}
 }
 
@@ -69,4 +71,8 @@ func (b *BlockedCommand) Args() [][]byte {
 
 func (b *BlockedCommand) Ttl() time.Time {
 	return b.ttl
+}
+
+func (b *BlockedCommand) Duration() time.Duration {
+	return b.duration
 }

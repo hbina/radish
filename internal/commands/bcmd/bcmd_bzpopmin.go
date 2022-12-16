@@ -66,5 +66,9 @@ func BzpopminCommand(c *pkg.Client, args [][]byte) *pkg.BlockedCommand {
 		return nil
 	}
 
-	return pkg.NewBlockedCommand(c, args, ttl)
+	return pkg.NewBlockedCommand(
+		c,
+		args,
+		ttl,
+		time.Duration(timeout64*int64(time.Second)))
 }

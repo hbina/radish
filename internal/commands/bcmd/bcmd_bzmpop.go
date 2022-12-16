@@ -63,12 +63,12 @@ func BzmpopCommand(c *pkg.Client, args [][]byte) *pkg.BlockedCommand {
 	// 1  -> max
 	mode := -1
 
-	if len(args) < 3+numKey+1 {
+	if 3+numKey >= len(args) {
 		c.Conn().WriteError(util.SyntaxErr)
 		return nil
 	}
 
-	modeStr := strings.ToLower(string(args[3+numKey+1]))
+	modeStr := strings.ToLower(string(args[3+numKey]))
 
 	if modeStr == "min" {
 		mode = 0
@@ -176,5 +176,9 @@ func BzmpopCommand(c *pkg.Client, args [][]byte) *pkg.BlockedCommand {
 		return nil
 	}
 
-	return pkg.NewBlockedCommand(c, args, ttl)
+	return pkg.NewBlockedCommand(
+		c,
+		args,
+		ttl,
+		time.Duration(timeout64*int64(time.Second)))
 }

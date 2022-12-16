@@ -31,6 +31,7 @@ func Default(
 		configs: configs,
 		dbs:     make(map[uint64]*Db, 0),
 		rlist:   make(map[*Client]*BlockedCommand, 0),
+		bcmdTtl: make(chan *Client, 1),
 	}
 	return r
 }
@@ -106,13 +107,16 @@ func (r *Redis) HandleRequest(c *Client, args [][]byte) {
 
 	if cmd != nil {
 		(cmd.Handler)(c, args)
-		r.HandleBlockedRequests()
+		r.HandleBlockedRequests(true)
 	} else if bcmd != nil {
 		err := (bcmd.Handler)(c, args)
 		if err != nil {
 			r.rlist[err.c] = err
+			go time.AfterFunc(err.duration, func() {
+				r.bcmdTtl <- err.c
+			})
 		} else {
-			r.HandleBlockedRequests()
+			r.HandleBlockedRequests(false)
 		}
 	} else {
 		c.Conn().WriteError(fmt.Sprintf("ERR unknown command '%s' with args '%s'", string(args[0]), args[1:]))
@@ -123,9 +127,9 @@ func (r *Redis) HandleRequest(c *Client, args [][]byte) {
 
 // SAFETY: Some of the checks here have been ommitted because
 // we already checked for them when we first received the command
-func (r *Redis) HandleBlockedRequests() {
+func (r *Redis) HandleBlockedRequests(new bool) {
 	for _, bcmd := range r.rlist {
-		if !bcmd.ttl.IsZero() && bcmd.ttl.After(time.Now()) {
+		if !bcmd.ttl.IsZero() && time.Now().After(bcmd.ttl) {
 			delete(r.rlist, bcmd.c)
 		} else {
 			cmdName := strings.ToLower(string(bcmd.args[0]))
@@ -133,6 +137,9 @@ func (r *Redis) HandleBlockedRequests() {
 			err := (cmd.Handler)(bcmd.c, bcmd.args)
 
 			if err != nil {
+				if !new { // If not a new blocked command, use the old TTL
+					err.ttl = bcmd.ttl
+				}
 				r.rlist[err.c] = err
 			} else {
 				delete(r.rlist, bcmd.c)
