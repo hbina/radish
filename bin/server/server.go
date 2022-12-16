@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -32,13 +33,13 @@ func main() {
 			{
 				idx++
 				if idx >= len(args) {
-					util.Logger.Fatal("Need to provide the port")
+					log.Fatal("Need to provide the port")
 				}
 
 				port64, err := strconv.ParseInt(string(args[idx]), 10, 32)
 
 				if err != nil {
-					util.Logger.Fatal("port must be a number")
+					log.Fatal("port must be a number")
 				}
 
 				port = int(port64)
@@ -49,7 +50,7 @@ func main() {
 			}
 		default:
 			{
-				util.Logger.Fatalf("Unknown parameter '%s'\n", string(arg))
+				log.Fatalf("Unknown parameter '%s'\n", string(arg))
 			}
 		}
 	}
