@@ -29,7 +29,7 @@ func Run(port int, shouldLog bool) {
 
 	listen, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
 
-	if err != nil {
+	if err != nil || listen == nil {
 		util.Logger.Fatal(err)
 	}
 

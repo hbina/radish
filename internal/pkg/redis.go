@@ -28,6 +28,7 @@ func Default(
 		bcmds:   blockingCommands,
 		configs: configs,
 		dbs:     make(map[uint64]*Db, 0),
+		rlist:   make([]BlockedCommand, 0),
 	}
 	return r
 }
@@ -88,8 +89,6 @@ func (r *Redis) NewClient(conn net.Conn) *Client {
 }
 
 func (r *Redis) HandleRequest(c *Client, args [][]byte) {
-	util.Logger.Println(util.CollectArgs(args))
-
 	if len(args) == 0 {
 		c.Conn().WriteError(util.ZeroArgumentErr)
 		return
@@ -101,14 +100,7 @@ func (r *Redis) HandleRequest(c *Client, args [][]byte) {
 	cmd := r.cmds[cmdName]
 	bcmd := r.bcmds[cmdName]
 
-	cmdWrite := (cmd != nil && cmd.Flag&CMD_WRITE != 0) ||
-		(bcmd != nil && bcmd.Flag&CMD_WRITE != 0)
-
-	if cmdWrite {
-		r.mu.Lock()
-	} else {
-		r.mu.RLock()
-	}
+	r.mu.Lock()
 
 	if cmd != nil {
 		(cmd.Handler)(c, args)
@@ -119,22 +111,22 @@ func (r *Redis) HandleRequest(c *Client, args [][]byte) {
 		err := (bcmd.Handler)(c, args)
 
 		if err == BCMD_RETRY {
-			r.AddBlockedRequest(c, args)
+			r.rlist = append(r.rlist, BlockedCommand{
+				c:    c,
+				args: args,
+			})
 		}
 	} else {
 		c.Conn().WriteError(fmt.Sprintf("ERR unknown command '%s' with args '%s'", string(args[0]), args[1:]))
 	}
 
-	if cmdWrite {
-		r.mu.Unlock()
-	} else {
-		r.mu.RUnlock()
-	}
+	r.mu.Unlock()
 }
 
+// SAFETY: Some of the checks here have been ommitted because
+// we already checked for them when we first received the command
 func (r *Redis) HandleBlockedRequests() {
 	unfinished := make([]BlockedCommand, 0)
-
 	for _, bcmd := range r.rlist {
 		c := bcmd.c
 		args := bcmd.args
@@ -146,15 +138,7 @@ func (r *Redis) HandleBlockedRequests() {
 			unfinished = append(unfinished, bcmd)
 		}
 	}
-
 	r.rlist = unfinished
-}
-
-func (r *Redis) AddBlockedRequest(c *Client, args [][]byte) {
-	r.rlist = append(r.rlist, BlockedCommand{
-		c:    c,
-		args: args,
-	})
 }
 
 func (r *Redis) HandleClient(client *Client) {
