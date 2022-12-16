@@ -10,9 +10,9 @@ import (
 	"github.com/hbina/radish/internal/util"
 )
 
-// https://redis.io/commands/bzmpopmin/
-// BZPOPMIN key [key ...] timeout
-func BzpopminCommand(c *pkg.Client, args [][]byte) *pkg.BlockedCommand {
+// https://redis.io/commands/bzmpopmax/
+// BZPOPMAX key [key ...] timeout
+func BzpopmaxCommand(c *pkg.Client, args [][]byte) *pkg.BlockedCommand {
 	if len(args) < 3 {
 		c.Conn().WriteError(util.SyntaxErr)
 		return nil
@@ -54,7 +54,7 @@ func BzpopminCommand(c *pkg.Client, args [][]byte) *pkg.BlockedCommand {
 
 		set := maybeSet.Value().(*types.SortedSet)
 
-		n := set.RemoveByRank(1)
+		n := set.RemoveByRank(set.Len())
 
 		db.Set(key, types.NewZSetFromSs(set), ttl)
 
