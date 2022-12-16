@@ -17,6 +17,7 @@ type Redis struct {
 	dbs     map[uint64]*Db              // List of database currently maintained
 	bcmds   map[string]*BlockingCommand // List of supported blocked commands
 	rlist   map[*Client]*BlockedCommand // List of commands to be retried for which clients
+	bcmdTtl chan *Client
 }
 
 func Default(
@@ -105,14 +106,13 @@ func (r *Redis) HandleRequest(c *Client, args [][]byte) {
 
 	if cmd != nil {
 		(cmd.Handler)(c, args)
-
-		// Retry all the blocking commands
 		r.HandleBlockedRequests()
 	} else if bcmd != nil {
 		err := (bcmd.Handler)(c, args)
-
 		if err != nil {
 			r.rlist[err.c] = err
+		} else {
+			r.HandleBlockedRequests()
 		}
 	} else {
 		c.Conn().WriteError(fmt.Sprintf("ERR unknown command '%s' with args '%s'", string(args[0]), args[1:]))
@@ -190,8 +190,20 @@ func (r *Redis) StartKeyExpiryJob(tick time.Duration) {
 			for _, db := range r.RedisDbs() {
 				r.mu.Lock()
 				db.DeleteExpiredKeys()
-				r.mu.Lock()
+				r.mu.Unlock()
 			}
+		}
+	}
+	go f()
+}
+
+func (r *Redis) StartBcmdTimeoutJob() {
+	f := func() {
+		for c := range r.bcmdTtl {
+			r.mu.Lock()
+			c.Conn().WriteNull()
+			delete(r.rlist, c)
+			r.mu.Unlock()
 		}
 	}
 	go f()
