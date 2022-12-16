@@ -1,5 +1,7 @@
 package pkg
 
+import "time"
+
 // Command flags. Please check the command table defined in the redis.c file
 // for more information about the meaning of every flag.
 const (
@@ -13,7 +15,7 @@ const (
 )
 
 type CommandHandler func(c *Client, cmd [][]byte)
-type BlockingCommandHandler func(c *Client, cmd [][]byte) int
+type BlockingCommandHandler func(c *Client, cmd [][]byte) *BlockedCommand
 
 type Command struct {
 	Name    string
@@ -46,4 +48,25 @@ func NewBlockingCommand(name string, handler BlockingCommandHandler, flag uint64
 type BlockedCommand struct {
 	c    *Client
 	args [][]byte
+	ttl  time.Time
+}
+
+func NewBlockedCommand(c *Client, args [][]byte, ttl time.Time) *BlockedCommand {
+	return &BlockedCommand{
+		c:    c,
+		args: args,
+		ttl:  ttl,
+	}
+}
+
+func (b *BlockedCommand) Client() *Client {
+	return b.c
+}
+
+func (b *BlockedCommand) Args() [][]byte {
+	return b.args
+}
+
+func (b *BlockedCommand) Ttl() time.Time {
+	return b.ttl
 }

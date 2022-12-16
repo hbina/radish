@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/hbina/radish/internal/pkg"
 	"github.com/hbina/radish/internal/types"
@@ -14,10 +15,10 @@ import (
 // BZMPOP timeout numkeys key [key ...] <MIN | MAX> [COUNT count]
 // This command should behave exactly like ZMPOP except that it
 // will block until it pops a set.
-func BzmpopCommand(c *pkg.Client, args [][]byte) int {
+func BzmpopCommand(c *pkg.Client, args [][]byte) *pkg.BlockedCommand {
 	if len(args) < 4 {
 		c.Conn().WriteError(util.SyntaxErr)
-		return pkg.BCMD_OK
+		return nil
 	}
 
 	timeoutStr := string(args[1])
@@ -26,10 +27,14 @@ func BzmpopCommand(c *pkg.Client, args [][]byte) int {
 
 	if err != nil || timeout64 < 0 {
 		c.Conn().WriteError(util.SyntaxErr)
-		return pkg.BCMD_OK
+		return nil
 	}
 
-	fmt.Println(timeout64)
+	ttl := time.Time{}
+
+	if timeout64 > 0 {
+		ttl = time.Now().Add(time.Duration(timeout64 * int64(time.Second)))
+	}
 
 	numKeyStr := string(args[2])
 
@@ -37,14 +42,14 @@ func BzmpopCommand(c *pkg.Client, args [][]byte) int {
 
 	if err != nil || numKey64 < 0 {
 		c.Conn().WriteError(util.SyntaxErr)
-		return pkg.BCMD_OK
+		return nil
 	}
 
 	numKey := int(numKey64)
 
 	if len(args) < 3+numKey {
 		c.Conn().WriteError(util.SyntaxErr)
-		return pkg.BCMD_OK
+		return nil
 	}
 
 	keys := make([]string, 0, numKey)
@@ -60,7 +65,7 @@ func BzmpopCommand(c *pkg.Client, args [][]byte) int {
 
 	if len(args) < 3+numKey+1 {
 		c.Conn().WriteError(util.SyntaxErr)
-		return pkg.BCMD_OK
+		return nil
 	}
 
 	modeStr := strings.ToLower(string(args[3+numKey+1]))
@@ -71,7 +76,7 @@ func BzmpopCommand(c *pkg.Client, args [][]byte) int {
 		mode = 1
 	} else {
 		c.Conn().WriteError(util.SyntaxErr)
-		return pkg.BCMD_OK
+		return nil
 	}
 
 	// Parse options
@@ -84,19 +89,19 @@ func BzmpopCommand(c *pkg.Client, args [][]byte) int {
 		default:
 			{
 				c.Conn().WriteError(util.SyntaxErr)
-				return pkg.BCMD_OK
+				return nil
 			}
 		case "count":
 			{
 				if count != -1 {
 					c.Conn().WriteError(util.SyntaxErr)
-					return pkg.BCMD_OK
+					return nil
 				}
 
 				// Need 1 more argument
 				if i+1 >= len(args) {
 					c.Conn().WriteError(util.SyntaxErr)
-					return pkg.BCMD_OK
+					return nil
 				}
 
 				i++
@@ -106,12 +111,12 @@ func BzmpopCommand(c *pkg.Client, args [][]byte) int {
 
 				if err != nil {
 					c.Conn().WriteError(util.SyntaxErr)
-					return pkg.BCMD_OK
+					return nil
 				}
 
 				if count64 <= 0 {
 					c.Conn().WriteError(util.SyntaxErr)
-					return pkg.BCMD_OK
+					return nil
 				}
 
 				count = int(count64)
@@ -168,8 +173,8 @@ func BzmpopCommand(c *pkg.Client, args [][]byte) int {
 			c.Conn().WriteBulkString(fmt.Sprint(n.Score))
 		}
 
-		return pkg.BCMD_OK
+		return nil
 	}
 
-	return pkg.BCMD_RETRY
+	return pkg.NewBlockedCommand(c, args, ttl)
 }

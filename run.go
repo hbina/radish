@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"time"
 
 	"github.com/hbina/radish/internal/commands"
 	"github.com/hbina/radish/internal/pkg"
@@ -37,6 +38,8 @@ func Run(port int, shouldLog bool) {
 		commands.GenerateCommands(),
 		commands.GenerateBlockingCommands(),
 		commands.GenerateConfigs())
+	instance.StartKeyExpiryJob(1 * time.Second)
+	instance.StartBcmdTimeoutJob()
 
 	for {
 		conn, err := listen.Accept()

@@ -3,6 +3,7 @@ package bcmd
 import (
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/hbina/radish/internal/pkg"
 	"github.com/hbina/radish/internal/types"
@@ -11,10 +12,10 @@ import (
 
 // https://redis.io/commands/bzmpopmin/
 // BZPOPMIN key [key ...] timeout
-func BzpopminCommand(c *pkg.Client, args [][]byte) int {
+func BzpopminCommand(c *pkg.Client, args [][]byte) *pkg.BlockedCommand {
 	if len(args) < 3 {
 		c.Conn().WriteError(util.SyntaxErr)
-		return pkg.BCMD_OK
+		return nil
 	}
 
 	timeoutStr := string(args[len(args)-1])
@@ -23,10 +24,14 @@ func BzpopminCommand(c *pkg.Client, args [][]byte) int {
 
 	if err != nil || timeout64 < 0 {
 		c.Conn().WriteError(util.SyntaxErr)
-		return pkg.BCMD_OK
+		return nil
 	}
 
-	fmt.Println(timeout64)
+	ttl := time.Time{}
+
+	if timeout64 > 0 {
+		ttl = time.Now().Add(time.Duration(timeout64 * int64(time.Second)))
+	}
 
 	keys := make([]string, 0, len(args)-2)
 
@@ -58,8 +63,8 @@ func BzpopminCommand(c *pkg.Client, args [][]byte) int {
 		c.Conn().WriteBulkString(n.Key)
 		c.Conn().WriteBulkString(fmt.Sprint(n.Score))
 
-		return pkg.BCMD_OK
+		return nil
 	}
 
-	return pkg.BCMD_RETRY
+	return pkg.NewBlockedCommand(c, args, ttl)
 }
