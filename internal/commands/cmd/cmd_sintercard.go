@@ -23,14 +23,14 @@ func SintercardCommand(c *pkg.Client, args [][]byte) {
 	numberOfKeys64, err := strconv.ParseInt(string(args[1]), 10, 32)
 
 	if err != nil {
-		c.Conn().WriteError("ERR numkeys should be greater than 0")
+		c.Conn().WriteError(fmt.Sprintf(util.NegativeIntErr, "numkeys"))
 		return
 	}
 
 	numberOfKeys := int(numberOfKeys64)
 
 	if numberOfKeys <= 0 {
-		c.Conn().WriteError("ERR numkeys should be greater than 0")
+		c.Conn().WriteError(fmt.Sprintf(util.NegativeIntErr, "numkeys"))
 		return
 	}
 
