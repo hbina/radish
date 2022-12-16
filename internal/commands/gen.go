@@ -119,7 +119,6 @@ func GenerateBlockingCommands() map[string]*pkg.BlockingCommand {
 	arr := []*pkg.BlockingCommand{
 		pkg.NewBlockingCommand("bzmpop", bcmd.BzmpopCommand, pkg.CMD_WRITE),
 		pkg.NewBlockingCommand("bzpopmin", bcmd.BzpopminCommand, pkg.CMD_WRITE),
-		pkg.NewBlockingCommand("bzpopmax", bcmd.BzpopmaxCommand, pkg.CMD_WRITE),
 	}
 
 	res := make(map[string]*pkg.BlockingCommand, len(arr))
