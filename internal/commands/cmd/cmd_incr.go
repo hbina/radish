@@ -21,9 +21,9 @@ func IncrCommand(c *pkg.Client, args [][]byte) {
 
 	key := string(args[1])
 
-	item, exists := db.Storage[key]
+	item, _ := db.Get(key)
 
-	if !exists {
+	if item == nil {
 		db.Set(key, types.NewString("1"), time.Time{})
 		c.Conn().WriteInt64(1)
 		return

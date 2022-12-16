@@ -27,9 +27,9 @@ func IncrByFloatCommand(c *pkg.Client, args [][]byte) {
 		return
 	}
 
-	item, exists := db.Storage[key]
+	item, _ := db.Get(key)
 
-	if !exists {
+	if item == nil {
 		incrByStr := strconv.FormatFloat(incrBy, 'f', -1, 64)
 		db.Set(key, types.NewString(incrByStr), time.Time{})
 		c.Conn().WriteString(fmt.Sprintf("\"%s\"", incrByStr))

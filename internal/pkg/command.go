@@ -46,4 +46,13 @@ func NewBlockingCommand(name string, handler BlockingCommandHandler, flag uint64
 type BlockedCommand struct {
 	c    *Client
 	args [][]byte
+	keys []string
+}
+
+func NewBlockedCommand(c *Client, args [][]byte, keys []string) *BlockedCommand {
+	return &BlockedCommand{
+		c:    c,
+		args: args,
+		keys: keys,
+	}
 }

@@ -4,13 +4,11 @@ import (
 	"fmt"
 	"net"
 	"strings"
-	"sync"
 
 	"github.com/hbina/radish/internal/util"
 )
 
 type Redis struct {
-	mu      *sync.RWMutex               // Lock to the database
 	cmds    map[string]*Command         // List of supported commands
 	configs map[string]string           // Configurations (Currently unused)
 	dbs     map[uint64]*Db              // List of database currently maintained
@@ -23,7 +21,6 @@ func Default(
 	blockingCommands map[string]*BlockingCommand,
 	configs map[string]string) *Redis {
 	r := &Redis{
-		mu:      new(sync.RWMutex),
 		cmds:    commands,
 		bcmds:   blockingCommands,
 		configs: configs,
@@ -34,17 +31,17 @@ func Default(
 
 // Flush all keys synchronously
 func (r *Redis) SyncFlushAll() {
-	for _, v := range r.dbs {
-		v.Clear()
+	for _, db := range r.dbs {
+		db.Clear()
 	}
 }
 
 // Flush the selected db
 func (r *Redis) SyncFlushDb(dbId uint64) {
-	d, exists := r.dbs[dbId]
+	db, exists := r.dbs[dbId]
 
 	if exists {
-		d.Clear()
+		db.Clear()
 	}
 }
 
@@ -88,8 +85,6 @@ func (r *Redis) NewClient(conn net.Conn) *Client {
 }
 
 func (r *Redis) HandleRequest(c *Client, args [][]byte) {
-	util.Logger.Println(util.CollectArgs(args))
-
 	if len(args) == 0 {
 		c.Conn().WriteError(util.ZeroArgumentErr)
 		return
@@ -101,14 +96,7 @@ func (r *Redis) HandleRequest(c *Client, args [][]byte) {
 	cmd := r.cmds[cmdName]
 	bcmd := r.bcmds[cmdName]
 
-	cmdWrite := (cmd != nil && cmd.Flag&CMD_WRITE != 0) ||
-		(bcmd != nil && bcmd.Flag&CMD_WRITE != 0)
-
-	if cmdWrite {
-		r.mu.Lock()
-	} else {
-		r.mu.RLock()
-	}
+	c.Db().Lock()
 
 	if cmd != nil {
 		(cmd.Handler)(c, args)
@@ -125,11 +113,7 @@ func (r *Redis) HandleRequest(c *Client, args [][]byte) {
 		c.Conn().WriteError(fmt.Sprintf("ERR unknown command '%s' with args '%s'", string(args[0]), args[1:]))
 	}
 
-	if cmdWrite {
-		r.mu.Unlock()
-	} else {
-		r.mu.RUnlock()
-	}
+	c.Db().UnLock()
 }
 
 func (r *Redis) HandleBlockedRequests() {

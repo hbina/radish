@@ -27,9 +27,9 @@ func DecrByCommand(c *pkg.Client, args [][]byte) {
 		return
 	}
 
-	item, exists := db.Storage[key]
+	item, _ := db.Get(key)
 
-	if !exists {
+	if item == nil {
 		db.Set(key, types.NewString(fmt.Sprintf("%d", decrBy)), time.Time{})
 		c.Conn().WriteInt64(decrBy)
 		return

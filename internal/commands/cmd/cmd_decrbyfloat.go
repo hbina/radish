@@ -27,9 +27,9 @@ func DecrByFloatCommand(c *pkg.Client, args [][]byte) {
 		return
 	}
 
-	item, exists := db.Storage[key]
+	item, _ := db.Get(key)
 
-	if !exists {
+	if item == nil {
 		decrByStr := strconv.FormatFloat(decrBy, 'f', -1, 64)
 		db.Set(key, types.NewString(decrByStr), time.Time{})
 		c.Conn().WriteString(fmt.Sprintf("\"%s\"", decrByStr))

@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"sync"
 	"time"
 
 	"github.com/hbina/radish/internal/types"
@@ -17,29 +18,26 @@ type Kvp struct {
 // A redis database.
 // There can be more than one in a redis instance.
 type Db struct {
-	// Database id
-	id uint64
-
-	// All storage in this db.
-	Storage map[string]types.Item
-
-	// TTL of each keys
-	Ttl map[string]time.Time
-
-	// TODO: Some statistics about the database that might be useful
-	// when we have eviction policies and stuff like that.
-
-	redis *Redis
+	mu           *sync.RWMutex // Lock to the database
+	id           uint64
+	storage      map[string]types.Item
+	storageTtl   map[string]time.Time
+	redis        *Redis
+	bcmd         map[*Client]BlockedCommand
+	bcmdTtl      chan *Client
+	modifiedKeys chan string
 }
 
 // NewRedisDb creates a new db.
 func NewRedisDb(id uint64, r *Redis) *Db {
-	return &Db{
-		id:      id,
-		redis:   r,
-		Storage: make(map[string]types.Item, 0),
-		Ttl:     make(map[string]time.Time, 0),
+	db := &Db{
+		mu:         new(sync.RWMutex),
+		id:         id,
+		storage:    make(map[string]types.Item, 0),
+		storageTtl: make(map[string]time.Time, 0),
+		redis:      r,
 	}
+	return db
 }
 
 // RedisDbs gets all redis databases.
@@ -88,11 +86,11 @@ func (db *Db) Set(key string, i types.Item, ttl time.Time) types.Item {
 		}
 	}
 
-	old, exists := db.Storage[key]
+	old, exists := db.storage[key]
 
 	// Insert new value to a key will overwrite everything about it
-	db.Storage[key] = i
-	db.Ttl[key] = ttl
+	db.storage[key] = i
+	db.storageTtl[key] = ttl
 
 	if exists {
 		return old
@@ -103,14 +101,14 @@ func (db *Db) Set(key string, i types.Item, ttl time.Time) types.Item {
 
 // GetExpiry returns the item by the key or nil if key does not exists.
 func (db *Db) GetExpiry(key string) (time.Time, bool) {
-	v, e := db.Ttl[key]
+	v, e := db.storageTtl[key]
 	return v, e
 }
 
 // SetExpiry sets the expiry of a key
 func (db *Db) SetExpiry(key string, ttl time.Time) (time.Time, bool) {
-	old, exists := db.Ttl[key]
-	db.Ttl[key] = ttl
+	old, exists := db.storageTtl[key]
+	db.storageTtl[key] = ttl
 	return old, exists
 }
 
@@ -118,10 +116,10 @@ func (db *Db) SetExpiry(key string, ttl time.Time) (time.Time, bool) {
 func (db *Db) Delete(keys ...string) int {
 	var c int
 	for _, k := range keys {
-		_, itemExists := db.Storage[k]
-		_, ttlExists := db.Ttl[k]
-		delete(db.Storage, k)
-		delete(db.Ttl, k)
+		_, itemExists := db.storage[k]
+		_, ttlExists := db.storageTtl[k]
+		delete(db.storage, k)
+		delete(db.storageTtl, k)
 
 		if itemExists && ttlExists {
 			c++
@@ -144,7 +142,7 @@ func (db *Db) DeleteExpired(keys ...string) int {
 // Get gets the item or nil if expired or not exists. If 'deleteIfExpired' is true the key will be deleted.
 // TODO: Should this return the exists bool or its enough to return nil?
 func (db *Db) Get(key string) (types.Item, time.Time) {
-	value, exists := db.Storage[key]
+	value, exists := db.storage[key]
 	if !exists {
 		return nil, time.Time{}
 	}
@@ -152,17 +150,17 @@ func (db *Db) Get(key string) (types.Item, time.Time) {
 		db.Delete(key)
 		return nil, time.Time{}
 	}
-	return value, db.Ttl[key]
+	return value, db.storageTtl[key]
 }
 
 // IsEmpty checks if db is empty.
 func (db *Db) IsEmpty() bool {
-	return len(db.Storage) == 0
+	return len(db.storage) == 0
 }
 
 // HasExpiringKeys checks if db has any expiring keys.
 func (db *Db) HasExpiringKeys() bool {
-	return len(db.Ttl) != 0
+	return len(db.storageTtl) != 0
 }
 
 // Exists return whether or not a key exists.
@@ -186,27 +184,52 @@ func (db *Db) Expired(key string) bool {
 
 // Expiry gets the expiry of the key has one.
 func (db *Db) Expiry(key string) (time.Time, bool) {
-	val, ok := db.Ttl[key]
+	val, ok := db.storageTtl[key]
 	return val, ok
 }
 
 // DeleteExpiredKeys will delete all the keys that have expired TTL.
 func (db *Db) DeleteExpiredKeys() int {
 	count := 0
-	for k := range db.Ttl {
+	for k := range db.storageTtl {
 		count += db.DeleteExpired(k)
 	}
 	return count
 }
 
 func (db *Db) Clear() {
-	for k := range db.Storage {
-		delete(db.Storage, k)
-		delete(db.Ttl, k)
+	for k := range db.storage {
+		delete(db.storage, k)
+		delete(db.storageTtl, k)
 	}
 }
 
 // Number of keys in the storage
 func (db *Db) Len() int {
-	return len(db.Storage)
+	return len(db.storage)
+}
+
+func (db *Db) Lock() {
+	db.mu.Lock()
+}
+
+func (db *Db) UnLock() {
+	db.mu.Unlock()
+}
+
+func (db *Db) StartKeyExpiryJob(tick time.Duration) {
+	ticker := time.NewTicker(tick)
+	for range ticker.C {
+		db.Lock()
+		db.DeleteExpiredKeys()
+		db.UnLock()
+	}
+}
+
+func (db *Db) StartBcmdTimeoutJob(tick time.Duration) {
+	for c := range db.bcmdTtl {
+		db.Lock()
+		delete(db.bcmd, c)
+		db.UnLock()
+	}
 }

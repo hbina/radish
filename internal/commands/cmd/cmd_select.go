@@ -20,7 +20,9 @@ func SelectCommand(c *pkg.Client, args [][]byte) {
 	if err != nil {
 		c.Conn().WriteError(util.InvalidIntErr)
 	} else {
+		c.Db().UnLock()
 		c.SetDb(index)
+		c.Db().Lock()
 		c.Conn().WriteString("OK")
 	}
 }
