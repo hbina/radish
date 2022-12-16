@@ -13,7 +13,7 @@ import (
 // https://redis.io/commands/zmpop/
 // ZMPOP numkeys key [key ...] <MIN | MAX> [COUNT count]
 func ZmpopCommand(c *pkg.Client, args [][]byte) {
-	if len(args) < 3 {
+	if len(args) < 4 {
 		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
@@ -23,7 +23,7 @@ func ZmpopCommand(c *pkg.Client, args [][]byte) {
 	numKey64, err := strconv.ParseInt(numKeyStr, 10, 32)
 
 	if err != nil || numKey64 < 0 {
-		c.Conn().WriteError(util.SyntaxErr)
+		c.Conn().WriteError(fmt.Sprintf(util.NegativeIntErr, "numkeys"))
 		return
 	}
 
@@ -43,36 +43,34 @@ func ZmpopCommand(c *pkg.Client, args [][]byte) {
 	// Parse options
 	// -1 -> not set
 	count := -1
+
 	// -1 -> not set
 	// 0  -> min
 	// 1  -> max
 	mode := -1
 
-	for i := 2 + numKey; i < len(args); i++ {
+	if 2+numKey >= len(args) {
+		c.Conn().WriteError(util.SyntaxErr)
+	}
+
+	modeStr := strings.ToLower(string(args[2+numKey]))
+
+	if modeStr == "min" {
+		mode = 0
+	} else if modeStr == "max" {
+		mode = 1
+	} else {
+		c.Conn().WriteError(util.SyntaxErr)
+		return
+	}
+
+	for i := 2 + numKey + 1; i < len(args); i++ {
 		arg := strings.ToLower(string(args[i]))
 		switch arg {
 		default:
 			{
 				c.Conn().WriteError(util.SyntaxErr)
 				return
-			}
-		case "min":
-			{
-				if mode != -1 {
-					c.Conn().WriteError(util.SyntaxErr)
-					return
-				}
-
-				mode = 0
-			}
-		case "max":
-			{
-				if mode != -1 {
-					c.Conn().WriteError(util.SyntaxErr)
-					return
-				}
-
-				mode = 1
 			}
 		case "count":
 			{
