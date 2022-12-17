@@ -22,7 +22,7 @@ func ZmpopCommand(c *pkg.Client, args [][]byte) {
 
 	numKey64, err := strconv.ParseInt(numKeyStr, 10, 32)
 
-	if err != nil || numKey64 < 0 {
+	if err != nil || numKey64 <= 0 {
 		c.Conn().WriteError(fmt.Sprintf(util.NegativeIntErr, "numkeys"))
 		return
 	}
@@ -90,12 +90,7 @@ func ZmpopCommand(c *pkg.Client, args [][]byte) {
 
 				count64, err := strconv.ParseInt(countStr, 10, 32)
 
-				if err != nil {
-					c.Conn().WriteError(util.SyntaxErr)
-					return
-				}
-
-				if count64 <= 0 {
+				if err != nil || count64 <= 0 {
 					c.Conn().WriteError("ERR count must be greater than 0")
 					return
 				}
