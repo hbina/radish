@@ -4,14 +4,12 @@ import (
 	"fmt"
 	"net"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/hbina/radish/internal/util"
 )
 
 type Redis struct {
-	mu      *sync.RWMutex               // Lock to the database
 	cmds    map[string]*Command         // List of supported commands
 	configs map[string]string           // Configurations (Currently unused)
 	dbs     map[uint64]*Db              // List of database currently maintained
@@ -25,7 +23,6 @@ func Default(
 	blockingCommands map[string]*BlockingCommand,
 	configs map[string]string) *Redis {
 	r := &Redis{
-		mu:      new(sync.RWMutex),
 		cmds:    commands,
 		bcmds:   blockingCommands,
 		configs: configs,
@@ -103,7 +100,7 @@ func (r *Redis) HandleRequest(c *Client, args [][]byte) {
 	cmd := r.cmds[cmdName]
 	bcmd := r.bcmds[cmdName]
 
-	r.mu.Lock()
+	c.Db().Lock()
 
 	if cmd != nil {
 		(cmd.Handler)(c, args)
@@ -122,7 +119,7 @@ func (r *Redis) HandleRequest(c *Client, args [][]byte) {
 		c.Conn().WriteError(fmt.Sprintf("ERR unknown command '%s' with args '%s'", string(args[0]), args[1:]))
 	}
 
-	r.mu.Unlock()
+	c.Db().Unlock()
 }
 
 // SAFETY: Some of the checks here have been ommitted because
@@ -195,9 +192,9 @@ func (r *Redis) StartKeyExpiryJob(tick time.Duration) {
 		ticker := time.NewTicker(tick)
 		for range ticker.C {
 			for _, db := range r.RedisDbs() {
-				r.mu.Lock()
+				db.Lock()
 				db.DeleteExpiredKeys()
-				r.mu.Unlock()
+				db.Unlock()
 			}
 		}
 	}
@@ -207,10 +204,10 @@ func (r *Redis) StartKeyExpiryJob(tick time.Duration) {
 func (r *Redis) StartBcmdTimeoutJob() {
 	f := func() {
 		for c := range r.bcmdTtl {
-			r.mu.Lock()
+			c.Db().Lock()
 			c.Conn().WriteNull()
 			delete(r.rlist, c)
-			r.mu.Unlock()
+			c.Db().Unlock()
 		}
 	}
 	go f()
