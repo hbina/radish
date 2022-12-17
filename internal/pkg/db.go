@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"sync"
 	"time"
 
 	"github.com/hbina/radish/internal/types"
@@ -17,19 +18,11 @@ type Kvp struct {
 // A redis database.
 // There can be more than one in a redis instance.
 type Db struct {
-	// Database id
-	id uint64
-
-	// All storage in this db.
+	id      uint64
 	Storage map[string]types.Item
-
-	// TTL of each keys
-	Ttl map[string]time.Time
-
-	// TODO: Some statistics about the database that might be useful
-	// when we have eviction policies and stuff like that.
-
-	redis *Redis
+	Ttl     map[string]time.Time
+	redis   *Redis
+	mu      *sync.RWMutex // Lock to the database
 }
 
 // NewRedisDb creates a new db.
@@ -39,6 +32,7 @@ func NewRedisDb(id uint64, r *Redis) *Db {
 		redis:   r,
 		Storage: make(map[string]types.Item, 0),
 		Ttl:     make(map[string]time.Time, 0),
+		mu:      new(sync.RWMutex),
 	}
 }
 
@@ -209,4 +203,20 @@ func (db *Db) Clear() {
 // Number of keys in the storage
 func (db *Db) Len() int {
 	return len(db.Storage)
+}
+
+func (db *Db) Lock() {
+	db.mu.Lock()
+}
+
+func (db *Db) RLock() {
+	db.mu.RLock()
+}
+
+func (db *Db) Unlock() {
+	db.mu.Unlock()
+}
+
+func (db *Db) RUnlock() {
+	db.mu.RUnlock()
 }
