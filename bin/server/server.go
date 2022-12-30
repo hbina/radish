@@ -1,13 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strconv"
 	"strings"
 
 	redis "github.com/hbina/radish"
-	"github.com/hbina/radish/internal/util"
 )
 
 const (
@@ -17,7 +17,8 @@ const (
 func main() {
 
 	if len(os.Args) < 2 {
-		util.Logger.Fatal("Please specify the port to use")
+		fmt.Println("Please specify the port to use")
+		os.Exit(1)
 	}
 
 	args := os.Args[1:]
@@ -39,7 +40,8 @@ func main() {
 				port64, err := strconv.ParseInt(string(args[idx]), 10, 32)
 
 				if err != nil {
-					log.Fatal("port must be a number")
+					fmt.Println("port must be a number")
+					os.Exit(1)
 				}
 
 				port = int(port64)
@@ -50,10 +52,12 @@ func main() {
 			}
 		default:
 			{
-				log.Fatalf("Unknown parameter '%s'\n", string(arg))
+				fmt.Printf("Unknown parameter '%s'\n", string(arg))
+				os.Exit(1)
 			}
 		}
 	}
 
+	fmt.Printf("Starting server at port %d\n", port)
 	redis.Run(port, logging)
 }
