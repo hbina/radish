@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"os"
 	"os/signal"
@@ -13,35 +12,28 @@ import (
 	"github.com/hbina/radish/internal/util"
 )
 
-var (
-	InfoLogger *log.Logger
-)
-
 func main() {
-
-	InfoLogger = log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
-
 	osArgs := os.Args[:]
 
 	// Only positional arguments right now
-	if len(osArgs) < 2 {
-		InfoLogger.Println("Please provide the port")
+	if len(osArgs) != 3 || osArgs[1] != "--port" {
+		fmt.Println("Please provide the port")
 		os.Exit(1)
 	}
 
-	port := osArgs[1]
+	port := osArgs[2]
 	servAddr := fmt.Sprintf("localhost:%s", port)
 	tcpAddr, err := net.ResolveTCPAddr("tcp", servAddr)
 
 	if err != nil {
-		InfoLogger.Println("ResolveTCPAddr failed:", err.Error())
+		fmt.Println("ResolveTCPAddr failed:", err.Error())
 		os.Exit(1)
 	}
 
 	tcpConn, err := net.DialTCP("tcp", nil, tcpAddr)
 
 	if err != nil {
-		InfoLogger.Println("Dial failed:", err.Error())
+		fmt.Println("Dial failed:", err.Error())
 		os.Exit(1)
 	}
 
@@ -63,7 +55,7 @@ func main() {
 		inputStr, err := reader.ReadString('\n')
 
 		if err != nil {
-			InfoLogger.Println("ReadString failed:", err.Error())
+			fmt.Println("ReadString failed:", err.Error())
 			continue
 		}
 
@@ -99,7 +91,7 @@ func main() {
 		_, err = tcpConn.Write([]byte(respInput))
 
 		if err != nil {
-			InfoLogger.Println("Write to server failed:", err.Error())
+			fmt.Println("Write to server failed:", err.Error())
 			os.Exit(1)
 		}
 
@@ -111,7 +103,7 @@ func main() {
 
 			if err != nil {
 				if err != io.EOF {
-					InfoLogger.Println("Read from server failed:", err.Error())
+					fmt.Println("Read from server failed:", err.Error())
 					os.Exit(1)
 				}
 				break

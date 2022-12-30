@@ -14,8 +14,9 @@ func StringifyRespBytes(in []byte) (string, bool) {
 	}
 
 	inList := false
+	_, isArr := resp.(*RespArray)
 
-	if resp.TypeId() == "array" {
+	if isArr {
 		inList = true
 	}
 
@@ -29,8 +30,6 @@ func StringifyRespBytes(in []byte) (string, bool) {
 }
 
 type Resp interface {
-	TypeId() string
-	Value() interface{}
 	Width() int
 }
 
@@ -44,28 +43,12 @@ type RespString struct {
 	inner []byte
 }
 
-func (rs *RespString) TypeId() string {
-	return "string"
-}
-
-func (rs *RespString) Value() interface{} {
-	return string(rs.inner)
-}
-
 func (rs *RespString) Width() int {
 	return 0
 }
 
 type RespBulkString struct {
 	inner []byte
-}
-
-func (rs *RespBulkString) TypeId() string {
-	return "bulk-string"
-}
-
-func (rs *RespBulkString) Value() interface{} {
-	return string(rs.inner)
 }
 
 func (rs *RespBulkString) Width() int {
@@ -76,27 +59,11 @@ type RespInteger struct {
 	inner int
 }
 
-func (rs *RespInteger) TypeId() string {
-	return "integer"
-}
-
-func (rs *RespInteger) Value() interface{} {
-	return rs.inner
-}
-
 func (rs *RespInteger) Width() int {
 	return 0
 }
 
 type RespNil struct {
-}
-
-func (rs *RespNil) TypeId() string {
-	return "nil"
-}
-
-func (rs *RespNil) Value() interface{} {
-	return "(nil)"
 }
 
 func (rs *RespNil) Width() int {
@@ -107,15 +74,6 @@ type RespArray struct {
 	inner []Resp
 }
 
-func (rs *RespArray) TypeId() string {
-	return "array"
-}
-
-func (rs *RespArray) Value() interface{} {
-	return rs.inner
-}
-
-// TODO: Do we actually need this?
 func (rs *RespArray) Width() int {
 	ourWidth := 0
 	currLen := len(rs.inner)
@@ -131,19 +89,19 @@ func (rs *RespArray) Width() int {
 func stringifyRespType(res Resp, width int, inList bool) (string, bool) {
 	if res == nil {
 		return "", false
-	} else if res.TypeId() == "bulk-string" || (res.TypeId() == "string" && inList) {
-		// This complicated boolean is here because strings in element of a list is also
-		// double-quoted
-		return fmt.Sprintf("\"%s\"", res.Value().(string)), true
-	} else if res.TypeId() == "string" {
-		return res.Value().(string), true
-	} else if res.TypeId() == "integer" {
-		return fmt.Sprintf("(integer) %d", res.Value().(int)), true
-	} else if res.TypeId() == "nil" {
-		return res.Value().(string), true
-	} else if res.TypeId() == "array" {
+	} else if rs, ok := res.(*RespBulkString); ok {
+		return fmt.Sprintf("\"%s\"", string(rs.inner)), true
+	} else if rs, ok := res.(*RespString); ok && inList {
+		return fmt.Sprintf("\"%s\"", string(rs.inner)), true
+	} else if rs, ok := res.(*RespString); ok {
+		return string(rs.inner), true
+	} else if rs, ok := res.(*RespInteger); ok {
+		return fmt.Sprintf("(integer) %d", rs.inner), true
+	} else if _, ok := res.(*RespNil); ok {
+		return "(nil)", true
+	} else if rs, ok := res.(*RespArray); ok {
 		var str strings.Builder
-		arr := res.Value().([]Resp)
+		arr := rs.inner
 
 		if width > 0 {
 			width += 2
