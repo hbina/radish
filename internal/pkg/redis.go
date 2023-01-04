@@ -82,7 +82,7 @@ func (r *Redis) SetConfigValue(key string, value string) {
 // NewClient creates new client and adds it to the redis.
 func (r *Redis) NewClient(conn net.Conn) *Client {
 	c := &Client{
-		conn:  &Conn{conn: conn},
+		conn:  util.NewConn(conn),
 		redis: r,
 	}
 	return c
@@ -158,13 +158,13 @@ func (r *Redis) HandleClient(client *Client) {
 		buffer = append(buffer, tmp[:count]...)
 
 		// Try to parse the current buffer as a RESP
-		resp, leftover := util.ConvertBytesToRespType(buffer)
+		resp, leftover := util.ParseResp2(buffer)
 
 		for resp != nil {
 			util.Logger.Println(util.EscapeString(string(buffer)))
 			buffer = leftover
 			r.HandleRequest(client, util.ConvertRespToArgs(resp))
-			resp, leftover = util.ConvertBytesToRespType(buffer)
+			resp, leftover = util.ParseResp2(buffer)
 		}
 
 		count, err = client.Read(tmp)
@@ -205,7 +205,7 @@ func (r *Redis) StartBcmdTimeoutJob() {
 	f := func() {
 		for c := range r.bcmdTtl {
 			c.Db().Lock()
-			c.Conn().WriteNull()
+			c.Conn().WriteResp(&util.Resp2NilArray{})
 			delete(r.rlist, c)
 			c.Db().Unlock()
 		}

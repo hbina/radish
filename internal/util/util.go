@@ -2,6 +2,7 @@ package util
 
 import (
 	"math"
+	"net"
 	"strconv"
 	"strings"
 	"time"
@@ -147,4 +148,38 @@ func ParseLexRange(start string, stop string) (string, bool, string, bool, bool)
 	}
 
 	return start, startExclusive, stop, stopExclusive, false
+}
+
+func TakeBytesUntilClrf(in []byte) ([]byte, []byte, bool) {
+	if len(in) == 0 {
+		return []byte{}, []byte{}, false
+	}
+
+	idx := 0
+	// We don't have to check for escapes here because we check for both CRLF
+	for len(in) > idx+1 && !(in[idx] == '\r' && in[idx+1] == '\n') {
+		idx++
+	}
+
+	if len(in) > idx+1 && in[idx] == '\r' && in[idx+1] == '\n' {
+		return in[:idx], in[idx+2:], true
+	} else {
+		return in, []byte{}, false
+	}
+}
+
+func WriteAll(conn net.Conn, data []byte) error {
+	total := 0
+	for {
+		c, err := conn.Write(data[total:])
+
+		if err != nil {
+			return err
+		}
+
+		total += c
+		if len(data) == total {
+			return nil
+		}
+	}
 }
