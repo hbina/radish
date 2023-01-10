@@ -82,7 +82,11 @@ func (s *ZSet) Union(o *ZSet, mode int, weight float64) *ZSet {
 	for key, node := range o.inner.Dict {
 		_, exists := set.inner.Dict[key]
 		if !exists {
-			set.inner.AddOrUpdate(key, node.Score*weight)
+			if weight == 0 {
+				set.inner.AddOrUpdate(key, 0)
+			} else {
+				set.inner.AddOrUpdate(key, node.Score*weight)
+			}
 		}
 	}
 

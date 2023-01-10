@@ -158,5 +158,5 @@ func ZmpopCommand(c *pkg.Client, args [][]byte) {
 		return
 	}
 
-	c.Conn().WriteArray(0)
+	c.Conn().WriteNullArray()
 }
