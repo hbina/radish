@@ -205,7 +205,7 @@ func (r *Redis) StartBcmdTimeoutJob() {
 	f := func() {
 		for c := range r.bcmdTtl {
 			c.Db().Lock()
-			c.Conn().WriteNull()
+			c.Conn().WriteNullArray()
 			delete(r.rlist, c)
 			c.Db().Unlock()
 		}

@@ -23,7 +23,7 @@ func BzmpopCommand(c *pkg.Client, args [][]byte) *pkg.BlockedCommand {
 
 	timeoutStr := string(args[1])
 
-	timeout64, err := strconv.ParseInt(timeoutStr, 10, 32)
+	timeout64, err := strconv.ParseFloat(timeoutStr, 64)
 
 	if err != nil || timeout64 < 0 {
 		c.Conn().WriteError(util.SyntaxErr)
@@ -33,7 +33,7 @@ func BzmpopCommand(c *pkg.Client, args [][]byte) *pkg.BlockedCommand {
 	ttl := time.Time{}
 
 	if timeout64 > 0 {
-		ttl = time.Now().Add(time.Duration(timeout64 * int64(time.Second)))
+		ttl = time.Now().Add(time.Duration(timeout64 * float64(time.Second)))
 	}
 
 	numKeyStr := string(args[2])
@@ -180,5 +180,5 @@ func BzmpopCommand(c *pkg.Client, args [][]byte) *pkg.BlockedCommand {
 		c,
 		args,
 		ttl,
-		time.Duration(timeout64*int64(time.Second)))
+		time.Duration(timeout64*float64(time.Second)))
 }
