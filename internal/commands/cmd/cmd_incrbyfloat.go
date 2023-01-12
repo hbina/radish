@@ -13,7 +13,7 @@ import (
 // https://redis.io/commands/incrbyfloat/
 func IncrByFloatCommand(c *pkg.Client, args [][]byte) {
 	if len(args) != 3 {
-		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -23,7 +23,7 @@ func IncrByFloatCommand(c *pkg.Client, args [][]byte) {
 	incrBy, err := strconv.ParseFloat(string(args[2]), 64)
 
 	if err != nil {
-		c.Conn().WriteError(util.InvalidFloatErr)
+		c.WriteError(util.InvalidFloatErr)
 		return
 	}
 
@@ -32,21 +32,21 @@ func IncrByFloatCommand(c *pkg.Client, args [][]byte) {
 	if !exists {
 		incrByStr := strconv.FormatFloat(incrBy, 'f', -1, 64)
 		db.Set(key, types.NewString(incrByStr), time.Time{})
-		c.Conn().WriteString(fmt.Sprintf("\"%s\"", incrByStr))
+		c.WriteString(fmt.Sprintf("\"%s\"", incrByStr))
 		return
 	}
 
 	value, ok := item.Value().(string)
 
 	if !ok {
-		c.Conn().WriteError(util.WrongTypeErr)
+		c.WriteError(util.WrongTypeErr)
 		return
 	}
 
 	floatValue, err := strconv.ParseFloat(value, 64)
 
 	if err != nil {
-		c.Conn().WriteError(util.InvalidFloatErr)
+		c.WriteError(util.InvalidFloatErr)
 		return
 	}
 
@@ -54,5 +54,5 @@ func IncrByFloatCommand(c *pkg.Client, args [][]byte) {
 
 	floatValueStr := strconv.FormatFloat(floatValue, 'f', -1, 64)
 	db.Set(key, types.NewString(floatValueStr), time.Time{})
-	c.Conn().WriteString(fmt.Sprintf("\"%s\"", floatValueStr))
+	c.WriteString(fmt.Sprintf("\"%s\"", floatValueStr))
 }

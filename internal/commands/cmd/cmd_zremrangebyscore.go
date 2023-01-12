@@ -13,7 +13,7 @@ import (
 // ZREMRANGEBYSCORE key min max
 func ZremrangebyscoreCommand(c *pkg.Client, args [][]byte) {
 	if len(args) != 4 {
-		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -24,7 +24,7 @@ func ZremrangebyscoreCommand(c *pkg.Client, args [][]byte) {
 	start, startExclusive, stop, stopExclusive, err := util.ParseFloatRange(startStr, stopStr)
 
 	if err {
-		c.Conn().WriteError(util.InvalidFloatErr)
+		c.WriteError(util.InvalidFloatErr)
 		return
 	}
 
@@ -36,7 +36,7 @@ func ZremrangebyscoreCommand(c *pkg.Client, args [][]byte) {
 	}
 
 	if maybeSet.Type() != types.ValueTypeZSet {
-		c.Conn().WriteError(util.WrongTypeErr)
+		c.WriteError(util.WrongTypeErr)
 		return
 	}
 
@@ -61,5 +61,5 @@ func ZremrangebyscoreCommand(c *pkg.Client, args [][]byte) {
 		db.Delete(key)
 	}
 
-	c.Conn().WriteInt(count)
+	c.WriteInt(count)
 }

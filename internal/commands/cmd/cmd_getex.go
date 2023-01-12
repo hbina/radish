@@ -14,7 +14,7 @@ import (
 // GETEX key [EX seconds | PX milliseconds | EXAT unix-time-seconds | PXAT unix-time-milliseconds | PERSIST]
 func GetexCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 2 {
-		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -30,17 +30,17 @@ func GetexCommand(c *pkg.Client, args [][]byte) {
 		arg := strings.ToLower(string(args[i]))
 		switch arg {
 		default:
-			c.Conn().WriteError(util.SyntaxErr)
+			c.WriteError(util.SyntaxErr)
 			return
 		case "ex":
 			if expireMode != SetExpireMode {
-				c.Conn().WriteError(util.SyntaxErr)
+				c.WriteError(util.SyntaxErr)
 				return
 			}
 
 			// We require 1 more argument for EX
 			if len(args) == i+1 {
-				c.Conn().WriteError(util.SyntaxErr)
+				c.WriteError(util.SyntaxErr)
 				return
 			}
 			i++
@@ -48,7 +48,7 @@ func GetexCommand(c *pkg.Client, args [][]byte) {
 			ttl, err := util.ParseTtlFromUnitTime(string(args[i]), int64(time.Second))
 
 			if ttl.IsZero() || err != nil {
-				c.Conn().WriteError(util.InvalidIntErr)
+				c.WriteError(util.InvalidIntErr)
 				return
 			}
 
@@ -56,13 +56,13 @@ func GetexCommand(c *pkg.Client, args [][]byte) {
 			expireMode = SetExpireEx
 		case "px":
 			if expireMode != SetExpireMode {
-				c.Conn().WriteError(util.SyntaxErr)
+				c.WriteError(util.SyntaxErr)
 				return
 			}
 
 			// We require 1 more argument for PX
 			if len(args) == i {
-				c.Conn().WriteError(util.SyntaxErr)
+				c.WriteError(util.SyntaxErr)
 				return
 			}
 			i++
@@ -70,7 +70,7 @@ func GetexCommand(c *pkg.Client, args [][]byte) {
 			ttl, err := util.ParseTtlFromUnitTime(string(args[i]), int64(time.Millisecond))
 
 			if ttl.IsZero() || err != nil {
-				c.Conn().WriteError(util.InvalidIntErr)
+				c.WriteError(util.InvalidIntErr)
 				return
 			}
 
@@ -78,13 +78,13 @@ func GetexCommand(c *pkg.Client, args [][]byte) {
 			expireMode = SetExpirePx
 		case "exat":
 			if expireMode != SetExpireMode {
-				c.Conn().WriteError(util.SyntaxErr)
+				c.WriteError(util.SyntaxErr)
 				return
 			}
 
 			// We require 1 more argument for EXAT
 			if len(args) == i {
-				c.Conn().WriteError(util.SyntaxErr)
+				c.WriteError(util.SyntaxErr)
 				return
 			}
 			i++
@@ -92,7 +92,7 @@ func GetexCommand(c *pkg.Client, args [][]byte) {
 			ttl, err := util.ParseTtlFromTimestamp(string(args[i]), time.Second)
 
 			if err != nil || ttl.IsZero() {
-				c.Conn().WriteError(util.InvalidIntErr)
+				c.WriteError(util.InvalidIntErr)
 				return
 			}
 
@@ -100,13 +100,13 @@ func GetexCommand(c *pkg.Client, args [][]byte) {
 			expireMode = SetExpireExat
 		case "pxat":
 			if expireMode != SetExpireMode {
-				c.Conn().WriteError(util.SyntaxErr)
+				c.WriteError(util.SyntaxErr)
 				return
 			}
 
 			// We require 1 more argument for PX
 			if len(args) == i {
-				c.Conn().WriteError(util.SyntaxErr)
+				c.WriteError(util.SyntaxErr)
 				return
 			}
 			i++
@@ -114,7 +114,7 @@ func GetexCommand(c *pkg.Client, args [][]byte) {
 			ttl, err := util.ParseTtlFromTimestamp(string(args[i]), time.Millisecond)
 
 			if err != nil || ttl.IsZero() {
-				c.Conn().WriteError(util.InvalidIntErr)
+				c.WriteError(util.InvalidIntErr)
 				return
 			}
 
@@ -122,7 +122,7 @@ func GetexCommand(c *pkg.Client, args [][]byte) {
 			expireMode = SetExpirePxat
 		case "persist":
 			if expireMode != SetExpireMode {
-				c.Conn().WriteError(util.SyntaxErr)
+				c.WriteError(util.SyntaxErr)
 				return
 			}
 
@@ -132,18 +132,18 @@ func GetexCommand(c *pkg.Client, args [][]byte) {
 	}
 
 	if item == nil {
-		c.Conn().WriteNull()
+		c.WriteNull()
 		return
 	}
 
 	if item.Type() == types.ValueTypeString {
 		v := item.Value().(string)
-		c.Conn().WriteBulkString(v)
+		c.WriteBulkString(v)
 		// Only write the expiry ttl if the GET operation is successful
 		db.SetExpiry(key, newTtl)
 		return
 	} else {
-		c.Conn().WriteError(fmt.Sprintf("%s: key is a %s not a %s", util.WrongTypeErr, item.TypeFancy(), types.ValueTypeFancyString))
+		c.WriteError(fmt.Sprintf("%s: key is a %s not a %s", util.WrongTypeErr, item.TypeFancy(), types.ValueTypeFancyString))
 		return
 	}
 }

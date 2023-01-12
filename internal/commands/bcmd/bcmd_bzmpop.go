@@ -17,7 +17,7 @@ import (
 // will block until it pops a set.
 func BzmpopCommand(c *pkg.Client, args [][]byte) *pkg.BlockedCommand {
 	if len(args) < 4 {
-		c.Conn().WriteError(util.SyntaxErr)
+		c.WriteError(util.SyntaxErr)
 		return nil
 	}
 
@@ -26,7 +26,7 @@ func BzmpopCommand(c *pkg.Client, args [][]byte) *pkg.BlockedCommand {
 	timeout64, err := strconv.ParseFloat(timeoutStr, 64)
 
 	if err != nil || timeout64 < 0 {
-		c.Conn().WriteError(util.SyntaxErr)
+		c.WriteError(util.SyntaxErr)
 		return nil
 	}
 
@@ -41,14 +41,14 @@ func BzmpopCommand(c *pkg.Client, args [][]byte) *pkg.BlockedCommand {
 	numKey64, err := strconv.ParseInt(numKeyStr, 10, 32)
 
 	if err != nil || numKey64 < 0 {
-		c.Conn().WriteError(util.SyntaxErr)
+		c.WriteError(util.SyntaxErr)
 		return nil
 	}
 
 	numKey := int(numKey64)
 
 	if len(args) < 3+numKey {
-		c.Conn().WriteError(util.SyntaxErr)
+		c.WriteError(util.SyntaxErr)
 		return nil
 	}
 
@@ -64,7 +64,7 @@ func BzmpopCommand(c *pkg.Client, args [][]byte) *pkg.BlockedCommand {
 	mode := -1
 
 	if 3+numKey >= len(args) {
-		c.Conn().WriteError(util.SyntaxErr)
+		c.WriteError(util.SyntaxErr)
 		return nil
 	}
 
@@ -75,7 +75,7 @@ func BzmpopCommand(c *pkg.Client, args [][]byte) *pkg.BlockedCommand {
 	} else if modeStr == "max" {
 		mode = 1
 	} else {
-		c.Conn().WriteError(util.SyntaxErr)
+		c.WriteError(util.SyntaxErr)
 		return nil
 	}
 
@@ -88,19 +88,19 @@ func BzmpopCommand(c *pkg.Client, args [][]byte) *pkg.BlockedCommand {
 		switch arg {
 		default:
 			{
-				c.Conn().WriteError(util.SyntaxErr)
+				c.WriteError(util.SyntaxErr)
 				return nil
 			}
 		case "count":
 			{
 				if count != -1 {
-					c.Conn().WriteError(util.SyntaxErr)
+					c.WriteError(util.SyntaxErr)
 					return nil
 				}
 
 				// Need 1 more argument
 				if i+1 >= len(args) {
-					c.Conn().WriteError(util.SyntaxErr)
+					c.WriteError(util.SyntaxErr)
 					return nil
 				}
 
@@ -110,12 +110,12 @@ func BzmpopCommand(c *pkg.Client, args [][]byte) *pkg.BlockedCommand {
 				count64, err := strconv.ParseInt(countStr, 10, 32)
 
 				if err != nil {
-					c.Conn().WriteError(util.SyntaxErr)
+					c.WriteError(util.SyntaxErr)
 					return nil
 				}
 
 				if count64 <= 0 {
-					c.Conn().WriteError(util.SyntaxErr)
+					c.WriteError(util.SyntaxErr)
 					return nil
 				}
 
@@ -164,13 +164,13 @@ func BzmpopCommand(c *pkg.Client, args [][]byte) *pkg.BlockedCommand {
 
 		db.Set(key, types.NewZSetFromSs(set), ttl)
 
-		c.Conn().WriteArray(2)
-		c.Conn().WriteBulkString(key)
-		c.Conn().WriteArray(len(res))
+		c.WriteArray(2)
+		c.WriteBulkString(key)
+		c.WriteArray(len(res))
 		for _, n := range res {
-			c.Conn().WriteArray(2)
-			c.Conn().WriteBulkString(n.Key)
-			c.Conn().WriteBulkString(fmt.Sprint(n.Score))
+			c.WriteArray(2)
+			c.WriteBulkString(n.Key)
+			c.WriteBulkString(fmt.Sprint(n.Score))
 		}
 
 		return nil

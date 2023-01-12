@@ -13,7 +13,7 @@ import (
 // SETX key value
 func SetXCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 3 {
-		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -24,11 +24,11 @@ func SetXCommand(c *pkg.Client, args [][]byte) {
 	exists := db.Exists(key)
 
 	if !exists {
-		c.Conn().WriteInt(0)
+		c.WriteInt(0)
 		return
 	}
 
 	db.Set(key, types.NewString(value), time.Time{})
 
-	c.Conn().WriteInt(1)
+	c.WriteInt(1)
 }

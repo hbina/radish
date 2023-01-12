@@ -13,7 +13,7 @@ import (
 // ZSCORE key member
 func ZscoreCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 3 {
-		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -26,7 +26,7 @@ func ZscoreCommand(c *pkg.Client, args [][]byte) {
 	}
 
 	if maybeSet.Type() != types.ValueTypeZSet {
-		c.Conn().WriteError(util.WrongTypeErr)
+		c.WriteError(util.WrongTypeErr)
 		return
 	}
 
@@ -35,17 +35,17 @@ func ZscoreCommand(c *pkg.Client, args [][]byte) {
 	maybeMember := set.GetByKey(memberKey)
 
 	if maybeMember == nil {
-		c.Conn().WriteNull()
+		c.WriteNull()
 		return
 	}
 
 	if math.IsNaN(maybeMember.Score) {
-		c.Conn().WriteString("nan")
+		c.WriteString("nan")
 	} else if math.IsInf(maybeMember.Score, -1) {
-		c.Conn().WriteString("-inf")
+		c.WriteString("-inf")
 	} else if math.IsInf(maybeMember.Score, 1) {
-		c.Conn().WriteString("inf")
+		c.WriteString("inf")
 	} else {
-		c.Conn().WriteString(fmt.Sprint(maybeMember.Score))
+		c.WriteString(fmt.Sprint(maybeMember.Score))
 	}
 }

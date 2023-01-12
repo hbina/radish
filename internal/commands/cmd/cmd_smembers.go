@@ -11,7 +11,7 @@ import (
 // https://redis.io/commands/smembers/
 func SmembersCommand(c *pkg.Client, args [][]byte) {
 	if len(args) != 2 {
-		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -23,7 +23,7 @@ func SmembersCommand(c *pkg.Client, args [][]byte) {
 	}
 
 	if maybeSet.Type() != types.ValueTypeSet {
-		c.Conn().WriteError(util.WrongTypeErr)
+		c.WriteError(util.WrongTypeErr)
 		return
 	}
 
@@ -35,8 +35,8 @@ func SmembersCommand(c *pkg.Client, args [][]byte) {
 		return true
 	})
 
-	c.Conn().WriteArray(len(result))
+	c.WriteArray(len(result))
 	for _, v := range result {
-		c.Conn().WriteBulkString(v)
+		c.WriteBulkString(v)
 	}
 }

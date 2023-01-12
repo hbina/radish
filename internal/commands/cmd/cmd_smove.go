@@ -12,7 +12,7 @@ import (
 // SMOVE source destination member
 func SmoveCommand(c *pkg.Client, args [][]byte) {
 	if len(args) != 4 {
-		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -25,10 +25,10 @@ func SmoveCommand(c *pkg.Client, args [][]byte) {
 	maybeSource, sourceTtl := db.Get(sourceKey)
 
 	if maybeSource == nil {
-		c.Conn().WriteInt(0)
+		c.WriteInt(0)
 		return
 	} else if maybeSource.Type() != types.ValueTypeSet {
-		c.Conn().WriteError(util.WrongTypeErr)
+		c.WriteError(util.WrongTypeErr)
 		return
 	}
 
@@ -39,7 +39,7 @@ func SmoveCommand(c *pkg.Client, args [][]byte) {
 	if maybeDest == nil {
 		maybeDest = types.NewSetEmpty()
 	} else if maybeDest.Type() != types.ValueTypeSet {
-		c.Conn().WriteError(util.WrongTypeErr)
+		c.WriteError(util.WrongTypeErr)
 		return
 	}
 
@@ -48,7 +48,7 @@ func SmoveCommand(c *pkg.Client, args [][]byte) {
 	existed := sourceSet.RemoveMember(memberKey)
 
 	if !existed {
-		c.Conn().WriteInt(0)
+		c.WriteInt(0)
 		return
 	}
 
@@ -57,5 +57,5 @@ func SmoveCommand(c *pkg.Client, args [][]byte) {
 	db.Set(sourceKey, sourceSet, sourceTtl)
 	db.Set(destinationKey, destSet, destTtl)
 
-	c.Conn().WriteInt(1)
+	c.WriteInt(1)
 }

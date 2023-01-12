@@ -28,7 +28,7 @@ const (
 // ZADD key [NX | XX] [GT | LT] [CH] [INCR] score member [score member ...]
 func ZaddCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 4 {
-		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -55,7 +55,7 @@ func ZaddCommand(c *pkg.Client, args [][]byte) {
 		case "xx":
 			{
 				if insertMode != ZaddInsertMode {
-					c.Conn().WriteError(util.SyntaxErr)
+					c.WriteError(util.SyntaxErr)
 					return
 				}
 				insertMode = ZaddInsertXx
@@ -64,7 +64,7 @@ func ZaddCommand(c *pkg.Client, args [][]byte) {
 		case "nx":
 			{
 				if insertMode != ZaddInsertMode || compareMode != ZaddCompareMode {
-					c.Conn().WriteError(util.SyntaxErr)
+					c.WriteError(util.SyntaxErr)
 					return
 				}
 				insertMode = ZaddInsertNx
@@ -73,7 +73,7 @@ func ZaddCommand(c *pkg.Client, args [][]byte) {
 		case "gt":
 			{
 				if compareMode != ZaddCompareMode || insertMode == ZaddInsertNx {
-					c.Conn().WriteError(util.SyntaxErr)
+					c.WriteError(util.SyntaxErr)
 					return
 				}
 				compareMode = ZaddCompareGt
@@ -82,7 +82,7 @@ func ZaddCommand(c *pkg.Client, args [][]byte) {
 		case "lt":
 			{
 				if compareMode != ZaddCompareMode || insertMode == ZaddInsertNx {
-					c.Conn().WriteError(util.SyntaxErr)
+					c.WriteError(util.SyntaxErr)
 					return
 				}
 				compareMode = ZaddCompareLt
@@ -103,13 +103,13 @@ func ZaddCommand(c *pkg.Client, args [][]byte) {
 
 	// Cannot find any score member pairs
 	if len(args)-(optionCount+2) == 0 {
-		c.Conn().WriteError(util.WrongNumOfArgsErr)
+		c.WriteError(util.WrongNumOfArgsErr)
 		return
 	}
 
 	// Check if there are score member pairs before we even proceed
 	if (len(args)-(optionCount+2))%2 == 1 {
-		c.Conn().WriteError(util.SyntaxErr)
+		c.WriteError(util.SyntaxErr)
 		return
 	}
 
@@ -117,7 +117,7 @@ func ZaddCommand(c *pkg.Client, args [][]byte) {
 	for i := 2 + optionCount; i < len(args); i += 2 {
 		score, err := strconv.ParseFloat(string(args[i]), 64)
 		if err != nil || math.IsNaN(score) {
-			c.Conn().WriteError(util.InvalidFloatErr)
+			c.WriteError(util.InvalidFloatErr)
 			return
 		}
 	}
@@ -125,7 +125,7 @@ func ZaddCommand(c *pkg.Client, args [][]byte) {
 	// Redis does not support multiple score-element pair when doing INCR option
 	// for some reasons...
 	if incrEnabled && len(args)-optionCount-2 > 2 {
-		c.Conn().WriteError(fmt.Sprintf("ERR %s option supports a single increment-element pair", "INCR"))
+		c.WriteError(fmt.Sprintf("ERR %s option supports a single increment-element pair", "INCR"))
 		return
 	}
 
@@ -136,7 +136,7 @@ func ZaddCommand(c *pkg.Client, args [][]byte) {
 	}
 
 	if maybeSet.Type() != types.ValueTypeZSet {
-		c.Conn().WriteError(util.WrongTypeErr)
+		c.WriteError(util.WrongTypeErr)
 		return
 	}
 
@@ -178,11 +178,11 @@ func ZaddCommand(c *pkg.Client, args [][]byte) {
 
 	if incrEnabled {
 		if newScore == nil {
-			c.Conn().WriteNull()
+			c.WriteNull()
 		} else {
-			c.Conn().WriteString(fmt.Sprint(*newScore))
+			c.WriteString(fmt.Sprint(*newScore))
 		}
 	} else {
-		c.Conn().WriteInt(addedCount)
+		c.WriteInt(addedCount)
 	}
 }

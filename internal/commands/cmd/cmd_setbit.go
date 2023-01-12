@@ -14,7 +14,7 @@ import (
 // SETBIT key offset value
 func SetbitCommand(c *pkg.Client, args [][]byte) {
 	if len(args) != 4 {
-		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -27,7 +27,7 @@ func SetbitCommand(c *pkg.Client, args [][]byte) {
 	byteOffset64, err := strconv.ParseInt(offsetStr, 10, 32)
 
 	if err != nil || byteOffset64 < 0 {
-		c.Conn().WriteError("ERR bit offset is not an integer or out of range")
+		c.WriteError("ERR bit offset is not an integer or out of range")
 		return
 	}
 
@@ -41,7 +41,7 @@ func SetbitCommand(c *pkg.Client, args [][]byte) {
 
 	// Parse bitOffset
 	if bitStr != "0" && bitStr != "1" {
-		c.Conn().WriteError(util.InvalidIntErr)
+		c.WriteError(util.InvalidIntErr)
 		return
 	}
 
@@ -49,14 +49,14 @@ func SetbitCommand(c *pkg.Client, args [][]byte) {
 
 	// Should not happen but you never know
 	if err != nil {
-		c.Conn().WriteError(util.SyntaxErr)
+		c.WriteError(util.SyntaxErr)
 		return
 	}
 
 	maybeItem, _ := db.Get(key)
 
 	if maybeItem != nil && maybeItem.Type() != types.ValueTypeString {
-		c.Conn().WriteError(util.WrongTypeErr)
+		c.WriteError(util.WrongTypeErr)
 	} else {
 		// Some tricky bit operations.
 		// Please verify!
@@ -88,6 +88,6 @@ func SetbitCommand(c *pkg.Client, args [][]byte) {
 		}
 
 		db.Set(key, types.NewString(string(bytes)), time.Time{})
-		c.Conn().WriteInt(int(oldBit))
+		c.WriteInt(int(oldBit))
 	}
 }

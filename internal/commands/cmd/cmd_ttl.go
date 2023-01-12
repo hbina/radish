@@ -12,7 +12,7 @@ import (
 // TTL key
 func TtlCommand(c *pkg.Client, args [][]byte) {
 	if len(args) != 2 {
-		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -22,12 +22,12 @@ func TtlCommand(c *pkg.Client, args [][]byte) {
 	item, ttl := db.Get(key)
 
 	if item == nil {
-		c.Conn().WriteInt(-2)
+		c.WriteInt(-2)
 		return
 	} else if item != nil && time.Time.IsZero(ttl) {
-		c.Conn().WriteInt(-1)
+		c.WriteInt(-1)
 		return
 	}
 
-	c.Conn().WriteInt64(int64(time.Until(ttl).Seconds()))
+	c.WriteInt64(int64(time.Until(ttl).Seconds()))
 }

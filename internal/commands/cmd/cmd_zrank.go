@@ -17,7 +17,7 @@ func ZrankCommand(c *pkg.Client, args [][]byte) {
 
 func implZrankCommand(c *pkg.Client, args [][]byte, reverse bool) {
 	if len(args) < 3 {
-		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -30,7 +30,7 @@ func implZrankCommand(c *pkg.Client, args [][]byte, reverse bool) {
 		switch strings.ToLower(string(args[i])) {
 		default:
 			{
-				c.Conn().WriteError(util.SyntaxErr)
+				c.WriteError(util.SyntaxErr)
 				return
 			}
 		case "withscore":
@@ -43,12 +43,12 @@ func implZrankCommand(c *pkg.Client, args [][]byte, reverse bool) {
 	maybeSet, _ := c.Db().Get(key)
 
 	if maybeSet == nil {
-		c.Conn().WriteNull()
+		c.WriteNull()
 		return
 	}
 
 	if maybeSet.Type() != types.ValueTypeZSet {
-		c.Conn().WriteError(util.WrongTypeErr)
+		c.WriteError(util.WrongTypeErr)
 		return
 	}
 
@@ -59,26 +59,26 @@ func implZrankCommand(c *pkg.Client, args [][]byte, reverse bool) {
 	if node == nil || node.Key != memberKey {
 		if withScore {
 			// We should have a null array
-			c.Conn().WriteNullArray()
+			c.WriteNullArray()
 		} else {
-			c.Conn().WriteNull()
+			c.WriteNull()
 		}
 		return
 	}
 
 	if withScore {
-		c.Conn().WriteArray(2)
+		c.WriteArray(2)
 		if reverse {
-			c.Conn().WriteBulkString(fmt.Sprint(set.Len() - rank))
+			c.WriteBulkString(fmt.Sprint(set.Len() - rank))
 		} else {
-			c.Conn().WriteBulkString(fmt.Sprint(rank - 1))
+			c.WriteBulkString(fmt.Sprint(rank - 1))
 		}
-		c.Conn().WriteBulkString(fmt.Sprint(node.Score))
+		c.WriteBulkString(fmt.Sprint(node.Score))
 	} else {
 		if reverse {
-			c.Conn().WriteInt(set.Len() - rank)
+			c.WriteInt(set.Len() - rank)
 		} else {
-			c.Conn().WriteInt(rank - 1)
+			c.WriteInt(rank - 1)
 		}
 	}
 }

@@ -12,7 +12,7 @@ import (
 // SCARD key
 func ScardCommand(c *pkg.Client, args [][]byte) {
 	if len(args) != 2 {
-		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -23,14 +23,14 @@ func ScardCommand(c *pkg.Client, args [][]byte) {
 	maybeSet, _ := db.Get(key)
 
 	if maybeSet == nil {
-		c.Conn().WriteInt(0)
+		c.WriteInt(0)
 		return
 	} else if maybeSet.Type() != types.ValueTypeSet {
-		c.Conn().WriteError(util.WrongTypeErr)
+		c.WriteError(util.WrongTypeErr)
 		return
 	}
 
 	set := maybeSet.(*types.Set)
 
-	c.Conn().WriteInt(set.Len())
+	c.WriteInt(set.Len())
 }
