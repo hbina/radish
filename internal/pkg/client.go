@@ -3,6 +3,7 @@ package pkg
 import (
 	"fmt"
 	"net"
+	"strconv"
 )
 
 // A connected Client.
@@ -48,7 +49,7 @@ func (c *Client) WriteMap(value int) {
 		// To escape % we need %%
 		c.conn.Write([]byte(fmt.Sprintf("%%%d\r\n", value)))
 	} else {
-		c.conn.Write([]byte(fmt.Sprintf("*%d\r\n", value*2)))
+		c.conn.Write([]byte(fmt.Sprintf("*%d\r\n", value)))
 	}
 }
 
@@ -73,10 +74,11 @@ func (c *Client) WriteInt(value int) {
 }
 
 func (c *Client) WriteDouble(value float64) {
+	valueStr := strconv.FormatFloat(value, 'f', -1, 64)
 	if c.r3 {
-		c.conn.Write([]byte(fmt.Sprintf(",%f\r\n", value)))
+		c.conn.Write([]byte(fmt.Sprintf(",%s\r\n", valueStr)))
 	} else {
-		c.conn.Write([]byte(fmt.Sprintf("+%f\r\n", value)))
+		c.conn.Write([]byte(fmt.Sprintf("+%sr\n", valueStr)))
 	}
 }
 

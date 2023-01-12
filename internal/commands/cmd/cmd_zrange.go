@@ -162,13 +162,13 @@ func ZrangeCommand(c *pkg.Client, args [][]byte) {
 	if withScores {
 		c.WriteMap(len(res))
 		for _, ssn := range res {
-			c.WriteBulkString(ssn.Key)
+			c.WriteString(ssn.Key)
 			c.WriteDouble(ssn.Score)
 		}
 	} else {
 		c.WriteArray(len(res))
 		for _, ssn := range res {
-			c.WriteBulkString(ssn.Key)
+			c.WriteString(ssn.Key)
 		}
 	}
 }

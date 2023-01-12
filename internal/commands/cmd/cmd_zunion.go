@@ -276,7 +276,8 @@ func implZSetSetOperationCommand(c *pkg.Client, args [][]byte,
 		if withScores {
 			c.WriteMap(result.Len())
 			for _, node := range result.GetRangeByRank(1, result.Len(), types.DefaultRangeOptions()) {
-				c.WriteBulkString(node.Key)
+				c.WriteMap(1)
+				c.WriteString(node.Key)
 				c.WriteDouble(node.Score)
 			}
 		} else {

@@ -29,71 +29,18 @@ func StringifyRespBytes(in []byte) (string, bool) {
 	return str, true
 }
 
-type Resp interface {
-	Width() int
-}
-
-var _ Resp = &RespString{}
-var _ Resp = &RespBulkString{}
-var _ Resp = &RespInteger{}
-var _ Resp = &RespNil{}
-var _ Resp = &RespArray{}
-
-type RespString struct {
-	inner []byte
-}
-
-func (rs *RespString) Width() int {
-	return 0
-}
-
-type RespBulkString struct {
-	inner []byte
-}
-
-func (rs *RespBulkString) Width() int {
-	return 0
-}
-
-type RespInteger struct {
-	inner int
-}
-
-func (rs *RespInteger) Width() int {
-	return 0
-}
-
-type RespNil struct {
-}
-
-func (rs *RespNil) Width() int {
-	return 0
-}
-
-type RespArray struct {
-	inner []Resp
-}
-
-func (rs *RespArray) Width() int {
-	ourWidth := 0
-	currLen := len(rs.inner)
-
-	for currLen != 0 {
-		ourWidth += 1
-		currLen /= 10
-	}
-
-	return ourWidth
-}
-
 func stringifyRespType(res Resp, width int, inList bool) (string, bool) {
 	if res == nil {
 		return "", false
 	} else if rs, ok := res.(*RespBulkString); ok {
 		return fmt.Sprintf("\"%s\"", string(rs.inner)), true
-	} else if rs, ok := res.(*RespString); ok && inList {
+	} else if rs, ok := res.(*RespSimpleString); ok && inList {
 		return fmt.Sprintf("\"%s\"", string(rs.inner)), true
-	} else if rs, ok := res.(*RespString); ok {
+	} else if rs, ok := res.(*RespErrorString); ok && inList {
+		return fmt.Sprintf("\"%s\"", string(rs.inner)), true
+	} else if rs, ok := res.(*RespSimpleString); ok {
+		return string(rs.inner), true
+	} else if rs, ok := res.(*RespErrorString); ok {
 		return string(rs.inner), true
 	} else if rs, ok := res.(*RespInteger); ok {
 		return fmt.Sprintf("(integer) %d", rs.inner), true
@@ -141,14 +88,26 @@ func ConvertBytesToRespType(input []byte) (Resp, []byte) {
 	// We need at least 1 byte for the first redis type byte
 	if len(input) > 0 {
 		currByte := input[0]
-		if currByte == '+' || currByte == '-' {
+		if currByte == '+' {
 			str, leftover, ok := TakeBytesUntilClrf(input[1:])
 
 			if !ok {
 				return nil, input
 			}
 
-			rs := RespString{
+			rs := RespSimpleString{
+				inner: str,
+			}
+
+			return &rs, leftover
+		} else if currByte == '-' {
+			str, leftover, ok := TakeBytesUntilClrf(input[1:])
+
+			if !ok {
+				return nil, input
+			}
+
+			rs := RespErrorString{
 				inner: str,
 			}
 
@@ -260,7 +219,7 @@ func ConvertBytesToRespType(input []byte) (Resp, []byte) {
 				return nil, input
 			}
 
-			rs := RespString{
+			rs := RespSimpleString{
 				inner: str,
 			}
 
@@ -366,7 +325,7 @@ func ConvertRespToArgs(resp Resp) [][]byte {
 		args := make([][]byte, 0)
 
 		for _, r := range arr.inner {
-			str, ok := r.(*RespString)
+			str, ok := r.(*RespSimpleString)
 
 			if ok {
 				args = append(args, []byte(str.inner))
@@ -386,7 +345,7 @@ func ConvertRespToArgs(resp Resp) [][]byte {
 		return args
 	}
 
-	str, ok := resp.(*RespString)
+	str, ok := resp.(*RespSimpleString)
 
 	if ok {
 		return [][]byte{[]byte(str.inner)}
