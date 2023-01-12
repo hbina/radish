@@ -12,7 +12,7 @@ import (
 // MGET key [key ...]
 func StrlenCommand(c *pkg.Client, args [][]byte) {
 	if len(args) != 2 {
-		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -22,11 +22,11 @@ func StrlenCommand(c *pkg.Client, args [][]byte) {
 	maybeItem, _ := db.Get(key)
 
 	if maybeItem == nil {
-		c.WriteInt(0)
+		c.Conn().WriteInt(0)
 	} else if maybeItem.Type() != types.ValueTypeString {
-		c.WriteError(util.WrongTypeErr)
+		c.Conn().WriteError(util.WrongTypeErr)
 	} else {
 		item := maybeItem.(*types.String)
-		c.WriteInt(item.Len())
+		c.Conn().WriteInt(item.Len())
 	}
 }

@@ -12,7 +12,7 @@ import (
 // MGET key [key ...]
 func MgetCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 2 {
-		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -23,15 +23,15 @@ func MgetCommand(c *pkg.Client, args [][]byte) {
 		keys = append(keys, string(args[i]))
 	}
 
-	c.WriteArray(len(keys))
+	c.Conn().WriteArray(len(keys))
 	for _, key := range keys {
 		maybeItem, _ := db.Get(key)
 
 		if maybeItem == nil || maybeItem.Type() != types.ValueTypeString {
-			c.WriteNull()
+			c.Conn().WriteNull()
 		} else {
 			item := maybeItem.(*types.String)
-			c.WriteBulkString(item.AsString())
+			c.Conn().WriteBulkString(item.AsString())
 		}
 	}
 }

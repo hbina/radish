@@ -12,7 +12,7 @@ import (
 // SUNION key [key ...]
 func SunionCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 2 {
-		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -33,7 +33,7 @@ func SunionCommand(c *pkg.Client, args [][]byte) {
 		if maybeSet == nil {
 			continue
 		} else if maybeSet.Type() != types.ValueTypeSet {
-			c.WriteError(util.WrongTypeErr)
+			c.Conn().WriteError(util.WrongTypeErr)
 			return
 		}
 
@@ -41,9 +41,9 @@ func SunionCommand(c *pkg.Client, args [][]byte) {
 		union = union.Union(set)
 	}
 
-	c.WriteArray(union.Len())
+	c.Conn().WriteArray(union.Len())
 	union.ForEachF(func(a string) bool {
-		c.WriteBulkString(a)
+		c.Conn().WriteBulkString(a)
 		return true
 	})
 }

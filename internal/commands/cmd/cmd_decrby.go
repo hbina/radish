@@ -13,7 +13,7 @@ import (
 // https://redis.io/commands/decrby/
 func DecrByCommand(c *pkg.Client, args [][]byte) {
 	if len(args) != 3 {
-		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -23,7 +23,7 @@ func DecrByCommand(c *pkg.Client, args [][]byte) {
 	decrBy, err := strconv.ParseInt(string(args[2]), 10, 64)
 
 	if err != nil {
-		c.WriteError(util.InvalidIntErr)
+		c.Conn().WriteError(util.InvalidIntErr)
 		return
 	}
 
@@ -31,26 +31,26 @@ func DecrByCommand(c *pkg.Client, args [][]byte) {
 
 	if !exists {
 		db.Set(key, types.NewString(fmt.Sprintf("%d", decrBy)), time.Time{})
-		c.WriteInt64(decrBy)
+		c.Conn().WriteInt64(decrBy)
 		return
 	}
 
 	value, ok := item.Value().(string)
 
 	if !ok {
-		c.WriteError(util.WrongTypeErr)
+		c.Conn().WriteError(util.WrongTypeErr)
 		return
 	}
 
 	intValue, err := strconv.ParseInt(value, 10, 64)
 
 	if err != nil {
-		c.WriteError(util.InvalidIntErr)
+		c.Conn().WriteError(util.InvalidIntErr)
 		return
 	}
 
 	intValue -= decrBy
 
 	db.Set(key, types.NewString(fmt.Sprint(intValue)), time.Time{})
-	c.WriteInt64(intValue)
+	c.Conn().WriteInt64(intValue)
 }

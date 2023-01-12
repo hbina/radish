@@ -34,7 +34,7 @@ const (
 // EXAT unix-time-seconds | PXAT unix-time-milliseconds | KEEPTTL]
 func SetCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 3 {
-		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -52,13 +52,13 @@ func SetCommand(c *pkg.Client, args [][]byte) {
 		switch arg {
 		case "ex":
 			if expireMode != SetExpireMode {
-				c.WriteError(util.SyntaxErr)
+				c.Conn().WriteError(util.SyntaxErr)
 				return
 			}
 
 			// We require 1 more argument for EX
 			if len(args) == i+1 {
-				c.WriteError(util.SyntaxErr)
+				c.Conn().WriteError(util.SyntaxErr)
 				return
 			}
 			i++
@@ -66,7 +66,7 @@ func SetCommand(c *pkg.Client, args [][]byte) {
 			ttl, err := util.ParseTtlFromUnitTime(string(args[i]), int64(time.Second))
 
 			if ttl.IsZero() || err != nil {
-				c.WriteError(util.InvalidIntErr)
+				c.Conn().WriteError(util.InvalidIntErr)
 				return
 			}
 
@@ -74,13 +74,13 @@ func SetCommand(c *pkg.Client, args [][]byte) {
 			expireMode = SetExpireEx
 		case "px":
 			if expireMode != SetExpireMode {
-				c.WriteError(util.SyntaxErr)
+				c.Conn().WriteError(util.SyntaxErr)
 				return
 			}
 
 			// We require 1 more argument for PX
 			if len(args) == i {
-				c.WriteError(util.SyntaxErr)
+				c.Conn().WriteError(util.SyntaxErr)
 				return
 			}
 			i++
@@ -88,7 +88,7 @@ func SetCommand(c *pkg.Client, args [][]byte) {
 			ttl, err := util.ParseTtlFromUnitTime(string(args[i]), int64(time.Millisecond))
 
 			if ttl.IsZero() || err != nil {
-				c.WriteError(util.InvalidIntErr)
+				c.Conn().WriteError(util.InvalidIntErr)
 				return
 			}
 
@@ -96,14 +96,14 @@ func SetCommand(c *pkg.Client, args [][]byte) {
 			expireMode = SetExpirePx
 		case "nx":
 			if writeMode != SetWriteMode {
-				c.WriteError(util.SyntaxErr)
+				c.Conn().WriteError(util.SyntaxErr)
 				return
 			}
 
 			writeMode = SetWriteNx
 		case "xx":
 			if writeMode != SetWriteMode {
-				c.WriteError(util.SyntaxErr)
+				c.Conn().WriteError(util.SyntaxErr)
 				return
 			}
 
@@ -112,13 +112,13 @@ func SetCommand(c *pkg.Client, args [][]byte) {
 			shouldGet = true
 		case "exat":
 			if expireMode != SetExpireMode {
-				c.WriteError(util.SyntaxErr)
+				c.Conn().WriteError(util.SyntaxErr)
 				return
 			}
 
 			// We require 1 more argument for EXAT
 			if len(args) == i {
-				c.WriteError(util.SyntaxErr)
+				c.Conn().WriteError(util.SyntaxErr)
 				return
 			}
 			i++
@@ -126,7 +126,7 @@ func SetCommand(c *pkg.Client, args [][]byte) {
 			ttl, err := util.ParseTtlFromTimestamp(string(args[i]), time.Second)
 
 			if err != nil || ttl.IsZero() {
-				c.WriteError(util.InvalidIntErr)
+				c.Conn().WriteError(util.InvalidIntErr)
 				return
 			}
 
@@ -134,13 +134,13 @@ func SetCommand(c *pkg.Client, args [][]byte) {
 			expireMode = SetExpireExat
 		case "pxat":
 			if expireMode != SetExpireMode {
-				c.WriteError(util.SyntaxErr)
+				c.Conn().WriteError(util.SyntaxErr)
 				return
 			}
 
 			// We require 1 more argument for EXAT
 			if len(args) == i {
-				c.WriteError(util.SyntaxErr)
+				c.Conn().WriteError(util.SyntaxErr)
 				return
 			}
 			i++
@@ -148,14 +148,14 @@ func SetCommand(c *pkg.Client, args [][]byte) {
 			ttl, err := util.ParseTtlFromTimestamp(string(args[i]), time.Millisecond)
 
 			if err != nil || ttl.IsZero() {
-				c.WriteError(util.InvalidIntErr)
+				c.Conn().WriteError(util.InvalidIntErr)
 				return
 			}
 
 			newTtl = ttl
 			expireMode = SetExpireExat
 		default:
-			c.WriteError(util.SyntaxErr)
+			c.Conn().WriteError(util.SyntaxErr)
 			return
 		}
 	}
@@ -168,7 +168,7 @@ func SetCommand(c *pkg.Client, args [][]byte) {
 			if item.Type() == types.ValueTypeString {
 				foundStr = item.(*types.String)
 			} else {
-				c.WriteError(util.WrongTypeErr)
+				c.Conn().WriteError(util.WrongTypeErr)
 				return
 			}
 		}
@@ -180,12 +180,12 @@ func SetCommand(c *pkg.Client, args [][]byte) {
 	if writeMode == SetWriteNx && exists || writeMode == SetWriteXx && !exists {
 		if shouldGet {
 			if foundStr == nil {
-				c.WriteNull()
+				c.Conn().WriteNull()
 			} else {
-				c.WriteBulkString(foundStr.AsString())
+				c.Conn().WriteBulkString(foundStr.AsString())
 			}
 		} else {
-			c.WriteNull()
+			c.Conn().WriteNull()
 		}
 		return
 	}
@@ -194,12 +194,12 @@ func SetCommand(c *pkg.Client, args [][]byte) {
 
 	if shouldGet {
 		if foundStr == nil {
-			c.WriteNull()
+			c.Conn().WriteNull()
 		} else {
 			// We already checked that foundStr is a *types.String
-			c.WriteBulkString(foundStr.AsString())
+			c.Conn().WriteBulkString(foundStr.AsString())
 		}
 	} else {
-		c.WriteString("OK")
+		c.Conn().WriteString("OK")
 	}
 }

@@ -8,9 +8,9 @@ import (
 // https://redis.io/commands/object/
 func ObjectCommand(c *pkg.Client, args [][]byte) {
 	if len(args) == 0 {
-		c.WriteError(util.ZeroArgumentErr)
+		c.Conn().WriteError(util.ZeroArgumentErr)
 		return
 	}
 
-	c.WriteNull()
+	c.Conn().WriteNull()
 }

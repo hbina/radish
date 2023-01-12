@@ -12,7 +12,7 @@ import (
 // SDIFF key [key ...]
 func SdiffCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 2 {
-		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -36,7 +36,7 @@ func SdiffCommand(c *pkg.Client, args [][]byte) {
 		if maybeSet == nil {
 			maybeSet = types.NewSetEmpty()
 		} else if maybeSet.Type() != types.ValueTypeSet {
-			c.WriteError(util.WrongTypeErr)
+			c.Conn().WriteError(util.WrongTypeErr)
 			return
 		}
 
@@ -49,9 +49,9 @@ func SdiffCommand(c *pkg.Client, args [][]byte) {
 		}
 	}
 
-	c.WriteArray(diff.Len())
+	c.Conn().WriteArray(diff.Len())
 	diff.ForEachF(func(a string) bool {
-		c.WriteBulkString(a)
+		c.Conn().WriteBulkString(a)
 		return true
 	})
 }

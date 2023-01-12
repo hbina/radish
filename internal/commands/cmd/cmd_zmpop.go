@@ -14,7 +14,7 @@ import (
 // ZMPOP numkeys key [key ...] <MIN | MAX> [COUNT count]
 func ZmpopCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 4 {
-		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -23,14 +23,14 @@ func ZmpopCommand(c *pkg.Client, args [][]byte) {
 	numKey64, err := strconv.ParseInt(numKeyStr, 10, 32)
 
 	if err != nil || numKey64 <= 0 {
-		c.WriteError(fmt.Sprintf(util.NegativeIntErr, "numkeys"))
+		c.Conn().WriteError(fmt.Sprintf(util.NegativeIntErr, "numkeys"))
 		return
 	}
 
 	numKey := int(numKey64)
 
 	if len(args) < 2+numKey {
-		c.WriteError(util.SyntaxErr)
+		c.Conn().WriteError(util.SyntaxErr)
 		return
 	}
 
@@ -50,7 +50,7 @@ func ZmpopCommand(c *pkg.Client, args [][]byte) {
 	mode := -1
 
 	if 2+numKey >= len(args) {
-		c.WriteError(util.SyntaxErr)
+		c.Conn().WriteError(util.SyntaxErr)
 	}
 
 	modeStr := strings.ToLower(string(args[2+numKey]))
@@ -60,7 +60,7 @@ func ZmpopCommand(c *pkg.Client, args [][]byte) {
 	} else if modeStr == "max" {
 		mode = 1
 	} else {
-		c.WriteError(util.SyntaxErr)
+		c.Conn().WriteError(util.SyntaxErr)
 		return
 	}
 
@@ -69,19 +69,19 @@ func ZmpopCommand(c *pkg.Client, args [][]byte) {
 		switch arg {
 		default:
 			{
-				c.WriteError(util.SyntaxErr)
+				c.Conn().WriteError(util.SyntaxErr)
 				return
 			}
 		case "count":
 			{
 				if count != -1 {
-					c.WriteError(util.SyntaxErr)
+					c.Conn().WriteError(util.SyntaxErr)
 					return
 				}
 
 				// Need 1 more argument
 				if i+1 >= len(args) {
-					c.WriteError(util.SyntaxErr)
+					c.Conn().WriteError(util.SyntaxErr)
 					return
 				}
 
@@ -91,7 +91,7 @@ func ZmpopCommand(c *pkg.Client, args [][]byte) {
 				count64, err := strconv.ParseInt(countStr, 10, 32)
 
 				if err != nil || count64 <= 0 {
-					c.WriteError("ERR count must be greater than 0")
+					c.Conn().WriteError("ERR count must be greater than 0")
 					return
 				}
 
@@ -120,7 +120,7 @@ func ZmpopCommand(c *pkg.Client, args [][]byte) {
 		}
 
 		if maybeSet.Type() != types.ValueTypeZSet {
-			c.WriteError(util.WrongTypeErr)
+			c.Conn().WriteError(util.WrongTypeErr)
 			return
 		}
 
@@ -146,17 +146,17 @@ func ZmpopCommand(c *pkg.Client, args [][]byte) {
 
 		db.Set(key, types.NewZSetFromSs(set), ttl)
 
-		c.WriteArray(2)
-		c.WriteBulkString(key)
-		c.WriteArray(len(res))
+		c.Conn().WriteArray(2)
+		c.Conn().WriteBulkString(key)
+		c.Conn().WriteArray(len(res))
 		for _, n := range res {
-			c.WriteArray(2)
-			c.WriteBulkString(n.Key)
-			c.WriteBulkString(fmt.Sprint(n.Score))
+			c.Conn().WriteArray(2)
+			c.Conn().WriteBulkString(n.Key)
+			c.Conn().WriteBulkString(fmt.Sprint(n.Score))
 		}
 
 		return
 	}
 
-	c.WriteNullArray()
+	c.Conn().WriteNullArray()
 }

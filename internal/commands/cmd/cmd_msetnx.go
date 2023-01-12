@@ -13,12 +13,12 @@ import (
 // MSETNX key value [key value ...]
 func MsetnxCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 3 {
-		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	} else if len(args)%2 != 1 {
 		// If the number of arguments (excluding the command name) is not even,
 		// return syntax error
-		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, string(args[0])))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, string(args[0])))
 		return
 	}
 
@@ -29,7 +29,7 @@ func MsetnxCommand(c *pkg.Client, args [][]byte) {
 		key := string(args[i])
 
 		if db.Exists(key) {
-			c.WriteInt(0)
+			c.Conn().WriteInt(0)
 			return
 		}
 	}
@@ -41,5 +41,5 @@ func MsetnxCommand(c *pkg.Client, args [][]byte) {
 		db.Set(keyStr, types.NewString(valueStr), time.Time{})
 	}
 
-	c.WriteInt(1)
+	c.Conn().WriteInt(1)
 }

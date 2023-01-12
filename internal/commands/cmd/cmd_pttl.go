@@ -11,7 +11,7 @@ import (
 // https://redis.io/commands/pttl/
 func PttlCommand(c *pkg.Client, args [][]byte) {
 	if len(args) != 2 {
-		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -20,7 +20,7 @@ func PttlCommand(c *pkg.Client, args [][]byte) {
 	db.DeleteExpired(key)
 
 	if !db.Exists(key) {
-		c.WriteInt(-2)
+		c.Conn().WriteInt(-2)
 		return
 	}
 
@@ -30,9 +30,9 @@ func PttlCommand(c *pkg.Client, args [][]byte) {
 	// So this will only fail if the key itself does not exist.
 	// We should instead check if ttl is zero.
 	if !ok {
-		c.WriteInt(-1)
+		c.Conn().WriteInt(-1)
 		return
 	}
 
-	c.WriteInt64(int64(time.Until(ttl).Milliseconds()))
+	c.Conn().WriteInt64(int64(time.Until(ttl).Milliseconds()))
 }

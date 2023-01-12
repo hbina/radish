@@ -12,7 +12,7 @@ import (
 // ZCARD key
 func ZcardCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 2 {
-		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -24,11 +24,11 @@ func ZcardCommand(c *pkg.Client, args [][]byte) {
 	}
 
 	if maybeSet.Type() != types.ValueTypeZSet {
-		c.WriteError(util.WrongTypeErr)
+		c.Conn().WriteError(util.WrongTypeErr)
 		return
 	}
 
 	set := maybeSet.(*types.ZSet)
 
-	c.WriteInt(set.Len())
+	c.Conn().WriteInt(set.Len())
 }
