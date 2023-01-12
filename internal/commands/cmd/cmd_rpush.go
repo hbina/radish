@@ -13,7 +13,7 @@ import (
 // RPUSH key element [element ...]
 func RPushCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 3 {
-		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -24,7 +24,7 @@ func RPushCommand(c *pkg.Client, args [][]byte) {
 	if maybeItem == nil {
 		maybeItem = types.NewList()
 	} else if maybeItem.Type() != types.ValueTypeList {
-		c.Conn().WriteError(util.WrongTypeErr)
+		c.WriteError(util.WrongTypeErr)
 		return
 	}
 
@@ -36,5 +36,5 @@ func RPushCommand(c *pkg.Client, args [][]byte) {
 
 	db.Set(key, list, time.Time{})
 
-	c.Conn().WriteInt(list.Len())
+	c.WriteInt(list.Len())
 }

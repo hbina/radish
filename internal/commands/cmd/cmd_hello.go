@@ -6,5 +6,5 @@ import "github.com/hbina/radish/internal/pkg"
 // HELLO [protover [AUTH username password] [SETNAME clientname]]
 // Stub implementation
 func HelloCommand(c *pkg.Client, args [][]byte) {
-	c.Conn().WriteString("OK")
+	c.WriteString("OK")
 }

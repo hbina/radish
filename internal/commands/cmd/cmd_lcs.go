@@ -15,7 +15,7 @@ import (
 // LCS key1 key2 [LEN] [IDX] [MINMATCHLEN len] [WITHMATCHLEN]
 func LcsCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 3 {
-		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -34,7 +34,7 @@ func LcsCommand(c *pkg.Client, args [][]byte) {
 			isIdx = true
 		case "minmatchlen":
 			if i+1 == len(args) {
-				c.Conn().WriteError(util.SyntaxErr)
+				c.WriteError(util.SyntaxErr)
 			}
 
 			i++
@@ -42,7 +42,7 @@ func LcsCommand(c *pkg.Client, args [][]byte) {
 			len64, err := strconv.ParseInt(string(args[i]), 10, 32)
 
 			if err != nil || len64 < 0 {
-				c.Conn().WriteError(util.InvalidIntErr)
+				c.WriteError(util.InvalidIntErr)
 				return
 			}
 
@@ -51,7 +51,7 @@ func LcsCommand(c *pkg.Client, args [][]byte) {
 		case "withmatchlen":
 			isWithMatchLen = true
 		default:
-			c.Conn().WriteError(util.SyntaxErr)
+			c.WriteError(util.SyntaxErr)
 			return
 		}
 	}
@@ -67,7 +67,7 @@ func LcsCommand(c *pkg.Client, args [][]byte) {
 		maybeValueY.Type() != types.ValueTypeString ||
 		maybeValueX == nil ||
 		maybeValueX.Type() != types.ValueTypeString {
-		c.Conn().WriteError(util.WrongTypeErr)
+		c.WriteError(util.WrongTypeErr)
 		return
 	}
 
@@ -181,30 +181,30 @@ func LcsCommand(c *pkg.Client, args [][]byte) {
 	}
 
 	if isIdx {
-		c.Conn().WriteArray(4)
-		c.Conn().WriteBulkString("matches")
-		c.Conn().WriteArray(matchCount)
+		c.WriteArray(4)
+		c.WriteBulkString("matches")
+		c.WriteArray(matchCount)
 		for i := 0; i < matchCount; i++ {
 			if isWithMatchLen {
-				c.Conn().WriteArray(3) // we are going to write the 2 matches and the match length
+				c.WriteArray(3) // we are going to write the 2 matches and the match length
 			} else {
-				c.Conn().WriteArray(2) // we are going to write the 2 matches
+				c.WriteArray(2) // we are going to write the 2 matches
 			}
-			c.Conn().WriteArray(2) // we are going to write the start and end of matchX
-			c.Conn().WriteInt(valueXMatchIdx[i*2])
-			c.Conn().WriteInt(valueXMatchIdx[i*2+1])
-			c.Conn().WriteArray(2) // we are going to write the start and end of matchX
-			c.Conn().WriteInt(valueYMatchIdx[i*2])
-			c.Conn().WriteInt(valueYMatchIdx[i*2+1])
+			c.WriteArray(2) // we are going to write the start and end of matchX
+			c.WriteInt(valueXMatchIdx[i*2])
+			c.WriteInt(valueXMatchIdx[i*2+1])
+			c.WriteArray(2) // we are going to write the start and end of matchX
+			c.WriteInt(valueYMatchIdx[i*2])
+			c.WriteInt(valueYMatchIdx[i*2+1])
 			if isWithMatchLen {
-				c.Conn().WriteInt(valueXMatchIdx[i*2+1] - valueXMatchIdx[i*2] + 1)
+				c.WriteInt(valueXMatchIdx[i*2+1] - valueXMatchIdx[i*2] + 1)
 			}
 		}
-		c.Conn().WriteBulkString("len")
-		c.Conn().WriteInt(len(result.String()))
+		c.WriteBulkString("len")
+		c.WriteInt(len(result.String()))
 	} else if isLen {
-		c.Conn().WriteInt(getLcs(valueX.Len(), valueY.Len()))
+		c.WriteInt(getLcs(valueX.Len(), valueY.Len()))
 	} else {
-		c.Conn().WriteBulkString(result.String())
+		c.WriteBulkString(result.String())
 	}
 }

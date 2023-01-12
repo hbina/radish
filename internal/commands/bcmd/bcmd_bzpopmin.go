@@ -14,7 +14,7 @@ import (
 // BZPOPMIN key [key ...] timeout
 func BzpopminCommand(c *pkg.Client, args [][]byte) *pkg.BlockedCommand {
 	if len(args) < 3 {
-		c.Conn().WriteError(util.SyntaxErr)
+		c.WriteError(util.SyntaxErr)
 		return nil
 	}
 
@@ -23,7 +23,7 @@ func BzpopminCommand(c *pkg.Client, args [][]byte) *pkg.BlockedCommand {
 	timeout64, err := strconv.ParseFloat(timeoutStr, 64)
 
 	if err != nil || timeout64 < 0 {
-		c.Conn().WriteError(util.SyntaxErr)
+		c.WriteError(util.SyntaxErr)
 		return nil
 	}
 
@@ -58,10 +58,10 @@ func BzpopminCommand(c *pkg.Client, args [][]byte) *pkg.BlockedCommand {
 
 		db.Set(key, types.NewZSetFromSs(set), ttl)
 
-		c.Conn().WriteArray(3)
-		c.Conn().WriteBulkString(key)
-		c.Conn().WriteBulkString(n.Key)
-		c.Conn().WriteBulkString(fmt.Sprint(n.Score))
+		c.WriteArray(3)
+		c.WriteBulkString(key)
+		c.WriteBulkString(n.Key)
+		c.WriteBulkString(fmt.Sprint(n.Score))
 
 		return nil
 	}

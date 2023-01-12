@@ -11,7 +11,7 @@ import (
 // https://redis.io/commands/sismember/
 func SismemberCommand(c *pkg.Client, args [][]byte) {
 	if len(args) != 3 {
-		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -24,16 +24,16 @@ func SismemberCommand(c *pkg.Client, args [][]byte) {
 	}
 
 	if maybeSet.Type() != types.ValueTypeSet {
-		c.Conn().WriteError(util.WrongTypeErr)
+		c.WriteError(util.WrongTypeErr)
 		return
 	}
 
 	set := maybeSet.(*types.Set)
 
 	if set.Exists(member) {
-		c.Conn().WriteInt(1)
+		c.WriteInt(1)
 	} else {
-		c.Conn().WriteInt(0)
+		c.WriteInt(0)
 	}
 
 }

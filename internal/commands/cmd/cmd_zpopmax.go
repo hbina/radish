@@ -13,7 +13,7 @@ import (
 // ZPOPMIN key [count]
 func ZpopmaxCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 2 {
-		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -28,12 +28,12 @@ func ZpopmaxCommand(c *pkg.Client, args [][]byte) {
 		count64, err := strconv.ParseInt(countStr, 10, 32)
 
 		if err != nil {
-			c.Conn().WriteError(util.InvalidIntErr)
+			c.WriteError(util.InvalidIntErr)
 			return
 		}
 
 		if count64 < 0 {
-			c.Conn().WriteError(fmt.Sprintf(util.MustBePositiveErr, "count"))
+			c.WriteError(fmt.Sprintf(util.MustBePositiveErr, "count"))
 			return
 		}
 
@@ -48,12 +48,12 @@ func ZpopmaxCommand(c *pkg.Client, args [][]byte) {
 	}
 
 	if maybeSet.Type() != types.ValueTypeZSet {
-		c.Conn().WriteError(util.WrongTypeErr)
+		c.WriteError(util.WrongTypeErr)
 		return
 	}
 
 	if count == 0 {
-		c.Conn().WriteArray(0)
+		c.WriteArray(0)
 		return
 	}
 
@@ -73,9 +73,9 @@ func ZpopmaxCommand(c *pkg.Client, args [][]byte) {
 
 	db.Set(key, types.NewZSetFromSs(set), ttl)
 
-	c.Conn().WriteArray(len(res) * 2)
+	c.WriteArray(len(res) * 2)
 	for _, n := range res {
-		c.Conn().WriteBulkString(n.Key)
-		c.Conn().WriteBulkString(fmt.Sprint(n.Score))
+		c.WriteBulkString(n.Key)
+		c.WriteBulkString(fmt.Sprint(n.Score))
 	}
 }

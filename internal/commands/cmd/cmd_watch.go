@@ -9,10 +9,10 @@ import (
 // WATCH key [key ...]
 func WatchCommand(c *pkg.Client, args [][]byte) {
 	if len(args) == 0 {
-		c.Conn().WriteError(util.ZeroArgumentErr)
+		c.WriteError(util.ZeroArgumentErr)
 		return
 	}
 
 	// Currently no-op because we are not multi-threaded to begin with
-	c.Conn().WriteString("OK")
+	c.WriteString("OK")
 }
