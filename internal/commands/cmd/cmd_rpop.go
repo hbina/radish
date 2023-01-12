@@ -11,7 +11,7 @@ import (
 // https://redis.io/commands/rpop/
 func RPopCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 2 {
-		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, "rpop"))
+		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, "rpop"))
 		return
 	}
 
@@ -20,10 +20,10 @@ func RPopCommand(c *pkg.Client, args [][]byte) {
 	item, _ := db.Get(key)
 
 	if item == nil {
-		c.Conn().WriteNull()
+		c.WriteNullBulk()
 		return
 	} else if item.Type() != types.ValueTypeList {
-		c.Conn().WriteError(util.WrongTypeErr)
+		c.WriteError(util.WrongTypeErr)
 		return
 	}
 
@@ -31,9 +31,9 @@ func RPopCommand(c *pkg.Client, args [][]byte) {
 	value, valid := l.RPop()
 
 	if valid {
-		c.Conn().WriteBulkString(value)
+		c.WriteBulkString(value)
 	} else {
 		db.Delete(key)
-		c.Conn().WriteNull()
+		c.WriteNullBulk()
 	}
 }

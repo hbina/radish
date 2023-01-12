@@ -16,33 +16,33 @@ import (
 // TODO: Cleanup this mess. It feels like this shouldn't be as complicated as this?
 func SintercardCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 3 {
-		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
 	numberOfKeys64, err := strconv.ParseInt(string(args[1]), 10, 32)
 
 	if err != nil {
-		c.Conn().WriteError(fmt.Sprintf(util.NegativeIntErr, "numkeys"))
+		c.WriteError(fmt.Sprintf(util.NegativeIntErr, "numkeys"))
 		return
 	}
 
 	numberOfKeys := int(numberOfKeys64)
 
 	if numberOfKeys <= 0 {
-		c.Conn().WriteError(fmt.Sprintf(util.NegativeIntErr, "numkeys"))
+		c.WriteError(fmt.Sprintf(util.NegativeIntErr, "numkeys"))
 		return
 	}
 
 	// Should not be possible to have more keys than the args passed
 	if numberOfKeys > len(args)-2 {
-		c.Conn().WriteError("ERR Number of keys can't be greater than number of args")
+		c.WriteError("ERR Number of keys can't be greater than number of args")
 		return
 	}
 
 	// The only additional args that can be passed is LIMIT <limit>
 	if numberOfKeys != len(args)-2 && numberOfKeys != len(args)-4 {
-		c.Conn().WriteError(util.SyntaxErr)
+		c.WriteError(util.SyntaxErr)
 		return
 	}
 
@@ -64,7 +64,7 @@ func SintercardCommand(c *pkg.Client, args [][]byte) {
 
 		// TODO: I think this should be a syntax error if its not limit
 		if strings.ToLower(limitOption) != "limit" || err != nil || limitValue64 < 0 {
-			c.Conn().WriteError("ERR LIMIT can't be negative")
+			c.WriteError("ERR LIMIT can't be negative")
 			return
 		}
 
@@ -85,7 +85,7 @@ func SintercardCommand(c *pkg.Client, args [][]byte) {
 		if maybeSet == nil {
 			maybeSet = types.NewSetEmpty()
 		} else if maybeSet.Type() != types.ValueTypeSet {
-			c.Conn().WriteError(util.WrongTypeErr)
+			c.WriteError(util.WrongTypeErr)
 			return
 		}
 
@@ -99,13 +99,13 @@ func SintercardCommand(c *pkg.Client, args [][]byte) {
 	}
 
 	if intersection == nil {
-		c.Conn().WriteInt(0)
+		c.WriteInt(0)
 		return
 	}
 
 	if limit > intersection.Len() || limit == 0 {
-		c.Conn().WriteInt(intersection.Len())
+		c.WriteInt(intersection.Len())
 	} else {
-		c.Conn().WriteInt(limit)
+		c.WriteInt(limit)
 	}
 }

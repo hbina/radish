@@ -31,7 +31,7 @@ func ExpireCommand(c *pkg.Client, args [][]byte) {
 	// Calling EXPIRE with negative time will cause it to delete the key
 
 	if len(args) < 3 || len(args) > 4 {
-		c.Conn().WriteError(util.WrongNumOfArgsErr)
+		c.WriteError(util.WrongNumOfArgsErr)
 		return
 	}
 
@@ -65,14 +65,14 @@ func ExpireCommand(c *pkg.Client, args [][]byte) {
 	newTtl, err := util.ParseTtlFromUnitTime(seconds, int64(time.Second))
 
 	if err != nil {
-		c.Conn().WriteError(util.InvalidIntErr)
+		c.WriteError(util.InvalidIntErr)
 		return
 	}
 
 	item, oldTtl := c.Db().Get(key)
 
 	if item == nil {
-		c.Conn().WriteInt(0)
+		c.WriteInt(0)
 		return
 	}
 
@@ -87,5 +87,5 @@ func ExpireCommand(c *pkg.Client, args [][]byte) {
 	} else {
 		c.Db().SetExpiry(key, newTtl)
 	}
-	c.Conn().WriteInt(1)
+	c.WriteInt(1)
 }

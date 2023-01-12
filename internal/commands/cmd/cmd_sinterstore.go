@@ -14,7 +14,7 @@ import (
 // TODO: Cleanup this mess. It feels like this shouldn't be as complicated as this?
 func SinterstoreCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 3 {
-		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -38,7 +38,7 @@ func SinterstoreCommand(c *pkg.Client, args [][]byte) {
 		if maybeSet == nil {
 			maybeSet = types.NewSetEmpty()
 		} else if maybeSet.Type() != types.ValueTypeSet {
-			c.Conn().WriteError(util.WrongTypeErr)
+			c.WriteError(util.WrongTypeErr)
 			return
 		}
 
@@ -55,11 +55,11 @@ func SinterstoreCommand(c *pkg.Client, args [][]byte) {
 	if intersection == nil || intersection.Len() == 0 {
 		// This should not be possible but just to make it look nicer.
 		db.Delete(destination)
-		c.Conn().WriteInt(0)
+		c.WriteInt(0)
 		return
 	} else {
 		db.Set(destination, intersection, time.Time{})
 	}
 
-	c.Conn().WriteInt(intersection.Len())
+	c.WriteInt(intersection.Len())
 }

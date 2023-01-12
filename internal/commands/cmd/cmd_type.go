@@ -9,7 +9,7 @@ import (
 // TYPE key
 func TypeCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 2 {
-		c.Conn().WriteError(util.WrongNumOfArgsErr)
+		c.WriteError(util.WrongNumOfArgsErr)
 		return
 	}
 
@@ -19,8 +19,8 @@ func TypeCommand(c *pkg.Client, args [][]byte) {
 	maybeItem, _ := db.Get(key)
 
 	if maybeItem == nil {
-		c.Conn().WriteString("none")
+		c.WriteSimpleString("none")
 	} else {
-		c.Conn().WriteString(maybeItem.TypeFancy())
+		c.WriteSimpleString(maybeItem.TypeFancy())
 	}
 }

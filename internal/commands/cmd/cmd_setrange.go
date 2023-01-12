@@ -14,7 +14,7 @@ import (
 // SETRANGE key offset value
 func SetrangeCommand(c *pkg.Client, args [][]byte) {
 	if len(args) != 4 {
-		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -27,7 +27,7 @@ func SetrangeCommand(c *pkg.Client, args [][]byte) {
 	byteOffset64, err := strconv.ParseInt(offsetStr, 10, 32)
 
 	if err != nil || byteOffset64 < 0 {
-		c.Conn().WriteError("ERR bit offset is not an integer or out of range")
+		c.WriteError("ERR bit offset is not an integer or out of range")
 		return
 	}
 
@@ -35,20 +35,20 @@ func SetrangeCommand(c *pkg.Client, args [][]byte) {
 
 	// Redis strings can only go up to 512MB
 	if byteOffset+len(value) > 536870911 {
-		c.Conn().WriteError("ERR string exceeds maximum allowed size (proto-max-bulk-len)")
+		c.WriteError("ERR string exceeds maximum allowed size (proto-max-bulk-len)")
 		return
 	}
 
 	maybeItem, _ := db.Get(key)
 
 	if maybeItem != nil && maybeItem.Type() != types.ValueTypeString {
-		c.Conn().WriteError(util.WrongTypeErr)
+		c.WriteError(util.WrongTypeErr)
 	} else {
 		if maybeItem == nil {
 
 			if len(value) == 0 {
 				db.Delete(key)
-				c.Conn().WriteInt(0)
+				c.WriteInt(0)
 				return
 			}
 
@@ -68,6 +68,6 @@ func SetrangeCommand(c *pkg.Client, args [][]byte) {
 		}
 
 		db.Set(key, item, time.Time{})
-		c.Conn().WriteInt(item.Len())
+		c.WriteInt(item.Len())
 	}
 }

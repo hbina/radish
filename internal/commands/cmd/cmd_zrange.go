@@ -15,7 +15,7 @@ import (
 // ZRANGE key start stop [BYSCORE | BYLEX] [REV] [LIMIT offset count] [WITHSCORES]
 func ZrangeCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 4 {
-		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -37,13 +37,13 @@ func ZrangeCommand(c *pkg.Client, args [][]byte) {
 		switch arg {
 		default:
 			{
-				c.Conn().WriteError(util.SyntaxErr)
+				c.WriteError(util.SyntaxErr)
 				return
 			}
 		case "byscore":
 			{
 				if sortByLex {
-					c.Conn().WriteError(util.SyntaxErr)
+					c.WriteError(util.SyntaxErr)
 					return
 				}
 				sortByScore = true
@@ -51,7 +51,7 @@ func ZrangeCommand(c *pkg.Client, args [][]byte) {
 		case "bylex":
 			{
 				if sortByScore {
-					c.Conn().WriteError(util.SyntaxErr)
+					c.WriteError(util.SyntaxErr)
 					return
 				}
 				sortByLex = true
@@ -64,7 +64,7 @@ func ZrangeCommand(c *pkg.Client, args [][]byte) {
 			{
 				// Requires at least 2 more arguments
 				if i+2 >= len(args) {
-					c.Conn().WriteError(util.SyntaxErr)
+					c.WriteError(util.SyntaxErr)
 					return
 				}
 
@@ -75,7 +75,7 @@ func ZrangeCommand(c *pkg.Client, args [][]byte) {
 				newOffset, err := strconv.ParseInt(offsetStr, 10, 32)
 
 				if err != nil {
-					c.Conn().WriteError(util.InvalidIntErr)
+					c.WriteError(util.InvalidIntErr)
 					return
 				}
 
@@ -84,7 +84,7 @@ func ZrangeCommand(c *pkg.Client, args [][]byte) {
 				newLimit, err := strconv.ParseInt(limitStr, 10, 32)
 
 				if err != nil {
-					c.Conn().WriteError(util.InvalidIntErr)
+					c.WriteError(util.InvalidIntErr)
 					return
 				}
 
@@ -104,7 +104,7 @@ func ZrangeCommand(c *pkg.Client, args [][]byte) {
 	}
 
 	if maybeSet.Type() != types.ValueTypeZSet {
-		c.Conn().WriteError(util.WrongTypeErr)
+		c.WriteError(util.WrongTypeErr)
 		return
 	}
 
@@ -116,7 +116,7 @@ func ZrangeCommand(c *pkg.Client, args [][]byte) {
 		start, startExclusive, stop, stopExclusive, err := util.ParseLexRange(startStr, stopStr)
 
 		if err {
-			c.Conn().WriteError(util.InvalidLexErr)
+			c.WriteError(util.InvalidLexErr)
 			return
 		}
 
@@ -131,7 +131,7 @@ func ZrangeCommand(c *pkg.Client, args [][]byte) {
 		start, startExclusive, stop, stopExclusive, err := util.ParseFloatRange(startStr, stopStr)
 
 		if err {
-			c.Conn().WriteError(util.InvalidFloatErr)
+			c.WriteError(util.InvalidFloatErr)
 			return
 		}
 
@@ -146,7 +146,7 @@ func ZrangeCommand(c *pkg.Client, args [][]byte) {
 		start, startExclusive, stop, stopExclusive, err := util.ParseIntRange(startStr, stopStr)
 
 		if err {
-			c.Conn().WriteError(util.InvalidIntErr)
+			c.WriteError(util.InvalidIntErr)
 			return
 		}
 
@@ -160,17 +160,15 @@ func ZrangeCommand(c *pkg.Client, args [][]byte) {
 	}
 
 	if withScores {
-		c.Conn().WriteArray(len(res) * 2)
-
+		c.WriteMap(len(res))
 		for _, ssn := range res {
-			c.Conn().WriteBulkString(ssn.Key)
-			c.Conn().WriteBulkString(fmt.Sprint(ssn.Score))
+			c.WriteBulkString(ssn.Key)
+			c.WriteDouble(ssn.Score)
 		}
 	} else {
-		c.Conn().WriteArray(len(res))
-
+		c.WriteArray(len(res))
 		for _, ssn := range res {
-			c.Conn().WriteBulkString(ssn.Key)
+			c.WriteBulkString(ssn.Key)
 		}
 	}
 }

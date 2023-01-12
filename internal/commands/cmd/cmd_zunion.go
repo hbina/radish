@@ -46,7 +46,7 @@ func implZSetSetOperationCommand(c *pkg.Client, args [][]byte,
 
 	// Check if we have the minimum number of args
 	if len(args) < offsetToKeys {
-		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -55,20 +55,20 @@ func implZSetSetOperationCommand(c *pkg.Client, args [][]byte,
 	numKey64, err := strconv.ParseInt(numKeyStr, 10, 32)
 
 	if err != nil {
-		c.Conn().WriteError(util.InvalidIntErr)
+		c.WriteError(util.InvalidIntErr)
 		return
 	}
 
 	numKey := int(numKey64)
 
 	if numKey < 0 {
-		c.Conn().WriteError("ERR LIMIT can't be negative")
+		c.WriteError("ERR LIMIT can't be negative")
 		return
 	}
 
 	// Verify there's enough args for the given numKey
 	if len(args)-offsetToKeys < numKey {
-		c.Conn().WriteError(util.SyntaxErr)
+		c.WriteError(util.SyntaxErr)
 		return
 	}
 
@@ -81,7 +81,7 @@ func implZSetSetOperationCommand(c *pkg.Client, args [][]byte,
 
 	// Verify there's enough args for the given numKey
 	if len(args)-offsetToKeys < numKey {
-		c.Conn().WriteError(util.SyntaxErr)
+		c.WriteError(util.SyntaxErr)
 		return
 	}
 
@@ -100,7 +100,7 @@ func implZSetSetOperationCommand(c *pkg.Client, args [][]byte,
 				float, err := strconv.ParseFloat(string(args[i+offsetToKeys+numKey+1]), 64)
 
 				if err != nil || math.IsNaN(float) {
-					c.Conn().WriteError("ERR weight value is not a float")
+					c.WriteError("ERR weight value is not a float")
 					return
 				}
 
@@ -108,7 +108,7 @@ func implZSetSetOperationCommand(c *pkg.Client, args [][]byte,
 			}
 
 			if len(keys) != len(weights) {
-				c.Conn().WriteError(util.SyntaxErr)
+				c.WriteError(util.SyntaxErr)
 				return
 			}
 		}
@@ -132,20 +132,20 @@ func implZSetSetOperationCommand(c *pkg.Client, args [][]byte,
 		switch strings.ToLower(string(args[i])) {
 		default:
 			{
-				c.Conn().WriteError(util.SyntaxErr)
+				c.WriteError(util.SyntaxErr)
 				return
 			}
 		case "aggregate":
 			{
 				if card || operation == ZSetOperationDiff {
-					c.Conn().WriteError(util.SyntaxErr)
+					c.WriteError(util.SyntaxErr)
 					return
 				}
 
 				// Requires 1 more argument and check if
 				// we have found aggregate option before
 				if i+1 >= len(args) || aggregateMode != -1 {
-					c.Conn().WriteError(util.SyntaxErr)
+					c.WriteError(util.SyntaxErr)
 					return
 				}
 
@@ -168,7 +168,7 @@ func implZSetSetOperationCommand(c *pkg.Client, args [][]byte,
 		case "withscores":
 			{
 				if store || card {
-					c.Conn().WriteError(util.SyntaxErr)
+					c.WriteError(util.SyntaxErr)
 					return
 				}
 
@@ -177,12 +177,12 @@ func implZSetSetOperationCommand(c *pkg.Client, args [][]byte,
 		case "limit":
 			{
 				if !card || operation == ZSetOperationDiff {
-					c.Conn().WriteError(util.SyntaxErr)
+					c.WriteError(util.SyntaxErr)
 					return
 				}
 
 				if i+1 >= len(args) {
-					c.Conn().WriteError(util.SyntaxErr)
+					c.WriteError(util.SyntaxErr)
 					return
 				}
 
@@ -192,7 +192,7 @@ func implZSetSetOperationCommand(c *pkg.Client, args [][]byte,
 				limit64, err := strconv.ParseInt(limitStr, 10, 32)
 
 				if err != nil || limit64 < 0 {
-					c.Conn().WriteError("ERR LIMIT must be a positive integer")
+					c.WriteError("ERR LIMIT must be a positive integer")
 					return
 				}
 
@@ -234,7 +234,7 @@ func implZSetSetOperationCommand(c *pkg.Client, args [][]byte,
 		} else if maybeSet.Type() == types.ValueTypeSet {
 			set = maybeSet.(*types.Set).ToZSet()
 		} else {
-			c.Conn().WriteError(util.WrongTypeErr)
+			c.WriteError(util.WrongTypeErr)
 			return
 		}
 
@@ -249,7 +249,7 @@ func implZSetSetOperationCommand(c *pkg.Client, args [][]byte,
 			} else if operation == ZSetOperationDiff {
 				result = result.Diff(set)
 			} else {
-				c.Conn().WriteError(util.SyntaxErr)
+				c.WriteError(util.SyntaxErr)
 				return
 			}
 		}
@@ -265,24 +265,24 @@ func implZSetSetOperationCommand(c *pkg.Client, args [][]byte,
 
 	if card {
 		if result.Len() > limit {
-			c.Conn().WriteInt(limit)
+			c.WriteInt(limit)
 		} else {
-			c.Conn().WriteInt(result.Len())
+			c.WriteInt(result.Len())
 		}
 	} else if store {
 		db.Set(destination, result, time.Time{})
-		c.Conn().WriteInt(result.Len())
+		c.WriteInt(result.Len())
 	} else {
 		if withScores {
-			c.Conn().WriteArray(result.Len() * 2)
+			c.WriteMap(result.Len())
 			for _, node := range result.GetRangeByRank(1, result.Len(), types.DefaultRangeOptions()) {
-				c.Conn().WriteBulkString(node.Key)
-				c.Conn().WriteBulkString(fmt.Sprint(node.Score))
+				c.WriteBulkString(node.Key)
+				c.WriteDouble(node.Score)
 			}
 		} else {
-			c.Conn().WriteArray(result.Len())
+			c.WriteArray(result.Len())
 			for _, node := range result.GetRangeByRank(1, result.Len(), types.DefaultRangeOptions()) {
-				c.Conn().WriteBulkString(node.Key)
+				c.WriteBulkString(node.Key)
 			}
 		}
 	}

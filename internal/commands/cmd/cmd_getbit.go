@@ -13,7 +13,7 @@ import (
 // GETBIT key offset
 func GetbitCommand(c *pkg.Client, args [][]byte) {
 	if len(args) != 3 {
-		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -24,7 +24,7 @@ func GetbitCommand(c *pkg.Client, args [][]byte) {
 	byteOffset64, err := strconv.ParseInt(offsetStr, 10, 32)
 
 	if err != nil {
-		c.Conn().WriteError(util.SyntaxErr)
+		c.WriteError(util.SyntaxErr)
 		return
 	}
 
@@ -39,9 +39,9 @@ func GetbitCommand(c *pkg.Client, args [][]byte) {
 	maybeItem, _ := db.Get(key)
 
 	if maybeItem == nil {
-		c.Conn().WriteInt(0)
+		c.WriteInt(0)
 	} else if maybeItem.Type() != types.ValueTypeString {
-		c.Conn().WriteError(util.WrongTypeErr)
+		c.WriteError(util.WrongTypeErr)
 	} else {
 		// Some tricky bit operations.
 		// Please verify!
@@ -55,9 +55,9 @@ func GetbitCommand(c *pkg.Client, args [][]byte) {
 				oldBit++
 			}
 
-			c.Conn().WriteInt(int(oldBit))
+			c.WriteInt(int(oldBit))
 		} else {
-			c.Conn().WriteInt(0)
+			c.WriteInt(0)
 		}
 	}
 }

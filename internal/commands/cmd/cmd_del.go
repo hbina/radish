@@ -13,5 +13,5 @@ func DelCommand(c *pkg.Client, args [][]byte) {
 	}
 
 	count := db.Delete(keys...)
-	c.Conn().WriteInt(count)
+	c.WriteInt(count)
 }
