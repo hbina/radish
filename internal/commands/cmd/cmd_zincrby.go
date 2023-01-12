@@ -14,7 +14,7 @@ import (
 // ZINCRBY key increment member
 func ZincrbyCommand(c *pkg.Client, args [][]byte) {
 	if len(args) != 4 {
-		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -26,7 +26,7 @@ func ZincrbyCommand(c *pkg.Client, args [][]byte) {
 	increment, err := strconv.ParseFloat(incrementStr, 64)
 
 	if err != nil || math.IsNaN(increment) {
-		c.WriteError(util.InvalidFloatErr)
+		c.Conn().WriteError(util.InvalidFloatErr)
 		return
 	}
 
@@ -37,7 +37,7 @@ func ZincrbyCommand(c *pkg.Client, args [][]byte) {
 	}
 
 	if maybeSet.Type() != types.ValueTypeZSet {
-		c.WriteError(util.WrongTypeErr)
+		c.Conn().WriteError(util.WrongTypeErr)
 		return
 	}
 
@@ -48,16 +48,16 @@ func ZincrbyCommand(c *pkg.Client, args [][]byte) {
 	if maybeMember == nil {
 		set.AddOrUpdate(memberKey, increment)
 		db.Set(key, set, ttl)
-		c.WriteString(fmt.Sprint(increment))
+		c.Conn().WriteString(fmt.Sprint(increment))
 	} else {
 		newScore := maybeMember.Score + increment
 
 		if math.IsNaN(newScore) {
-			c.WriteError("ERR resulting score is not a number (NaN)")
+			c.Conn().WriteError("ERR resulting score is not a number (NaN)")
 			return
 		}
 		set.AddOrUpdate(memberKey, newScore)
 		db.Set(key, set, ttl)
-		c.WriteString(fmt.Sprint(newScore))
+		c.Conn().WriteString(fmt.Sprint(newScore))
 	}
 }

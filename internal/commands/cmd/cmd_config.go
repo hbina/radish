@@ -12,7 +12,7 @@ import (
 // https://redis.io/commands/config-set/
 func ConfigCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 2 {
-		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -20,7 +20,7 @@ func ConfigCommand(c *pkg.Client, args [][]byte) {
 
 	if strings.ToLower(subcommand) == "get" {
 		if len(args) < 3 {
-			c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, string(args[0])))
+			c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, string(args[0])))
 			return
 		}
 
@@ -32,13 +32,13 @@ func ConfigCommand(c *pkg.Client, args [][]byte) {
 				result = append(result, k, *v)
 			}
 		}
-		c.WriteArray(len(result))
+		c.Conn().WriteArray(len(result))
 		for _, v := range result {
-			c.WriteBulkString(v)
+			c.Conn().WriteBulkString(v)
 		}
 	} else if strings.ToLower(subcommand) == "set" {
 		if len(args) < 4 {
-			c.WriteError(fmt.Sprintf("Unknown subcommand or wrong number of arguments for '%s'. Try CONFIG HELP.", string(args[1])))
+			c.Conn().WriteError(fmt.Sprintf("Unknown subcommand or wrong number of arguments for '%s'. Try CONFIG HELP.", string(args[1])))
 			return
 		}
 
@@ -47,8 +47,8 @@ func ConfigCommand(c *pkg.Client, args [][]byte) {
 
 		c.Redis().SetConfigValue(k, v)
 
-		c.WriteString("OK")
+		c.Conn().WriteString("OK")
 	} else {
-		c.WriteError(fmt.Sprintf("Unknown subcommand '%s'. Try CONFIG HELP.", subcommand))
+		c.Conn().WriteError(fmt.Sprintf("Unknown subcommand '%s'. Try CONFIG HELP.", subcommand))
 	}
 }

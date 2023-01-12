@@ -82,16 +82,15 @@ func (r *Redis) SetConfigValue(key string, value string) {
 // NewClient creates new client and adds it to the redis.
 func (r *Redis) NewClient(conn net.Conn) *Client {
 	c := &Client{
-		conn:  conn,
+		conn:  &Conn{conn: conn},
 		redis: r,
-		dbId:  0,
 	}
 	return c
 }
 
 func (r *Redis) HandleRequest(c *Client, args [][]byte) {
 	if len(args) == 0 {
-		c.WriteError(util.ZeroArgumentErr)
+		c.Conn().WriteError(util.ZeroArgumentErr)
 		return
 	}
 
@@ -117,7 +116,7 @@ func (r *Redis) HandleRequest(c *Client, args [][]byte) {
 			r.HandleBlockedRequests(false)
 		}
 	} else {
-		c.WriteError(fmt.Sprintf("ERR unknown command '%s' with args '%s'", string(args[0]), args[1:]))
+		c.Conn().WriteError(fmt.Sprintf("ERR unknown command '%s' with args '%s'", string(args[0]), args[1:]))
 	}
 
 	c.Db().Unlock()
@@ -206,7 +205,7 @@ func (r *Redis) StartBcmdTimeoutJob() {
 	f := func() {
 		for c := range r.bcmdTtl {
 			c.Db().Lock()
-			c.WriteNullArray()
+			c.Conn().WriteNullArray()
 			delete(r.rlist, c)
 			c.Db().Unlock()
 		}

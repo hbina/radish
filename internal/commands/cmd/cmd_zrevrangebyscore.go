@@ -15,7 +15,7 @@ import (
 // ZREVRANGEBYSCORE key min max [WITHSCORES] [LIMIT offset count]
 func ZrevrangebyscoreCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 4 {
-		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -26,7 +26,7 @@ func ZrevrangebyscoreCommand(c *pkg.Client, args [][]byte) {
 	start, startExclusive, stop, stopExclusive, err := util.ParseFloatRange(startStr, stopStr)
 
 	if err {
-		c.WriteError(util.InvalidFloatErr)
+		c.Conn().WriteError(util.InvalidFloatErr)
 		return
 	}
 
@@ -40,14 +40,14 @@ func ZrevrangebyscoreCommand(c *pkg.Client, args [][]byte) {
 		switch arg {
 		default:
 			{
-				c.WriteError(util.SyntaxErr)
+				c.Conn().WriteError(util.SyntaxErr)
 				return
 			}
 		case "limit":
 			{
 				// Requires at least 2 more arguments
 				if i+2 >= len(args) {
-					c.WriteError(util.SyntaxErr)
+					c.Conn().WriteError(util.SyntaxErr)
 					return
 				}
 
@@ -58,7 +58,7 @@ func ZrevrangebyscoreCommand(c *pkg.Client, args [][]byte) {
 				newOffset, err := strconv.ParseInt(offsetStr, 10, 32)
 
 				if err != nil {
-					c.WriteError(util.InvalidIntErr)
+					c.Conn().WriteError(util.InvalidIntErr)
 					return
 				}
 
@@ -67,7 +67,7 @@ func ZrevrangebyscoreCommand(c *pkg.Client, args [][]byte) {
 				newLimit, err := strconv.ParseInt(limitStr, 10, 32)
 
 				if err != nil {
-					c.WriteError(util.InvalidIntErr)
+					c.Conn().WriteError(util.InvalidIntErr)
 					return
 				}
 
@@ -87,7 +87,7 @@ func ZrevrangebyscoreCommand(c *pkg.Client, args [][]byte) {
 	}
 
 	if maybeSet.Type() != types.ValueTypeZSet {
-		c.WriteError(util.WrongTypeErr)
+		c.Conn().WriteError(util.WrongTypeErr)
 		return
 	}
 
@@ -102,17 +102,17 @@ func ZrevrangebyscoreCommand(c *pkg.Client, args [][]byte) {
 	})
 
 	if withScores {
-		c.WriteArray(len(res) * 2)
+		c.Conn().WriteArray(len(res) * 2)
 
 		for _, ssn := range res {
-			c.WriteBulkString(ssn.Key)
-			c.WriteBulkString(fmt.Sprint(ssn.Score))
+			c.Conn().WriteBulkString(ssn.Key)
+			c.Conn().WriteBulkString(fmt.Sprint(ssn.Score))
 		}
 	} else {
-		c.WriteArray(len(res))
+		c.Conn().WriteArray(len(res))
 
 		for _, ssn := range res {
-			c.WriteBulkString(ssn.Key)
+			c.Conn().WriteBulkString(ssn.Key)
 		}
 	}
 }

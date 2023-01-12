@@ -15,7 +15,7 @@ func MsetCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 3 || len(args)%2 != 1 {
 		// If the number of arguments (excluding the command name) is not even,
 		// return syntax error
-		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, string(args[0])))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, string(args[0])))
 		return
 	}
 
@@ -28,5 +28,5 @@ func MsetCommand(c *pkg.Client, args [][]byte) {
 		db.Set(keyStr, types.NewString(valueStr), time.Time{})
 	}
 
-	c.WriteString("OK")
+	c.Conn().WriteString("OK")
 }

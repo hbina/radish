@@ -15,7 +15,7 @@ import (
 // ZLEXCOUNT key min max
 func ZlexcountCommand(c *pkg.Client, args [][]byte) {
 	if len(args) != 4 {
-		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -26,7 +26,7 @@ func ZlexcountCommand(c *pkg.Client, args [][]byte) {
 	start, startExclusive, stop, stopExclusive, err := util.ParseLexRange(startStr, stopStr)
 
 	if err {
-		c.WriteError("ERR min or max not valid string range item")
+		c.Conn().WriteError("ERR min or max not valid string range item")
 		return
 	}
 
@@ -40,14 +40,14 @@ func ZlexcountCommand(c *pkg.Client, args [][]byte) {
 		switch arg {
 		default:
 			{
-				c.WriteError(util.SyntaxErr)
+				c.Conn().WriteError(util.SyntaxErr)
 				return
 			}
 		case "limit":
 			{
 				// Requires at least 2 more arguments
 				if i+2 >= len(args) {
-					c.WriteError(util.SyntaxErr)
+					c.Conn().WriteError(util.SyntaxErr)
 					return
 				}
 
@@ -58,7 +58,7 @@ func ZlexcountCommand(c *pkg.Client, args [][]byte) {
 				newOffset, err := strconv.ParseInt(offsetStr, 10, 32)
 
 				if err != nil {
-					c.WriteError(util.InvalidIntErr)
+					c.Conn().WriteError(util.InvalidIntErr)
 					return
 				}
 
@@ -67,7 +67,7 @@ func ZlexcountCommand(c *pkg.Client, args [][]byte) {
 				newLimit, err := strconv.ParseInt(limitStr, 10, 32)
 
 				if err != nil {
-					c.WriteError(util.InvalidIntErr)
+					c.Conn().WriteError(util.InvalidIntErr)
 					return
 				}
 
@@ -83,7 +83,7 @@ func ZlexcountCommand(c *pkg.Client, args [][]byte) {
 	}
 
 	if maybeSet.Type() != types.ValueTypeZSet {
-		c.WriteError(util.WrongTypeErr)
+		c.Conn().WriteError(util.WrongTypeErr)
 		return
 	}
 
@@ -97,5 +97,5 @@ func ZlexcountCommand(c *pkg.Client, args [][]byte) {
 		StopExclusive:  stopExclusive,
 	})
 
-	c.WriteInt(len(res))
+	c.Conn().WriteInt(len(res))
 }

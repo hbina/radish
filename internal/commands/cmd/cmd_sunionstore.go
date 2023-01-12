@@ -13,7 +13,7 @@ import (
 // SUNIONSTORE destination key [key ...]
 func SunionstoreCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 3 {
-		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -36,7 +36,7 @@ func SunionstoreCommand(c *pkg.Client, args [][]byte) {
 		if maybeSet == nil {
 			continue
 		} else if maybeSet.Type() != types.ValueTypeSet {
-			c.WriteError(util.WrongTypeErr)
+			c.Conn().WriteError(util.WrongTypeErr)
 			return
 		}
 
@@ -47,5 +47,5 @@ func SunionstoreCommand(c *pkg.Client, args [][]byte) {
 
 	db.Set(destination, union, time.Time{})
 
-	c.WriteInt(union.Len())
+	c.Conn().WriteInt(union.Len())
 }

@@ -11,13 +11,13 @@ import (
 // https://redis.io/commands/ping/
 func PingCommand(c *pkg.Client, args [][]byte) {
 	if len(args) == 1 {
-		c.WriteString("PONG")
+		c.Conn().WriteString("PONG")
 	} else if len(args) == 2 {
 		var buf strings.Builder
 		buf.WriteString(string(args[1]))
 		s := buf.String()
-		c.WriteBulkString(s)
+		c.Conn().WriteBulkString(s)
 	} else {
-		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, "ping"))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, "ping"))
 	}
 }

@@ -15,5 +15,5 @@ func InfoCommand(c *pkg.Client, args [][]byte) {
 	str.WriteString("redis_git_sha1:f36eb5a1\r\n\r\n")
 	str.WriteString("# Stats\r\n")
 	str.WriteString("migrate_cached_sockets:0\r\n")
-	c.WriteBulkString(str.String())
+	c.Conn().WriteBulkString(str.String())
 }

@@ -12,7 +12,7 @@ import (
 // ZCOUNT key min max
 func ZcountCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 4 {
-		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -23,7 +23,7 @@ func ZcountCommand(c *pkg.Client, args [][]byte) {
 	start, startExclusive, stop, stopExclusive, err := util.ParseFloatRange(startStr, stopStr)
 
 	if err {
-		c.WriteError(util.InvalidFloatErr)
+		c.Conn().WriteError(util.InvalidFloatErr)
 		return
 	}
 
@@ -34,7 +34,7 @@ func ZcountCommand(c *pkg.Client, args [][]byte) {
 	}
 
 	if maybeSet.Type() != types.ValueTypeZSet {
-		c.WriteError(util.WrongTypeErr)
+		c.Conn().WriteError(util.WrongTypeErr)
 		return
 	}
 
@@ -46,5 +46,5 @@ func ZcountCommand(c *pkg.Client, args [][]byte) {
 
 	res := set.GetRangeByScore(start, stop, options)
 
-	c.WriteInt(len(res))
+	c.Conn().WriteInt(len(res))
 }

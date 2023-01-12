@@ -14,7 +14,7 @@ import (
 // Note that this command is due for deprecation
 func GetsetCommand(c *pkg.Client, args [][]byte) {
 	if len(args) != 3 {
-		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -25,16 +25,16 @@ func GetsetCommand(c *pkg.Client, args [][]byte) {
 	maybeItem, _ := db.Get(key)
 
 	if maybeItem != nil && maybeItem.Type() != types.ValueTypeString {
-		c.WriteError(util.WrongTypeErr)
+		c.Conn().WriteError(util.WrongTypeErr)
 		return
 	}
 
 	db.Set(key, types.NewString(value), time.Time{})
 
 	if maybeItem == nil {
-		c.WriteNull()
+		c.Conn().WriteNull()
 	} else {
 		// We already asserted that maybeItem is not nil and that it is a string
-		c.WriteBulkString(maybeItem.(*types.String).AsString())
+		c.Conn().WriteBulkString(maybeItem.(*types.String).AsString())
 	}
 }
