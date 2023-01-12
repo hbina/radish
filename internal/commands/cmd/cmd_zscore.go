@@ -40,12 +40,12 @@ func ZscoreCommand(c *pkg.Client, args [][]byte) {
 	}
 
 	if math.IsNaN(maybeMember.Score) {
-		c.WriteSimpleString("nan")
+		c.WriteString("nan")
 	} else if math.IsInf(maybeMember.Score, -1) {
-		c.WriteSimpleString("-inf")
+		c.WriteString("-inf")
 	} else if math.IsInf(maybeMember.Score, 1) {
-		c.WriteSimpleString("inf")
+		c.WriteString("inf")
 	} else {
-		c.WriteSimpleString(fmt.Sprint(maybeMember.Score))
+		c.WriteString(fmt.Sprint(maybeMember.Score))
 	}
 }

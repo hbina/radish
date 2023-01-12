@@ -200,6 +200,6 @@ func SetCommand(c *pkg.Client, args [][]byte) {
 			c.WriteBulkString(foundStr.AsString())
 		}
 	} else {
-		c.WriteSimpleString("OK")
+		c.WriteString("OK")
 	}
 }

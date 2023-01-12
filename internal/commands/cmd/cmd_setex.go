@@ -33,5 +33,5 @@ func SetexCommand(c *pkg.Client, args [][]byte) {
 
 	db.Set(key, types.NewString(value), newTtl)
 
-	c.WriteSimpleString("OK")
+	c.WriteString("OK")
 }

@@ -32,7 +32,7 @@ func IncrByFloatCommand(c *pkg.Client, args [][]byte) {
 	if !exists {
 		incrByStr := strconv.FormatFloat(incrBy, 'f', -1, 64)
 		db.Set(key, types.NewString(incrByStr), time.Time{})
-		c.WriteSimpleString(fmt.Sprintf("\"%s\"", incrByStr))
+		c.WriteString(fmt.Sprintf("\"%s\"", incrByStr))
 		return
 	}
 
@@ -54,5 +54,5 @@ func IncrByFloatCommand(c *pkg.Client, args [][]byte) {
 
 	floatValueStr := strconv.FormatFloat(floatValue, 'f', -1, 64)
 	db.Set(key, types.NewString(floatValueStr), time.Time{})
-	c.WriteSimpleString(fmt.Sprintf("\"%s\"", floatValueStr))
+	c.WriteString(fmt.Sprintf("\"%s\"", floatValueStr))
 }

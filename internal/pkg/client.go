@@ -60,7 +60,7 @@ func (c *Client) WriteSet(value int) {
 	}
 }
 
-func (c *Client) WriteSimpleString(value string) {
+func (c *Client) WriteString(value string) {
 	c.conn.Write([]byte(fmt.Sprintf("+%s\r\n", value)))
 }
 

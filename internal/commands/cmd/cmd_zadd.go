@@ -180,7 +180,7 @@ func ZaddCommand(c *pkg.Client, args [][]byte) {
 		if newScore == nil {
 			c.WriteNullBulk()
 		} else {
-			c.WriteSimpleString(fmt.Sprint(*newScore))
+			c.WriteString(fmt.Sprint(*newScore))
 		}
 	} else {
 		c.WriteInt(addedCount)

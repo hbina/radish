@@ -28,5 +28,5 @@ func MsetCommand(c *pkg.Client, args [][]byte) {
 		db.Set(keyStr, types.NewString(valueStr), time.Time{})
 	}
 
-	c.WriteSimpleString("OK")
+	c.WriteString("OK")
 }

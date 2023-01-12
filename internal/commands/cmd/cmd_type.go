@@ -19,8 +19,8 @@ func TypeCommand(c *pkg.Client, args [][]byte) {
 	maybeItem, _ := db.Get(key)
 
 	if maybeItem == nil {
-		c.WriteSimpleString("none")
+		c.WriteString("none")
 	} else {
-		c.WriteSimpleString(maybeItem.TypeFancy())
+		c.WriteString(maybeItem.TypeFancy())
 	}
 }

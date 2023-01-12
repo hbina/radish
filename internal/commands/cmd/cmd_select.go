@@ -23,6 +23,6 @@ func SelectCommand(c *pkg.Client, args [][]byte) {
 		c.Db().Unlock()
 		c.SetDb(index)
 		c.Db().Lock()
-		c.WriteSimpleString("OK")
+		c.WriteString("OK")
 	}
 }

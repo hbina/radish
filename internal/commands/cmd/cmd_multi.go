@@ -6,5 +6,5 @@ import "github.com/hbina/radish/internal/pkg"
 // MULTI
 func MultiCommand(c *pkg.Client, args [][]byte) {
 	// Currently no-op because we are not multi-threaded to begin with
-	c.WriteSimpleString("OK")
+	c.WriteString("OK")
 }

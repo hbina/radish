@@ -47,7 +47,7 @@ func ConfigCommand(c *pkg.Client, args [][]byte) {
 
 		c.Redis().SetConfigValue(k, v)
 
-		c.WriteSimpleString("OK")
+		c.WriteString("OK")
 	} else {
 		c.WriteError(fmt.Sprintf("Unknown subcommand '%s'. Try CONFIG HELP.", subcommand))
 	}

@@ -32,7 +32,7 @@ func DecrByFloatCommand(c *pkg.Client, args [][]byte) {
 	if !exists {
 		decrByStr := strconv.FormatFloat(decrBy, 'f', -1, 64)
 		db.Set(key, types.NewString(decrByStr), time.Time{})
-		c.WriteSimpleString(fmt.Sprintf("\"%s\"", decrByStr))
+		c.WriteString(fmt.Sprintf("\"%s\"", decrByStr))
 		return
 	}
 
@@ -54,5 +54,5 @@ func DecrByFloatCommand(c *pkg.Client, args [][]byte) {
 
 	floatValueStr := strconv.FormatFloat(floatValue, 'f', -1, 64)
 	db.Set(key, types.NewString(floatValueStr), time.Time{})
-	c.WriteSimpleString(fmt.Sprintf("\"%s\"", floatValueStr))
+	c.WriteString(fmt.Sprintf("\"%s\"", floatValueStr))
 }

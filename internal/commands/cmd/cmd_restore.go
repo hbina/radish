@@ -116,5 +116,5 @@ func RestoreCommand(c *pkg.Client, args [][]byte) {
 
 		db.Set(key, set, ttl)
 	}
-	c.WriteSimpleString("OK")
+	c.WriteString("OK")
 }

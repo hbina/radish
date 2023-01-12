@@ -48,7 +48,7 @@ func ZincrbyCommand(c *pkg.Client, args [][]byte) {
 	if maybeMember == nil {
 		set.AddOrUpdate(memberKey, increment)
 		db.Set(key, set, ttl)
-		c.WriteSimpleString(fmt.Sprint(increment))
+		c.WriteString(fmt.Sprint(increment))
 	} else {
 		newScore := maybeMember.Score + increment
 
@@ -58,6 +58,6 @@ func ZincrbyCommand(c *pkg.Client, args [][]byte) {
 		}
 		set.AddOrUpdate(memberKey, newScore)
 		db.Set(key, set, ttl)
-		c.WriteSimpleString(fmt.Sprint(newScore))
+		c.WriteString(fmt.Sprint(newScore))
 	}
 }

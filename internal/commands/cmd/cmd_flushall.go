@@ -11,7 +11,7 @@ import (
 func FlushAllCommand(c *pkg.Client, args [][]byte) {
 	if len(args) == 1 || (len(args) == 2 && strings.ToLower(string(args[1])) == "sync") {
 		syncFlushAll(c)
-		c.WriteSimpleString("OK")
+		c.WriteString("OK")
 	} else if len(args) == 2 && strings.ToLower(string(args[1])) == "async" {
 		c.WriteError("FLUSHALL ASYNC is not implemented yet")
 	} else {
