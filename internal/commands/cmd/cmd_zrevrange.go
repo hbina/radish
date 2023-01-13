@@ -65,5 +65,5 @@ func ZrevrangeCommand(c *pkg.Client, args [][]byte) {
 	options.StopExclusive = stopExclusive
 
 	res := set.GetRangeByIndex(start, stop, options)
-	c.WriteToConn(res, withScores, true)
+	c.WriteToConn(res, withScores)
 }

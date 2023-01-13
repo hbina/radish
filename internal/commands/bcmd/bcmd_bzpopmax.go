@@ -61,7 +61,11 @@ func BzpopmaxCommand(c *pkg.Client, args [][]byte) *pkg.BlockedCommand {
 		c.Conn().WriteArray(3)
 		c.Conn().WriteBulkString(key)
 		c.Conn().WriteBulkString(n.Key)
-		c.Conn().WriteBulkString(fmt.Sprint(n.Score))
+		if c.R3 {
+			c.Conn().WriteFloat64(n.Score)
+		} else {
+			c.Conn().WriteBulkString(fmt.Sprint(n.Score))
+		}
 
 		return nil
 	}

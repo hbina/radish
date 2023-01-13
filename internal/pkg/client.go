@@ -31,10 +31,6 @@ func (c *Client) DbId() uint64 {
 	return c.dbId
 }
 
-func (c *Client) Close() error {
-	return c.conn.Close()
-}
-
 // SetDb sets the database that this client interacts with.
 func (c *Client) SetDb(dbId uint64) {
 	c.dbId = dbId
@@ -53,104 +49,90 @@ func (c *Client) UseResp3() {
 	c.R3 = true
 }
 
-func (c *Client) WriteToConn(nodes []*types.SortedSetNode, withScores bool, handleSingleElement bool) {
-	err := func() error {
-		if c.R3 && withScores {
-			if len(nodes) == 1 && handleSingleElement {
-				res := nodes[0]
-				err := c.Conn().WriteArray(2)
+func (c *Client) WriteToConn(nodes []*types.SortedSetNode, withScores bool) bool {
+	if c.R3 {
+		if withScores {
+			ok := c.Conn().WriteArray(len(nodes))
 
-				if err != nil {
-					return err
+			if !ok {
+				return false
+			}
+
+			for _, node := range nodes {
+				ok = c.Conn().WriteArray(2)
+
+				if !ok {
+					return false
 				}
 
-				err = c.Conn().WriteBulkString(res.Key)
+				ok = c.Conn().WriteBulkString(node.Key)
 
-				if err != nil {
-					return err
+				if !ok {
+					return false
 				}
 
-				err = c.Conn().WriteFloat64(res.Score)
+				ok = c.Conn().WriteFloat64(node.Score)
 
-				if err != nil {
-					return err
-				}
-			} else {
-				err := c.Conn().WriteArray(len(nodes))
-
-				if err != nil {
-					return err
-				}
-
-				for _, node := range nodes {
-					err = c.Conn().WriteArray(2)
-
-					if err != nil {
-						return err
-					}
-
-					err = c.Conn().WriteBulkString(node.Key)
-
-					if err != nil {
-						return err
-					}
-
-					err = c.Conn().WriteFloat64(node.Score)
-
-					if err != nil {
-						return err
-					}
+				if !ok {
+					return false
 				}
 			}
 		} else {
-			if withScores {
-				err := c.Conn().WriteArray(len(nodes) * 2)
+			ok := c.Conn().WriteArray(len(nodes))
 
-				if err != nil {
-					return err
-				}
+			if !ok {
+				return false
+			}
 
-				for _, node := range nodes {
-					err = c.Conn().WriteBulkString(node.Key)
+			for _, node := range nodes {
+				ok = c.Conn().WriteBulkString(node.Key)
 
-					if err != nil {
-						return err
-					}
-
-					err = c.Conn().WriteBulkString(fmt.Sprint(node.Score))
-
-					if err != nil {
-						return err
-					}
-				}
-
-			} else {
-				err := c.Conn().WriteArray(len(nodes))
-
-				if err != nil {
-					return err
-				}
-
-				for _, node := range nodes {
-					err = c.Conn().WriteBulkString(node.Key)
-
-					if err != nil {
-						return err
-					}
+				if !ok {
+					return false
 				}
 			}
 		}
+	} else {
+		if withScores {
+			ok := c.Conn().WriteArray(len(nodes) * 2)
 
-		return nil
-	}()
+			if !ok {
+				return false
+			}
 
-	if err != nil {
-		util.Logger.Printf("Failed to write to connection: '%s'\n", err)
+			for _, node := range nodes {
+				if !ok {
+					return false
+				}
 
-		err := c.Conn().Close()
+				ok = c.Conn().WriteBulkString(node.Key)
 
-		if err != nil {
-			util.Logger.Printf("Unable to close connection: '%s'\n", err)
+				if !ok {
+					return false
+				}
+
+				ok = c.Conn().WriteBulkString(fmt.Sprint(node.Score))
+
+				if !ok {
+					return false
+				}
+			}
+		} else {
+			ok := c.Conn().WriteArray(len(nodes))
+
+			if !ok {
+				return false
+			}
+
+			for _, node := range nodes {
+				ok = c.Conn().WriteBulkString(node.Key)
+
+				if !ok {
+					return false
+				}
+			}
 		}
 	}
+
+	return true
 }

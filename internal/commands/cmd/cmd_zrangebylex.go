@@ -97,5 +97,5 @@ func ZrangebylexCommand(c *pkg.Client, args [][]byte) {
 		StopExclusive:  stopExclusive,
 	})
 
-	c.WriteToConn(res, false, true)
+	c.WriteToConn(res, false)
 }

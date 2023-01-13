@@ -12,6 +12,7 @@ var _ Resp = &RespNilBulk{}
 var _ Resp = &RespArray{}
 var _ Resp = &RespNilArray{}
 var _ Resp = &RespMap{}
+var _ Resp = &RespNil{}
 
 type RespSimpleString struct {
 	inner []byte
@@ -58,6 +59,14 @@ func (rs *RespInteger) Width() int {
 	return 0
 }
 
+type RespFloat struct {
+	inner float64
+}
+
+func (rs *RespFloat) Width() int {
+	return 0
+}
+
 type RespArray struct {
 	inner []Resp
 }
@@ -95,4 +104,11 @@ func (rs *RespMap) Width() int {
 	}
 
 	return ourWidth
+}
+
+type RespNil struct {
+}
+
+func (rs *RespNil) Width() int {
+	return 0
 }

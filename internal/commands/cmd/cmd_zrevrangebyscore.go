@@ -101,5 +101,5 @@ func ZrevrangebyscoreCommand(c *pkg.Client, args [][]byte) {
 		StopExclusive:  stopExclusive,
 	})
 
-	c.WriteToConn(res, withScores, true)
+	c.WriteToConn(res, withScores)
 }

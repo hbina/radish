@@ -6,14 +6,12 @@ import (
 	"strings"
 )
 
-func StringifyRespBytes(in []byte) (string, bool) {
+func StringifyRespBytes(in []byte) (string, bool, []byte) {
 	resp, leftover := ConvertBytesToRespType(in)
 
-	if len(leftover) != 0 || resp == nil {
-		return "", false
+	if resp == nil {
+		return "", false, []byte{}
 	}
-
-	fmt.Printf("%#v\n", resp)
 
 	inList := false
 	_, isArr := resp.(*RespArray)
@@ -26,10 +24,10 @@ func StringifyRespBytes(in []byte) (string, bool) {
 	str, ok := stringifyRespType(resp, 0, inList)
 
 	if !ok {
-		return "", false
+		return "", false, []byte{}
 	}
 
-	return str, true
+	return str, true, leftover
 }
 
 func stringifyRespType(res Resp, width int, inList bool) (string, bool) {
@@ -47,7 +45,13 @@ func stringifyRespType(res Resp, width int, inList bool) (string, bool) {
 		return string(rs.inner), true
 	} else if rs, ok := res.(*RespInteger); ok {
 		return fmt.Sprintf("(integer) %d", rs.inner), true
+	} else if rs, ok := res.(*RespFloat); ok {
+		return fmt.Sprintf("(double) %f", rs.inner), true
 	} else if _, ok := res.(*RespNilBulk); ok {
+		return "(nil)", true
+	} else if _, ok := res.(*RespNilArray); ok {
+		return "(nil)", true
+	} else if _, ok := res.(*RespNil); ok {
 		return "(nil)", true
 	} else if rs, ok := res.(*RespArray); ok {
 		var str strings.Builder
@@ -97,20 +101,28 @@ func stringifyRespType(res Resp, width int, inList bool) (string, bool) {
 
 		if len(arr) == 0 {
 			return "(empty)", true
+		} else if len(arr)%2 != 0 {
+			return FormatErr, true
 		} else {
 			for i := 0; i < len(arr); i += 2 {
-				s, ok := stringifyRespType(v, res.Width()+width, true)
+				first, ok := stringifyRespType(arr[i], res.Width()+width, true)
+
+				if !ok {
+					return "", false
+				}
+
+				second, ok := stringifyRespType(arr[i+1], res.Width()+width, true)
 
 				if !ok {
 					return "", false
 				}
 
 				if i == 0 {
-					str.WriteString(fmt.Sprintf("%d) %s\n", i+1, s))
-				} else if i == len(arr)-1 {
-					str.WriteString(fmt.Sprintf("%s%d) %s", padding.String(), i+1, s))
+					str.WriteString(fmt.Sprintf("%s => %s\n", first, second))
+				} else if i == len(arr)-2 {
+					str.WriteString(fmt.Sprintf("%s%s => %s", padding.String(), first, second))
 				} else {
-					str.WriteString(fmt.Sprintf("%s%d) %s\n", padding.String(), i+1, s))
+					str.WriteString(fmt.Sprintf("%s%s => %s\n", padding.String(), first, second))
 				}
 			}
 			return str.String(), true
@@ -124,79 +136,105 @@ func ConvertBytesToRespType(input []byte) (Resp, []byte) {
 	// We need at least 1 byte for the first redis type byte
 	if len(input) > 0 {
 		currByte := input[0]
-		if currByte == '+' {
+		if currByte == '_' {
 			str, leftover, ok := TakeBytesUntilClrf(input[1:])
 
 			if !ok {
-				return nil, input
+				return nil, []byte{}
 			}
 
-			rs := RespSimpleString{
+			if len(str) != 0 {
+				return &RespErrorString{
+					inner: []byte(FormatErr),
+				}, leftover
+			}
+
+			return &RespNil{}, leftover
+		} else if currByte == '+' {
+			str, leftover, ok := TakeBytesUntilClrf(input[1:])
+
+			if !ok {
+				return nil, []byte{}
+			}
+
+			return &RespSimpleString{
 				inner: str,
-			}
-
-			return &rs, leftover
+			}, leftover
 		} else if currByte == '-' {
 			str, leftover, ok := TakeBytesUntilClrf(input[1:])
 
 			if !ok {
-				return nil, input
+				return nil, []byte{}
 			}
 
-			rs := RespErrorString{
+			return &RespErrorString{
 				inner: str,
-			}
-
-			return &rs, leftover
+			}, leftover
 		} else if currByte == ':' {
 			str, leftover, ok := TakeBytesUntilClrf(input[1:])
 
 			if !ok {
-				return nil, input
+				return nil, []byte{}
 			}
 
 			valInt64, err := strconv.ParseInt(string(str), 10, 32)
 
 			if err != nil {
-				return nil, input
+				return &RespErrorString{
+					inner: []byte(FormatErr),
+				}, leftover
 			}
 
-			rs := RespInteger{
+			return &RespInteger{
 				inner: int(valInt64),
+			}, leftover
+		} else if currByte == ',' {
+			str, leftover, ok := TakeBytesUntilClrf(input[1:])
+
+			if !ok {
+				return nil, []byte{}
 			}
 
-			return &rs, leftover
+			valFloat64, err := strconv.ParseFloat(string(str), 64)
 
+			if err != nil {
+				return &RespErrorString{
+					inner: []byte(FormatErr),
+				}, leftover
+			}
+
+			return &RespFloat{
+				inner: valFloat64,
+			}, leftover
 		} else if currByte == '$' {
 			lenStr, leftover, ok := TakeBytesUntilClrf(input[1:])
 
 			if !ok {
-				return nil, input
+				return nil, []byte{}
 			}
 
 			lenInt64, err := strconv.ParseInt(string(lenStr), 10, 32)
 
 			if err != nil {
-				return nil, input
+				return &RespErrorString{
+					inner: []byte(FormatErr),
+				}, leftover
 			}
 
 			if lenInt64 < 0 {
-				rs := RespNilBulk{}
-
-				return &rs, leftover
+				return &RespNilBulk{}, leftover
 			} else {
 				if int(lenInt64)+2 > len(leftover) {
-					return nil, input
+					return &RespErrorString{
+						inner: []byte(FormatErr),
+					}, leftover
 				} else {
 					if leftover[lenInt64] == '\r' && leftover[lenInt64+1] == '\n' {
-
-						rs := RespBulkString{
+						return &RespBulkString{
 							inner: leftover[:lenInt64],
-						}
-
-						return &rs, leftover[lenInt64+2:]
+						}, leftover[lenInt64+2:]
 					} else {
-						return nil, input
+						return nil, []byte{}
 					}
 				}
 			}
@@ -204,28 +242,26 @@ func ConvertBytesToRespType(input []byte) (Resp, []byte) {
 			lenStr, leftover, ok := TakeBytesUntilClrf(input[1:])
 
 			if !ok {
-				return nil, input
+				return nil, []byte{}
 			}
 
 			lenInt64, err := strconv.ParseInt(string(lenStr), 10, 32)
 
 			if err != nil {
-				return nil, input
+				return &RespErrorString{
+					inner: []byte(FormatErr),
+				}, leftover
 			}
 
 			// We parsed the length of the array, now we march forward
 			nextInput := leftover
 
 			if lenInt64 < 0 {
-				rs := RespNilArray{}
-
-				return &rs, leftover
+				return &RespNilArray{}, leftover
 			} else if lenInt64 == 0 {
-				rs := RespArray{
+				return &RespArray{
 					inner: make([]Resp, 0),
-				}
-
-				return &rs, leftover
+				}, leftover
 			} else {
 				replies := make([]Resp, 0, lenInt64)
 				for idx := 0; idx < int(lenInt64) && len(nextInput) != 0; idx++ {
@@ -233,7 +269,7 @@ func ConvertBytesToRespType(input []byte) (Resp, []byte) {
 
 					// If any of the elements are bad or we can't make progress, just bail
 					if reply == nil || len(leftover) == len(nextInput) {
-						return nil, input
+						return nil, []byte{}
 					}
 
 					nextInput = leftover
@@ -241,78 +277,74 @@ func ConvertBytesToRespType(input []byte) (Resp, []byte) {
 				}
 
 				if len(replies) != int(lenInt64) {
-					return nil, input
+					return nil, []byte{}
 				}
 
-				rs := RespArray{
+				return &RespArray{
 					inner: replies,
-				}
-
-				return &rs, nextInput
+				}, nextInput
 			}
 		} else if currByte == '%' {
 			lenStr, leftover, ok := TakeBytesUntilClrf(input[1:])
 
 			if !ok {
-				return nil, input
+				return nil, []byte{}
 			}
 
-			lenUint64, err := strconv.ParseUint(string(lenStr), 10, 32)
+			lenInt64, err := strconv.ParseInt(string(lenStr), 10, 64)
 
 			if err != nil {
-				return nil, input
+				return &RespErrorString{
+					inner: []byte(FormatErr),
+				}, leftover
 			}
 
 			// We parsed the length of the array, now we march forward
 			nextInput := leftover
 
-			if lenUint64 == 0 {
-				rs := RespArray{
+			if lenInt64 < 0 {
+				return &RespNilArray{}, leftover
+			} else if lenInt64 == 0 {
+				return &RespMap{
 					inner: make([]Resp, 0),
-				}
-
-				return &rs, leftover
+				}, leftover
 			} else {
-				lenUint64 = lenUint64 * 2
-				replies := make([]Resp, 0, lenUint64)
-				for idx := 0; idx < int(lenUint64) && len(nextInput) != 0; idx++ {
+				lenInt64 = lenInt64 * 2
+				replies := make([]Resp, 0, lenInt64)
+				for idx := 0; idx < int(lenInt64) && len(nextInput) != 0; idx++ {
 					reply, leftover := ConvertBytesToRespType(nextInput)
 
 					// If any of the elements are bad or we can't make progress, just bail
 					if reply == nil || len(leftover) == len(nextInput) {
-						return nil, input
+						return nil, []byte{}
 					}
 
 					nextInput = leftover
 					replies = append(replies, reply)
 				}
 
-				if len(replies) != int(lenUint64) {
-					return nil, input
+				if len(replies) != int(lenInt64) {
+					return nil, []byte{}
 				}
 
-				rs := RespMap{
+				return &RespMap{
 					inner: replies,
-				}
-
-				return &rs, nextInput
+				}, nextInput
 			}
 		} else {
 			str, leftover, ok := TakeBytesUntilClrf(input)
 
 			if !ok {
-				return nil, input
+				return nil, []byte{}
 			}
 
-			rs := RespSimpleString{
+			return &RespSimpleString{
 				inner: str,
-			}
-
-			return &rs, leftover
+			}, leftover
 		}
 	}
 
-	return nil, input
+	return nil, []byte{}
 }
 
 func TakeBytesUntilClrf(in []byte) ([]byte, []byte, bool) {

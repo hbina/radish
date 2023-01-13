@@ -21,6 +21,7 @@ func ZpopmaxCommand(c *pkg.Client, args [][]byte) {
 
 	// Parse options
 	count := 1
+	countSet := false
 
 	if len(args) == 3 {
 		countStr := string(args[2])
@@ -38,6 +39,7 @@ func ZpopmaxCommand(c *pkg.Client, args [][]byte) {
 		}
 
 		count = int(count64)
+		countSet = true
 	}
 
 	db := c.Db()
@@ -73,5 +75,13 @@ func ZpopmaxCommand(c *pkg.Client, args [][]byte) {
 
 	db.Set(key, types.NewZSetFromSs(set), ttl)
 
-	c.WriteToConn(res, true, true)
+	if len(res) == 0 {
+		c.Conn().WriteArray(0)
+	} else if !countSet && c.R3 {
+		c.Conn().WriteArray(2)
+		c.Conn().WriteBulkString(res[0].Key)
+		c.Conn().WriteFloat64(res[0].Score)
+	} else {
+		c.WriteToConn(res, true)
+	}
 }

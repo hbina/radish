@@ -36,58 +36,155 @@ func (c *Conn) WriteAll(in []byte) error {
 	return nil
 }
 
-func (c *Conn) Close() error {
-	return c.conn.Close()
+func (c *Conn) WriteString(value string) bool {
+	err := c.WriteAll([]byte(fmt.Sprintf("+%s\r\n", value)))
+
+	if err != nil {
+		c.HandleWriteError(err)
+		return false
+	}
+
+	return true
 }
 
-func (c *Conn) WriteString(value string) error {
-	return c.WriteAll([]byte(fmt.Sprintf("+%s\r\n", value)))
+func (c *Conn) WriteError(value string) bool {
+	err := c.WriteAll([]byte(fmt.Sprintf("-%s\r\n", value)))
+
+	if err != nil {
+		c.HandleWriteError(err)
+		return false
+	}
+
+	return true
 }
 
-func (c *Conn) WriteError(value string) error {
-	return c.WriteAll([]byte(fmt.Sprintf("-%s\r\n", value)))
+func (c *Conn) WriteBulkString(value string) bool {
+	err := c.WriteAll([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(value), value)))
+
+	if err != nil {
+		c.HandleWriteError(err)
+		return false
+	}
+
+	return true
 }
 
-func (c *Conn) WriteBulkString(value string) error {
-	return c.WriteAll([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(value), value)))
+func (c *Conn) WriteInt(value int) bool {
+	err := c.WriteAll([]byte(fmt.Sprintf(":%d\r\n", value)))
+
+	if err != nil {
+		c.HandleWriteError(err)
+		return false
+	}
+
+	return true
 }
 
-func (c *Conn) WriteInt(value int) error {
-	return c.WriteAll([]byte(fmt.Sprintf(":%d\r\n", value)))
+func (c *Conn) WriteFloat32(value float32) bool {
+	err := c.WriteAll([]byte(fmt.Sprintf(",%s\r\n", strconv.FormatFloat(float64(value), 'f', -1, 32))))
+
+	if err != nil {
+		c.HandleWriteError(err)
+		return false
+	}
+
+	return true
 }
 
-func (c *Conn) WriteFloat32(value float32) error {
-	return c.WriteAll([]byte(fmt.Sprintf(",%s\r\n", strconv.FormatFloat(float64(value), 'f', -1, 32))))
+func (c *Conn) WriteFloat64(value float64) bool {
+	err := c.WriteAll([]byte(fmt.Sprintf(",%s\r\n", fmt.Sprint(value))))
+
+	if err != nil {
+		c.HandleWriteError(err)
+		return false
+	}
+
+	return true
 }
 
-func (c *Conn) WriteFloat64(value float64) error {
-	return c.WriteAll([]byte(fmt.Sprintf(",%s\r\n", fmt.Sprint(value))))
+func (c *Conn) WriteInt64(value int64) bool {
+	err := c.WriteAll([]byte(fmt.Sprintf(":%d\r\n", value)))
+
+	if err != nil {
+		c.HandleWriteError(err)
+		return false
+	}
+
+	return true
 }
 
-func (c *Conn) WriteInt64(value int64) error {
-	return c.WriteAll([]byte(fmt.Sprintf(":%d\r\n", value)))
+func (c *Conn) WriteArray(value int) bool {
+	err := c.WriteAll([]byte(fmt.Sprintf("*%d\r\n", value)))
+
+	if err != nil {
+		c.HandleWriteError(err)
+		return false
+	}
+
+	return true
 }
 
-func (c *Conn) WriteArray(value int) error {
-	return c.WriteAll([]byte(fmt.Sprintf("*%d\r\n", value)))
+func (c *Conn) WriteMap(value int) bool {
+	err := c.WriteAll([]byte(fmt.Sprintf("%%%d\r\n", value/2)))
+
+	if err != nil {
+		c.HandleWriteError(err)
+		return false
+	}
+
+	return true
 }
 
-func (c *Conn) WriteMap(value int) error {
-	return c.WriteAll([]byte(fmt.Sprintf("%%%d\r\n", value/2)))
+func (c *Conn) WriteSet(value int) bool {
+	err := c.WriteAll([]byte(fmt.Sprintf("~%d\r\n", value)))
+
+	if err != nil {
+		c.HandleWriteError(err)
+		return false
+	}
+
+	return true
 }
 
-func (c *Conn) WriteSet(value int) error {
-	return c.WriteAll([]byte(fmt.Sprintf("~%d\r\n", value)))
+func (c *Conn) WriteNull() bool {
+	err := c.WriteAll([]byte("_\r\n"))
+
+	if err != nil {
+		c.HandleWriteError(err)
+		return false
+	}
+
+	return true
 }
 
-func (c *Conn) WriteNull() error {
-	return c.WriteAll([]byte("_\r\n"))
+func (c *Conn) WriteNullBulk() bool {
+	err := c.WriteAll([]byte("$-1\r\n"))
+
+	if err != nil {
+		c.HandleWriteError(err)
+		return false
+	}
+
+	return true
 }
 
-func (c *Conn) WriteNullBulk() error {
-	return c.WriteAll([]byte("$-1\r\n"))
+func (c *Conn) WriteNullArray() bool {
+	err := c.WriteAll([]byte("*-1\r\n"))
+
+	if err != nil {
+		c.HandleWriteError(err)
+		return false
+	}
+
+	return true
 }
 
-func (c *Conn) WriteNullArray() error {
-	return c.WriteAll([]byte("*-1\r\n"))
+func (c *Conn) HandleWriteError(err error) {
+	Logger.Printf("Failed to write to connection: '%s'\n", err)
+
+	err = c.conn.Close()
+
+	if err != nil {
+		Logger.Printf("Unable to close connection: '%s'\n", err)
+	}
 }

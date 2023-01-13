@@ -273,6 +273,6 @@ func implZSetSetOperationCommand(c *pkg.Client, args [][]byte,
 		db.Set(destination, result, time.Time{})
 		c.Conn().WriteInt(result.Len())
 	} else {
-		c.WriteToConn(result.GetRangeByRank(1, result.Len(), types.DefaultRangeOptions()), withScores, true)
+		c.WriteToConn(result.GetRangeByRank(1, result.Len(), types.DefaultRangeOptions()), withScores)
 	}
 }
