@@ -18,27 +18,27 @@ func HelloCommand(c *pkg.Client, args [][]byte) {
 			c.UseResp3()
 			writeStubResponse(c)
 		} else {
-			c.WriteError("NOPROTO unsupported protocol version")
+			c.Conn().WriteError("NOPROTO unsupported protocol version")
 		}
 	} else {
-		c.WriteError("Unsupported operation")
+		c.Conn().WriteError("Unsupported operation")
 	}
 }
 
 func writeStubResponse(c *pkg.Client) {
-	c.WriteMap(7)
-	c.WriteString("server")
-	c.WriteString("redis")
-	c.WriteString("version")
-	c.WriteString("255.255.255")
-	c.WriteString("proto")
-	c.WriteInt(2)
-	c.WriteString("id")
-	c.WriteInt(12)
-	c.WriteString("mode")
-	c.WriteString("standalone")
-	c.WriteString("role")
-	c.WriteString("master")
-	c.WriteString("modules")
-	c.WriteArray(0)
+	c.Conn().WriteMap(7 * 2)
+	c.Conn().WriteString("server")
+	c.Conn().WriteString("redis")
+	c.Conn().WriteString("version")
+	c.Conn().WriteString("255.255.255")
+	c.Conn().WriteString("proto")
+	c.Conn().WriteInt(2)
+	c.Conn().WriteString("id")
+	c.Conn().WriteInt(12)
+	c.Conn().WriteString("mode")
+	c.Conn().WriteString("standalone")
+	c.Conn().WriteString("role")
+	c.Conn().WriteString("master")
+	c.Conn().WriteString("modules")
+	c.Conn().WriteArray(0)
 }

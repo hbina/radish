@@ -14,7 +14,7 @@ import (
 // SRANDMEMBER key [count]
 func SrandmemberCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 2 {
-		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -26,7 +26,7 @@ func SrandmemberCommand(c *pkg.Client, args [][]byte) {
 		count64, err := strconv.ParseInt(string(args[2]), 10, 32)
 
 		if err != nil {
-			c.WriteError(util.InvalidIntErr)
+			c.Conn().WriteError(util.InvalidIntErr)
 		}
 
 		useCount = true
@@ -39,10 +39,10 @@ func SrandmemberCommand(c *pkg.Client, args [][]byte) {
 
 	// If any of the sets are nil, then the intersections must be 0
 	if maybeSet == nil {
-		c.WriteArray(0)
+		c.Conn().WriteArray(0)
 		return
 	} else if maybeSet.Type() != types.ValueTypeSet {
-		c.WriteError(util.WrongTypeErr)
+		c.Conn().WriteError(util.WrongTypeErr)
 		return
 	}
 
@@ -98,17 +98,17 @@ func SrandmemberCommand(c *pkg.Client, args [][]byte) {
 			}
 		}
 
-		c.WriteArray(len(result))
+		c.Conn().WriteArray(len(result))
 		for _, k := range result {
-			c.WriteBulkString(k)
+			c.Conn().WriteBulkString(k)
 		}
 	} else {
 		member := set.GetRandomMember()
 
 		if member != nil {
-			c.WriteBulkString(*member)
+			c.Conn().WriteBulkString(*member)
 		} else {
-			c.WriteNullBulk()
+			c.Conn().WriteNull()
 		}
 	}
 }

@@ -12,7 +12,7 @@ import (
 // https://redis.io/commands/dump/
 func DumpCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 2 {
-		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -20,7 +20,7 @@ func DumpCommand(c *pkg.Client, args [][]byte) {
 	value, _ := c.Db().Get(key)
 
 	if value == nil {
-		c.WriteNullBulk()
+		c.Conn().WriteNull()
 		return
 	}
 
@@ -28,7 +28,7 @@ func DumpCommand(c *pkg.Client, args [][]byte) {
 		data, err := value.(*types.String).Marshal()
 
 		if err != nil {
-			c.WriteError(err.Error())
+			c.Conn().WriteError(err.Error())
 			return
 		}
 
@@ -39,18 +39,18 @@ func DumpCommand(c *pkg.Client, args [][]byte) {
 		})
 
 		if err != nil {
-			c.WriteError(err.Error())
+			c.Conn().WriteError(err.Error())
 			return
 		}
 
-		c.WriteBulkString(string(str))
+		c.Conn().WriteBulkString(string(str))
 
 		return
 	} else if value.Type() == types.ValueTypeList {
 		data, err := value.(*types.List).Marshal()
 
 		if err != nil {
-			c.WriteError(err.Error())
+			c.Conn().WriteError(err.Error())
 			return
 		}
 
@@ -61,18 +61,18 @@ func DumpCommand(c *pkg.Client, args [][]byte) {
 		})
 
 		if err != nil {
-			c.WriteError(err.Error())
+			c.Conn().WriteError(err.Error())
 			return
 		}
 
-		c.WriteBulkString(string(str))
+		c.Conn().WriteBulkString(string(str))
 
 		return
 	} else if value.Type() == types.ValueTypeSet {
 		data, err := value.(*types.Set).Marshal()
 
 		if err != nil {
-			c.WriteError(err.Error())
+			c.Conn().WriteError(err.Error())
 			return
 		}
 
@@ -83,18 +83,18 @@ func DumpCommand(c *pkg.Client, args [][]byte) {
 		})
 
 		if err != nil {
-			c.WriteError(err.Error())
+			c.Conn().WriteError(err.Error())
 			return
 		}
 
-		c.WriteBulkString(string(str))
+		c.Conn().WriteBulkString(string(str))
 
 		return
 	} else if value.Type() == types.ValueTypeZSet {
 		data, err := value.(*types.ZSet).Marshal()
 
 		if err != nil {
-			c.WriteError(err.Error())
+			c.Conn().WriteError(err.Error())
 			return
 		}
 
@@ -105,14 +105,14 @@ func DumpCommand(c *pkg.Client, args [][]byte) {
 		})
 
 		if err != nil {
-			c.WriteError(err.Error())
+			c.Conn().WriteError(err.Error())
 			return
 		}
 
-		c.WriteBulkString(string(str))
+		c.Conn().WriteBulkString(string(str))
 
 		return
 	}
 
-	c.WriteError(fmt.Sprintf("Dump for %s is not yet implemented", value.TypeFancy()))
+	c.Conn().WriteError(fmt.Sprintf("Dump for %s is not yet implemented", value.TypeFancy()))
 }

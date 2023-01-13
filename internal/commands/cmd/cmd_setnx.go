@@ -14,7 +14,7 @@ import (
 // This is equivalent to calling SET key value NX
 func SetNxCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 3 {
-		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -25,11 +25,11 @@ func SetNxCommand(c *pkg.Client, args [][]byte) {
 	exists := db.Exists(key)
 
 	if exists {
-		c.WriteInt(0)
+		c.Conn().WriteInt(0)
 		return
 	}
 
 	db.Set(key, types.NewString(value), time.Time{})
 
-	c.WriteInt(1)
+	c.Conn().WriteInt(1)
 }

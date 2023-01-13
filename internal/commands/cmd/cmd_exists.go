@@ -10,7 +10,7 @@ import (
 // https://redis.io/commands/exists/
 func ExistsCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 2 {
-		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -25,5 +25,5 @@ func ExistsCommand(c *pkg.Client, args [][]byte) {
 		}
 	}
 
-	c.WriteInt(count)
+	c.Conn().WriteInt(count)
 }

@@ -13,7 +13,7 @@ import (
 // https://redis.io/commands/incr/
 func IncrCommand(c *pkg.Client, args [][]byte) {
 	if len(args) == 1 {
-		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -25,26 +25,26 @@ func IncrCommand(c *pkg.Client, args [][]byte) {
 
 	if !exists {
 		db.Set(key, types.NewString("1"), time.Time{})
-		c.WriteInt64(1)
+		c.Conn().WriteInt64(1)
 		return
 	}
 
 	value, ok := item.Value().(string)
 
 	if !ok {
-		c.WriteError(util.WrongTypeErr)
+		c.Conn().WriteError(util.WrongTypeErr)
 		return
 	}
 
 	intValue, err := strconv.ParseInt(value, 10, 64)
 
 	if err != nil {
-		c.WriteError(util.InvalidIntErr)
+		c.Conn().WriteError(util.InvalidIntErr)
 		return
 	}
 
 	intValue++
 
 	db.Set(key, types.NewString(fmt.Sprint(intValue)), time.Time{})
-	c.WriteInt64(intValue)
+	c.Conn().WriteInt64(intValue)
 }

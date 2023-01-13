@@ -13,7 +13,7 @@ import (
 // SPOP key [count]
 func SpopCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 2 {
-		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -24,7 +24,7 @@ func SpopCommand(c *pkg.Client, args [][]byte) {
 		count64, err := strconv.ParseInt(string(args[2]), 10, 32)
 
 		if err != nil || count64 < 0 {
-			c.WriteError(util.InvalidIntErr)
+			c.Conn().WriteError(util.InvalidIntErr)
 		}
 
 		count32 := int(count64)
@@ -37,10 +37,10 @@ func SpopCommand(c *pkg.Client, args [][]byte) {
 
 	// If any of the sets are nil, then the intersections must be 0
 	if maybeSet == nil {
-		c.WriteNullBulk()
+		c.Conn().WriteNull()
 		return
 	} else if maybeSet.Type() != types.ValueTypeSet {
-		c.WriteError(util.WrongTypeErr)
+		c.Conn().WriteError(util.WrongTypeErr)
 		return
 	}
 
@@ -58,17 +58,17 @@ func SpopCommand(c *pkg.Client, args [][]byte) {
 			}
 		}
 
-		c.WriteArray(len(removed))
+		c.Conn().WriteArray(len(removed))
 		for _, k := range removed {
-			c.WriteBulkString(k)
+			c.Conn().WriteBulkString(k)
 		}
 	} else {
 		member := set.Pop()
 
 		if member != nil {
-			c.WriteBulkString(*member)
+			c.Conn().WriteBulkString(*member)
 		} else {
-			c.WriteNullBulk()
+			c.Conn().WriteNull()
 		}
 	}
 }

@@ -13,7 +13,7 @@ import (
 // GETRANGE key start end
 func GetrangeCommand(c *pkg.Client, args [][]byte) {
 	if len(args) != 4 {
-		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -26,7 +26,7 @@ func GetrangeCommand(c *pkg.Client, args [][]byte) {
 	start64, err := strconv.ParseInt(startStr, 10, 64)
 
 	if err != nil {
-		c.WriteError("ERR start is not an integer or out of range")
+		c.Conn().WriteError("ERR start is not an integer or out of range")
 		return
 	}
 
@@ -37,7 +37,7 @@ func GetrangeCommand(c *pkg.Client, args [][]byte) {
 	end64, err := strconv.ParseInt(endStr, 10, 64)
 
 	if err != nil {
-		c.WriteError("ERR end is not an integer or out of range")
+		c.Conn().WriteError("ERR end is not an integer or out of range")
 		return
 	}
 
@@ -48,10 +48,10 @@ func GetrangeCommand(c *pkg.Client, args [][]byte) {
 	maybeItem, _ := db.Get(key)
 
 	if maybeItem != nil && maybeItem.Type() != types.ValueTypeString {
-		c.WriteError(util.WrongTypeErr)
+		c.Conn().WriteError(util.WrongTypeErr)
 	} else {
 		if maybeItem == nil {
-			c.WriteBulkString("")
+			c.Conn().WriteBulkString("")
 			return
 		}
 
@@ -72,7 +72,7 @@ func GetrangeCommand(c *pkg.Client, args [][]byte) {
 		}
 
 		if start > end {
-			c.WriteBulkString("")
+			c.Conn().WriteBulkString("")
 			return
 		}
 
@@ -85,6 +85,6 @@ func GetrangeCommand(c *pkg.Client, args [][]byte) {
 		}
 
 		str := item.SubString(start, end)
-		c.WriteBulkString(str)
+		c.Conn().WriteBulkString(str)
 	}
 }

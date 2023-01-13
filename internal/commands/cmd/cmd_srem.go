@@ -12,7 +12,7 @@ import (
 // SREM key member [member ...]
 func SremCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 3 {
-		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -21,10 +21,10 @@ func SremCommand(c *pkg.Client, args [][]byte) {
 	maybeSet, ttl := db.Get(key)
 
 	if maybeSet == nil {
-		c.WriteInt(0)
+		c.Conn().WriteInt(0)
 		return
 	} else if maybeSet.Type() != types.ValueTypeSet {
-		c.WriteError(util.WrongTypeErr)
+		c.Conn().WriteError(util.WrongTypeErr)
 		return
 	}
 
@@ -40,5 +40,5 @@ func SremCommand(c *pkg.Client, args [][]byte) {
 
 	db.Set(key, set, ttl)
 
-	c.WriteInt(count)
+	c.Conn().WriteInt(count)
 }

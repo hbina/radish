@@ -13,7 +13,7 @@ import (
 // ZPOPMIN key [count]
 func ZpopminCommand(c *pkg.Client, args [][]byte) {
 	if len(args) < 2 {
-		c.WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
+		c.Conn().WriteError(fmt.Sprintf(util.WrongNumOfArgsErr, args[0]))
 		return
 	}
 
@@ -28,12 +28,12 @@ func ZpopminCommand(c *pkg.Client, args [][]byte) {
 		count64, err := strconv.ParseInt(countStr, 10, 32)
 
 		if err != nil {
-			c.WriteError(util.InvalidIntErr)
+			c.Conn().WriteError(util.InvalidIntErr)
 			return
 		}
 
 		if count64 < 0 {
-			c.WriteError(fmt.Sprintf(util.MustBePositiveErr, "count"))
+			c.Conn().WriteError(fmt.Sprintf(util.MustBePositiveErr, "count"))
 			return
 		}
 
@@ -48,12 +48,12 @@ func ZpopminCommand(c *pkg.Client, args [][]byte) {
 	}
 
 	if maybeSet.Type() != types.ValueTypeZSet {
-		c.WriteError(util.WrongTypeErr)
+		c.Conn().WriteError(util.WrongTypeErr)
 		return
 	}
 
 	if count == 0 {
-		c.WriteArray(0)
+		c.Conn().WriteArray(0)
 		return
 	}
 
@@ -71,9 +71,9 @@ func ZpopminCommand(c *pkg.Client, args [][]byte) {
 
 	db.Set(key, types.NewZSetFromSs(set), ttl)
 
-	c.WriteArray(len(res) * 2)
+	c.Conn().WriteArray(len(res) * 2)
 	for _, n := range res {
-		c.WriteBulkString(n.Key)
-		c.WriteBulkString(fmt.Sprint(n.Score))
+		c.Conn().WriteBulkString(n.Key)
+		c.Conn().WriteBulkString(fmt.Sprint(n.Score))
 	}
 }

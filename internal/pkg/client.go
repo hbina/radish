@@ -1,17 +1,12 @@
 package pkg
 
-import (
-	"fmt"
-	"net"
-	"strconv"
-)
+import "github.com/hbina/radish/internal/util"
 
 // A connected Client.
 type Client struct {
-	conn  net.Conn
+	conn  *util.Conn
 	dbId  uint64
 	redis *Redis
-	r3    bool
 }
 
 func (c *Client) Read(buffer []byte) (int, error) {
@@ -20,6 +15,10 @@ func (c *Client) Read(buffer []byte) (int, error) {
 
 func (c *Client) Redis() *Redis {
 	return c.redis
+}
+
+func (c *Client) Conn() *util.Conn {
+	return c.conn
 }
 
 func (c *Client) DbId() uint64 {
@@ -36,84 +35,10 @@ func (c *Client) Db() *Db {
 	return c.redis.GetDb(c.dbId)
 }
 
-func (c *Client) WriteError(value string) {
-	c.conn.Write([]byte(fmt.Sprintf("-%s\r\n", value)))
-}
-
-func (c *Client) WriteArray(value int) {
-	c.conn.Write([]byte(fmt.Sprintf("*%d\r\n", value)))
-}
-
-func (c *Client) WriteMap(value int) {
-	if c.r3 {
-		// To escape % we need %%
-		c.conn.Write([]byte(fmt.Sprintf("%%%d\r\n", value)))
-	} else {
-		c.conn.Write([]byte(fmt.Sprintf("*%d\r\n", value)))
-	}
-}
-
-func (c *Client) WriteSet(value int) {
-	if c.r3 {
-		c.conn.Write([]byte(fmt.Sprintf("~%d\r\n", value)))
-	} else {
-		c.conn.Write([]byte(fmt.Sprintf("*%d\r\n", value)))
-	}
-}
-
-func (c *Client) WriteString(value string) {
-	c.conn.Write([]byte(fmt.Sprintf("+%s\r\n", value)))
-}
-
-func (c *Client) WriteBulkString(value string) {
-	c.conn.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(value), value)))
-}
-
-func (c *Client) WriteInt(value int) {
-	c.conn.Write([]byte(fmt.Sprintf(":%d\r\n", value)))
-}
-
-func (c *Client) WriteDouble(value float64) {
-	valueStr := strconv.FormatFloat(value, 'f', -1, 64)
-	if c.r3 {
-		c.conn.Write([]byte(fmt.Sprintf(",%s\r\n", valueStr)))
-	} else {
-		c.conn.Write([]byte(fmt.Sprintf("+%sr\n", valueStr)))
-	}
-}
-
-func (c *Client) WriteInt64(value int64) {
-	c.conn.Write([]byte(fmt.Sprintf(":%d\r\n", value)))
-}
-
-func (c *Client) WriteNullBulk() {
-	if c.r3 {
-		c.conn.Write([]byte("_\r\n"))
-	} else {
-		c.conn.Write([]byte("$-1\r\n"))
-	}
-}
-
-func (c *Client) WriteNullArray() {
-	if c.r3 {
-		c.conn.Write([]byte("_\r\n"))
-	} else {
-		c.conn.Write([]byte("*-1\r\n"))
-	}
-}
-
-func (c *Client) WriteNull() {
-	c.conn.Write([]byte("_\r\n"))
-}
-
-func (c *Client) WriteRaw(value []byte) {
-	c.conn.Write(value)
-}
-
 func (c *Client) UseResp2() {
-	c.r3 = false
+	c.conn.UseResp2()
 }
 
 func (c *Client) UseResp3() {
-	c.r3 = true
+	c.conn.UseResp3()
 }

@@ -2,12 +2,11 @@ package util
 
 import (
 	"fmt"
-	"net"
 )
 
 type Resp interface {
 	Width() int
-	Write(net.Conn, bool)
+	Write(*Conn) error
 }
 
 var _ Resp = &RespSimpleString{}
@@ -26,8 +25,14 @@ func (rs *RespSimpleString) Width() int {
 	return 0
 }
 
-func (rs *RespSimpleString) Write(c net.Conn, useV3 bool) {
-	c.Write([]byte(fmt.Sprintf("+%s\r\n", rs.inner)))
+func (rs *RespSimpleString) Write(c *Conn) error {
+	return c.WriteAll([]byte(fmt.Sprintf("+%s\r\n", rs.inner)))
+}
+
+func NewRss(inner string) *RespSimpleString {
+	return &RespSimpleString{
+		inner: []byte(inner),
+	}
 }
 
 type RespErrorString struct {
@@ -38,8 +43,8 @@ func (rs *RespErrorString) Width() int {
 	return 0
 }
 
-func (rs *RespErrorString) Write(c net.Conn, useV3 bool) {
-	c.Write([]byte(fmt.Sprintf("-%s\r\n", rs.inner)))
+func (rs *RespErrorString) Write(c *Conn) error {
+	return c.WriteAll([]byte(fmt.Sprintf("-%s\r\n", rs.inner)))
 }
 
 type RespBulkString struct {
@@ -50,8 +55,8 @@ func (rs *RespBulkString) Width() int {
 	return 0
 }
 
-func (rs *RespBulkString) Write(c net.Conn, useV3 bool) {
-	c.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(rs.inner), rs.inner)))
+func (rs *RespBulkString) Write(c *Conn) error {
+	return c.WriteAll([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(rs.inner), rs.inner)))
 }
 
 type RespInteger struct {
@@ -62,8 +67,8 @@ func (rs *RespInteger) Width() int {
 	return 0
 }
 
-func (rs *RespInteger) Write(c net.Conn, useV3 bool) {
-	c.Write([]byte(fmt.Sprintf(":%d\r\n", rs.inner)))
+func (rs *RespInteger) Write(c *Conn) error {
+	return c.WriteAll([]byte(fmt.Sprintf(":%d\r\n", rs.inner)))
 }
 
 type RespNilKind = int
@@ -84,14 +89,14 @@ func (rs *RespNil) Width() int {
 	return 0
 }
 
-func (rs *RespNil) Write(c net.Conn, useV3 bool) {
-	if useV3 {
-		c.Write([]byte("_\r\n"))
+func (rs *RespNil) Write(c *Conn) error {
+	if c.r3 {
+		return c.WriteAll([]byte("_\r\n"))
 	} else {
 		if rs.kind == 0 {
-			c.Write([]byte("$-1\r\n"))
+			return c.WriteAll([]byte("$-1\r\n"))
 		} else {
-			c.Write([]byte("*-1\r\n"))
+			return c.WriteAll([]byte("*-1\r\n"))
 		}
 	}
 }
@@ -118,11 +123,22 @@ func (rs *RespArray) Width() int {
 	return ourWidth
 }
 
-func (rs *RespArray) Write(c net.Conn, useV3 bool) {
-	c.Write([]byte(fmt.Sprintf("*%d\r\n", len(rs.inner))))
-	for _, r := range rs.inner {
-		r.Write(c, useV3)
+func (rs *RespArray) Write(c *Conn) error {
+	err := c.WriteAll([]byte(fmt.Sprintf("*%d\r\n", len(rs.inner))))
+
+	if err != nil {
+		return err
 	}
+
+	for _, r := range rs.inner {
+		err = r.Write(c)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 type RespMap struct {
@@ -141,10 +157,27 @@ func (rs *RespMap) Width() int {
 	return ourWidth
 }
 
-func (rs *RespMap) Write(c net.Conn, useV3 bool) {
-	c.Write([]byte(fmt.Sprintf("%%%d\r\n", len(rs.inner))))
-	for k, r := range rs.inner {
-		c.Write
-		r.Write(c, useV3)
+func (rs *RespMap) Write(c *Conn) error {
+	err := c.WriteAll([]byte(fmt.Sprintf("%%%d\r\n", len(rs.inner))))
+
+	if err != nil {
+		return err
 	}
+
+	for k, r := range rs.inner {
+		err = NewRss(k).Write(c)
+
+		if err != nil {
+			return err
+		}
+
+		err = r.Write(c)
+
+		if err != nil {
+			return err
+		}
+
+	}
+
+	return nil
 }
