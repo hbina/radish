@@ -21,9 +21,9 @@ func ZrevrangeCommand(c *pkg.Client, args [][]byte) {
 	startStr := string(args[2])
 	stopStr := string(args[3])
 
-	start, startExclusive, stop, stopExclusive, err := util.ParseIntRange(startStr, stopStr)
+	start, startExclusive, stop, stopExclusive, notOk := util.ParseIntRange(startStr, stopStr)
 
-	if err {
+	if notOk {
 		c.Conn().WriteError(util.InvalidIntErr)
 		return
 	}
@@ -65,17 +65,5 @@ func ZrevrangeCommand(c *pkg.Client, args [][]byte) {
 	options.StopExclusive = stopExclusive
 
 	res := set.GetRangeByIndex(start, stop, options)
-
-	if withScores {
-		c.Conn().WriteArray(len(res) * 2)
-		for _, ssn := range res {
-			c.Conn().WriteBulkString(ssn.Key)
-			c.Conn().WriteFloat64(ssn.Score)
-		}
-	} else {
-		c.Conn().WriteArray(len(res))
-		for _, ssn := range res {
-			c.Conn().WriteBulkString(ssn.Key)
-		}
-	}
+	c.WriteToConn(res, withScores, true)
 }

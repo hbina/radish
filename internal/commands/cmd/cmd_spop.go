@@ -37,7 +37,11 @@ func SpopCommand(c *pkg.Client, args [][]byte) {
 
 	// If any of the sets are nil, then the intersections must be 0
 	if maybeSet == nil {
-		c.Conn().WriteNull()
+		if c.R3 {
+			c.Conn().WriteNull()
+		} else {
+			c.Conn().WriteNullBulk()
+		}
 		return
 	} else if maybeSet.Type() != types.ValueTypeSet {
 		c.Conn().WriteError(util.WrongTypeErr)
@@ -68,7 +72,11 @@ func SpopCommand(c *pkg.Client, args [][]byte) {
 		if member != nil {
 			c.Conn().WriteBulkString(*member)
 		} else {
-			c.Conn().WriteNull()
+			if c.R3 {
+				c.Conn().WriteNull()
+			} else {
+				c.Conn().WriteNullBulk()
+			}
 		}
 	}
 }

@@ -28,7 +28,11 @@ func MgetCommand(c *pkg.Client, args [][]byte) {
 		maybeItem, _ := db.Get(key)
 
 		if maybeItem == nil || maybeItem.Type() != types.ValueTypeString {
-			c.Conn().WriteNull()
+			if c.R3 {
+				c.Conn().WriteNull()
+			} else {
+				c.Conn().WriteNullBulk()
+			}
 		} else {
 			item := maybeItem.(*types.String)
 			c.Conn().WriteBulkString(item.AsString())

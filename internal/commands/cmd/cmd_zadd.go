@@ -178,7 +178,11 @@ func ZaddCommand(c *pkg.Client, args [][]byte) {
 
 	if incrEnabled {
 		if newScore == nil {
-			c.Conn().WriteNull()
+			if c.R3 {
+				c.Conn().WriteNull()
+			} else {
+				c.Conn().WriteNullBulk()
+			}
 		} else {
 			c.Conn().WriteString(fmt.Sprint(*newScore))
 		}

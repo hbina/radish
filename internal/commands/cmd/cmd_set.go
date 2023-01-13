@@ -180,12 +180,20 @@ func SetCommand(c *pkg.Client, args [][]byte) {
 	if writeMode == SetWriteNx && exists || writeMode == SetWriteXx && !exists {
 		if shouldGet {
 			if foundStr == nil {
-				c.Conn().WriteNull()
+				if c.R3 {
+					c.Conn().WriteNull()
+				} else {
+					c.Conn().WriteNullBulk()
+				}
 			} else {
 				c.Conn().WriteBulkString(foundStr.AsString())
 			}
 		} else {
-			c.Conn().WriteNull()
+			if c.R3 {
+				c.Conn().WriteNull()
+			} else {
+				c.Conn().WriteNullBulk()
+			}
 		}
 		return
 	}
@@ -194,7 +202,11 @@ func SetCommand(c *pkg.Client, args [][]byte) {
 
 	if shouldGet {
 		if foundStr == nil {
-			c.Conn().WriteNull()
+			if c.R3 {
+				c.Conn().WriteNull()
+			} else {
+				c.Conn().WriteNullBulk()
+			}
 		} else {
 			// We already checked that foundStr is a *types.String
 			c.Conn().WriteBulkString(foundStr.AsString())

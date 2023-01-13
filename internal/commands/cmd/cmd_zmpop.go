@@ -148,12 +148,7 @@ func ZmpopCommand(c *pkg.Client, args [][]byte) {
 
 		c.Conn().WriteArray(2)
 		c.Conn().WriteBulkString(key)
-		c.Conn().WriteArray(len(res))
-		for _, n := range res {
-			c.Conn().WriteArray(2)
-			c.Conn().WriteBulkString(n.Key)
-			c.Conn().WriteBulkString(fmt.Sprint(n.Score))
-		}
+		c.WriteToConn(res, true, false)
 
 		return
 	}

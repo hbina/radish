@@ -23,9 +23,9 @@ func ZrangebylexCommand(c *pkg.Client, args [][]byte) {
 	startStr := string(args[2])
 	stopStr := string(args[3])
 
-	start, startExclusive, stop, stopExclusive, err := util.ParseLexRange(startStr, stopStr)
+	start, startExclusive, stop, stopExclusive, notOk := util.ParseLexRange(startStr, stopStr)
 
-	if err {
+	if notOk {
 		c.Conn().WriteError(util.InvalidLexErr)
 		return
 	}
@@ -97,9 +97,5 @@ func ZrangebylexCommand(c *pkg.Client, args [][]byte) {
 		StopExclusive:  stopExclusive,
 	})
 
-	c.Conn().WriteArray(len(res))
-
-	for _, ssn := range res {
-		c.Conn().WriteBulkString(ssn.Key)
-	}
+	c.WriteToConn(res, false, true)
 }

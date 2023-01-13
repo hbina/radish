@@ -85,6 +85,7 @@ func (r *Redis) NewClient(conn net.Conn) *Client {
 		conn:  util.NewConn(conn),
 		redis: r,
 		dbId:  0,
+		R3:    false,
 	}
 	return c
 }

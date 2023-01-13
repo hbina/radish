@@ -8,21 +8,12 @@ import (
 
 type Conn struct {
 	conn net.Conn
-	r3   bool
 }
 
 func NewConn(conn net.Conn) *Conn {
 	return &Conn{
 		conn: conn,
 	}
-}
-
-func (c *Conn) UseResp2() {
-	c.r3 = false
-}
-
-func (c *Conn) UseResp3() {
-	c.r3 = true
 }
 
 func (c *Conn) Read(buffer []byte) (int, error) {
@@ -45,6 +36,10 @@ func (c *Conn) WriteAll(in []byte) error {
 	return nil
 }
 
+func (c *Conn) Close() error {
+	return c.conn.Close()
+}
+
 func (c *Conn) WriteString(value string) error {
 	return c.WriteAll([]byte(fmt.Sprintf("+%s\r\n", value)))
 }
@@ -62,21 +57,11 @@ func (c *Conn) WriteInt(value int) error {
 }
 
 func (c *Conn) WriteFloat32(value float32) error {
-	valueStr := strconv.FormatFloat(float64(value), 'f', -1, 32)
-	if c.r3 {
-		return c.WriteAll([]byte(fmt.Sprintf(",%s\r\n", valueStr)))
-	} else {
-		return c.WriteBulkString(valueStr)
-	}
+	return c.WriteAll([]byte(fmt.Sprintf(",%s\r\n", strconv.FormatFloat(float64(value), 'f', -1, 32))))
 }
 
 func (c *Conn) WriteFloat64(value float64) error {
-	valueStr := strconv.FormatFloat(value, 'f', -1, 64)
-	if c.r3 {
-		return c.WriteAll([]byte(fmt.Sprintf(",%s\r\n", valueStr)))
-	} else {
-		return c.WriteBulkString(valueStr)
-	}
+	return c.WriteAll([]byte(fmt.Sprintf(",%s\r\n", fmt.Sprint(value))))
 }
 
 func (c *Conn) WriteInt64(value int64) error {
@@ -88,34 +73,21 @@ func (c *Conn) WriteArray(value int) error {
 }
 
 func (c *Conn) WriteMap(value int) error {
-	if c.r3 {
-		// To escape % we need %%
-		return c.WriteAll([]byte(fmt.Sprintf("%%%d\r\n", value/2)))
-	} else {
-		return c.WriteAll([]byte(fmt.Sprintf("*%d\r\n", value)))
-	}
+	return c.WriteAll([]byte(fmt.Sprintf("%%%d\r\n", value/2)))
 }
 
 func (c *Conn) WriteSet(value int) error {
-	if c.r3 {
-		return c.WriteAll([]byte(fmt.Sprintf("~%d\r\n", value)))
-	} else {
-		return c.WriteAll([]byte(fmt.Sprintf("*%d\r\n", value)))
-	}
+	return c.WriteAll([]byte(fmt.Sprintf("~%d\r\n", value)))
 }
 
 func (c *Conn) WriteNull() error {
-	if c.r3 {
-		return c.WriteAll([]byte("_\r\n"))
-	} else {
-		return c.WriteAll([]byte("$-1\r\n"))
-	}
+	return c.WriteAll([]byte("_\r\n"))
+}
+
+func (c *Conn) WriteNullBulk() error {
+	return c.WriteAll([]byte("$-1\r\n"))
 }
 
 func (c *Conn) WriteNullArray() error {
-	if c.r3 {
-		return c.WriteAll([]byte("_\r\n"))
-	} else {
-		return c.WriteAll([]byte("*-1\r\n"))
-	}
+	return c.WriteAll([]byte("*-1\r\n"))
 }

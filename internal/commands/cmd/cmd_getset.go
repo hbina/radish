@@ -32,7 +32,11 @@ func GetsetCommand(c *pkg.Client, args [][]byte) {
 	db.Set(key, types.NewString(value), time.Time{})
 
 	if maybeItem == nil {
-		c.Conn().WriteNull()
+		if c.R3 {
+			c.Conn().WriteNull()
+		} else {
+			c.Conn().WriteNullBulk()
+		}
 	} else {
 		// We already asserted that maybeItem is not nil and that it is a string
 		c.Conn().WriteBulkString(maybeItem.(*types.String).AsString())

@@ -43,7 +43,11 @@ func implZrankCommand(c *pkg.Client, args [][]byte, reverse bool) {
 	maybeSet, _ := c.Db().Get(key)
 
 	if maybeSet == nil {
-		c.Conn().WriteNull()
+		if c.R3 {
+			c.Conn().WriteNull()
+		} else {
+			c.Conn().WriteNullBulk()
+		}
 		return
 	}
 
@@ -57,11 +61,14 @@ func implZrankCommand(c *pkg.Client, args [][]byte, reverse bool) {
 	node, rank := set.FindNodeByLex(memberKey)
 
 	if node == nil || node.Key != memberKey {
-		if withScore {
-			// We should have a null array
-			c.Conn().WriteNullArray()
-		} else {
+		if c.R3 {
 			c.Conn().WriteNull()
+		} else {
+			if withScore {
+				c.Conn().WriteNullArray()
+			} else {
+				c.Conn().WriteNullBulk()
+			}
 		}
 		return
 	}

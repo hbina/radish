@@ -73,9 +73,5 @@ func ZpopmaxCommand(c *pkg.Client, args [][]byte) {
 
 	db.Set(key, types.NewZSetFromSs(set), ttl)
 
-	c.Conn().WriteArray(len(res) * 2)
-	for _, n := range res {
-		c.Conn().WriteBulkString(n.Key)
-		c.Conn().WriteBulkString(fmt.Sprint(n.Score))
-	}
+	c.WriteToConn(res, true, true)
 }

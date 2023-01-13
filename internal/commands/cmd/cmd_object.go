@@ -12,5 +12,9 @@ func ObjectCommand(c *pkg.Client, args [][]byte) {
 		return
 	}
 
-	c.Conn().WriteNull()
+	if c.R3 {
+		c.Conn().WriteNull()
+	} else {
+		c.Conn().WriteNullBulk()
+	}
 }

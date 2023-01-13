@@ -108,7 +108,11 @@ func SrandmemberCommand(c *pkg.Client, args [][]byte) {
 		if member != nil {
 			c.Conn().WriteBulkString(*member)
 		} else {
-			c.Conn().WriteNull()
+			if c.R3 {
+				c.Conn().WriteNull()
+			} else {
+				c.Conn().WriteNullBulk()
+			}
 		}
 	}
 }
