@@ -160,15 +160,22 @@ func ZrangeCommand(c *pkg.Client, args [][]byte) {
 	}
 
 	if withScores {
-		c.Conn().WriteArray(len(res) * 2)
-
-		for _, ssn := range res {
-			c.Conn().WriteBulkString(ssn.Key)
-			c.Conn().WriteBulkString(fmt.Sprint(ssn.Score))
+		if c.R3 {
+			c.Conn().WriteArray(len(res))
+			for _, ssn := range res {
+				c.Conn().WriteArray(2)
+				c.Conn().WriteBulkString(ssn.Key)
+				c.Conn().WriteFloat64(ssn.Score)
+			}
+		} else {
+			c.Conn().WriteArray(len(res) * 2)
+			for _, ssn := range res {
+				c.Conn().WriteBulkString(ssn.Key)
+				c.Conn().WriteBulkString(fmt.Sprint(ssn.Score))
+			}
 		}
 	} else {
 		c.Conn().WriteArray(len(res))
-
 		for _, ssn := range res {
 			c.Conn().WriteBulkString(ssn.Key)
 		}

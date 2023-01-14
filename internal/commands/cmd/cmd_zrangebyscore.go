@@ -23,9 +23,9 @@ func ZrangebyscoreCommand(c *pkg.Client, args [][]byte) {
 	startStr := string(args[2])
 	stopStr := string(args[3])
 
-	start, startExclusive, stop, stopExclusive, err := util.ParseFloatRange(startStr, stopStr)
+	start, startExclusive, stop, stopExclusive, notOk := util.ParseFloatRange(startStr, stopStr)
 
-	if err || math.IsNaN(start) || math.IsNaN(stop) {
+	if notOk || math.IsNaN(start) || math.IsNaN(stop) {
 		c.Conn().WriteError(util.InvalidFloatErr)
 		return
 	}
@@ -101,18 +101,5 @@ func ZrangebyscoreCommand(c *pkg.Client, args [][]byte) {
 		StopExclusive:  stopExclusive,
 	})
 
-	if withScores {
-		c.Conn().WriteArray(len(res) * 2)
-
-		for _, ssn := range res {
-			c.Conn().WriteBulkString(ssn.Key)
-			c.Conn().WriteBulkString(fmt.Sprint(ssn.Score))
-		}
-	} else {
-		c.Conn().WriteArray(len(res))
-
-		for _, ssn := range res {
-			c.Conn().WriteBulkString(ssn.Key)
-		}
-	}
+	c.WriteToConn(res, withScores)
 }

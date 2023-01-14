@@ -20,7 +20,11 @@ func LPopCommand(c *pkg.Client, args [][]byte) {
 	item, _ := db.Get(key)
 
 	if item == nil {
-		c.Conn().WriteNull()
+		if c.R3 {
+			c.Conn().WriteNull()
+		} else {
+			c.Conn().WriteNullBulk()
+		}
 		return
 	} else if item.Type() != types.ValueTypeList {
 		c.Conn().WriteError(util.WrongTypeErr)
@@ -34,6 +38,10 @@ func LPopCommand(c *pkg.Client, args [][]byte) {
 		c.Conn().WriteBulkString(value)
 	} else {
 		db.Delete(key)
-		c.Conn().WriteNull()
+		if c.R3 {
+			c.Conn().WriteNull()
+		} else {
+			c.Conn().WriteNullBulk()
+		}
 	}
 }

@@ -35,7 +35,11 @@ func ZscoreCommand(c *pkg.Client, args [][]byte) {
 	maybeMember := set.GetByKey(memberKey)
 
 	if maybeMember == nil {
-		c.Conn().WriteNull()
+		if c.R3 {
+			c.Conn().WriteNull()
+		} else {
+			c.Conn().WriteNullBulk()
+		}
 		return
 	}
 

@@ -20,7 +20,11 @@ func DumpCommand(c *pkg.Client, args [][]byte) {
 	value, _ := c.Db().Get(key)
 
 	if value == nil {
-		c.Conn().WriteNull()
+		if c.R3 {
+			c.Conn().WriteNull()
+		} else {
+			c.Conn().WriteNullBulk()
+		}
 		return
 	}
 

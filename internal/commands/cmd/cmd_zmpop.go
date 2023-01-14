@@ -51,6 +51,7 @@ func ZmpopCommand(c *pkg.Client, args [][]byte) {
 
 	if 2+numKey >= len(args) {
 		c.Conn().WriteError(util.SyntaxErr)
+		return
 	}
 
 	modeStr := strings.ToLower(string(args[2+numKey]))
@@ -148,15 +149,25 @@ func ZmpopCommand(c *pkg.Client, args [][]byte) {
 
 		c.Conn().WriteArray(2)
 		c.Conn().WriteBulkString(key)
-		c.Conn().WriteArray(len(res))
-		for _, n := range res {
-			c.Conn().WriteArray(2)
-			c.Conn().WriteBulkString(n.Key)
-			c.Conn().WriteBulkString(fmt.Sprint(n.Score))
+
+		if c.R3 {
+			c.WriteToConn(res, true)
+		} else {
+			c.Conn().WriteArray(len(res))
+
+			for _, node := range res {
+				c.Conn().WriteArray(2)
+				c.Conn().WriteBulkString(node.Key)
+				c.Conn().WriteBulkString(fmt.Sprint(node.Score))
+			}
 		}
 
 		return
 	}
 
-	c.Conn().WriteNullArray()
+	if c.R3 {
+		c.Conn().WriteNull()
+	} else {
+		c.Conn().WriteNullArray()
+	}
 }

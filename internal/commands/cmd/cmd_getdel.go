@@ -21,7 +21,11 @@ func GetdelCommand(c *pkg.Client, args [][]byte) {
 	item, _ := db.Get(key)
 
 	if item == nil {
-		c.Conn().WriteNull()
+		if c.R3 {
+			c.Conn().WriteNull()
+		} else {
+			c.Conn().WriteNullBulk()
+		}
 		return
 	}
 

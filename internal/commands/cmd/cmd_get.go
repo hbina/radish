@@ -19,7 +19,11 @@ func GetCommand(c *pkg.Client, args [][]byte) {
 	item, _ := c.Db().Get(key)
 
 	if item == nil {
-		c.Conn().WriteNullBulk()
+		if c.R3 {
+			c.Conn().WriteNull()
+		} else {
+			c.Conn().WriteNullBulk()
+		}
 		return
 	}
 

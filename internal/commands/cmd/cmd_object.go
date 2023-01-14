@@ -6,5 +6,9 @@ import (
 
 // https://redis.io/commands/object/
 func ObjectCommand(c *pkg.Client, args [][]byte) {
-	c.Conn().WriteNull()
+	if c.R3 {
+		c.Conn().WriteNull()
+	} else {
+		c.Conn().WriteNullBulk()
+	}
 }
