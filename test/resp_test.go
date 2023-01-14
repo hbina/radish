@@ -103,23 +103,23 @@ func TestStringifyGoodRespInteger(t *testing.T) {
 func TestStringifyBadRespInteger(t *testing.T) {
 	// Integers
 	res, ok, leftover := util.StringifyRespBytes([]byte(":1ddd\r\n"))
-	assert.Equal(t, util.FormatErr, res)
-	assert.True(t, ok)
+	assert.Empty(t, res)
+	assert.False(t, ok)
 	assert.Empty(t, leftover)
 
 	res, ok, leftover = util.StringifyRespBytes([]byte(":-1d00\r\n"))
-	assert.Equal(t, util.FormatErr, res)
-	assert.True(t, ok)
+	assert.Empty(t, res)
+	assert.False(t, ok)
 	assert.Empty(t, leftover)
 
 	res, ok, leftover = util.StringifyRespBytes([]byte(":v32\r\n"))
-	assert.Equal(t, util.FormatErr, res)
-	assert.True(t, ok)
+	assert.Empty(t, res)
+	assert.False(t, ok)
 	assert.Empty(t, leftover)
 
 	res, ok, leftover = util.StringifyRespBytes([]byte(":-v0\r\n"))
-	assert.Equal(t, util.FormatErr, res)
-	assert.True(t, ok)
+	assert.Empty(t, res)
+	assert.False(t, ok)
 	assert.Empty(t, leftover)
 }
 
@@ -140,18 +140,18 @@ func TestStringifyRespGoodBulkString(t *testing.T) {
 
 func TestStringifyRespBadBulkString(t *testing.T) {
 	res, ok, leftover := util.StringifyRespBytes([]byte("$5\r\nlo\r\n"))
-	assert.Equal(t, util.FormatErr, res)
-	assert.True(t, ok)
+	assert.Empty(t, res)
+	assert.False(t, ok)
 	assert.Empty(t, leftover)
 
 	res, ok, leftover = util.StringifyRespBytes([]byte("$0\r\nddd\r\n"))
-	assert.Equal(t, util.FormatErr, res)
-	assert.True(t, ok)
+	assert.Empty(t, res)
+	assert.False(t, ok)
 	assert.Empty(t, leftover)
 
 	res, ok, leftover = util.StringifyRespBytes([]byte("$2\r\nddd\r\n"))
-	assert.Equal(t, util.FormatErr, res)
-	assert.True(t, ok)
+	assert.Empty(t, res)
+	assert.False(t, ok)
 	assert.Empty(t, leftover)
 }
 
