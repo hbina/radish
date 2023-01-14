@@ -6,6 +6,119 @@ import (
 	"strings"
 )
 
+type Resp interface {
+	Width() int
+}
+
+var _ Resp = &RespSimpleString{}
+var _ Resp = &RespErrorString{}
+var _ Resp = &RespBulkString{}
+var _ Resp = &RespInteger{}
+var _ Resp = &RespNilBulk{}
+var _ Resp = &RespArray{}
+var _ Resp = &RespNilArray{}
+var _ Resp = &RespMap{}
+var _ Resp = &RespNil{}
+
+type RespSimpleString struct {
+	inner []byte
+}
+
+func (rs *RespSimpleString) Width() int {
+	return 0
+}
+
+func NewRss(inner string) *RespSimpleString {
+	return &RespSimpleString{
+		inner: []byte(inner),
+	}
+}
+
+type RespErrorString struct {
+	inner []byte
+}
+
+func (rs *RespErrorString) Width() int {
+	return 0
+}
+
+type RespBulkString struct {
+	inner []byte
+}
+
+func (rs *RespBulkString) Width() int {
+	return 0
+}
+
+type RespNilBulk struct {
+}
+
+func (rs *RespNilBulk) Width() int {
+	return 0
+}
+
+type RespInteger struct {
+	inner int
+}
+
+func (rs *RespInteger) Width() int {
+	return 0
+}
+
+type RespFloat struct {
+	inner float64
+}
+
+func (rs *RespFloat) Width() int {
+	return 0
+}
+
+type RespArray struct {
+	inner []Resp
+}
+
+func (rs *RespArray) Width() int {
+	ourWidth := 0
+	currLen := len(rs.inner)
+
+	for currLen != 0 {
+		ourWidth += 1
+		currLen /= 10
+	}
+
+	return ourWidth
+}
+
+type RespNilArray struct {
+}
+
+func (rs *RespNilArray) Width() int {
+	return 0
+}
+
+type RespMap struct {
+	inner []Resp
+}
+
+func (rs *RespMap) Width() int {
+	ourWidth := 0
+	currLen := len(rs.inner)
+
+	for currLen != 0 {
+		ourWidth += 1
+		currLen /= 10
+	}
+
+	return ourWidth
+}
+
+type RespNil struct {
+}
+
+func (rs *RespNil) Width() int {
+	return 0
+}
+
 func StringifyRespBytes(in []byte) (string, bool, []byte) {
 	resp, leftover := ConvertBytesToRespType(in)
 
@@ -139,14 +252,8 @@ func ConvertBytesToRespType(input []byte) (Resp, []byte) {
 		if currByte == '_' {
 			str, leftover, ok := TakeBytesUntilClrf(input[1:])
 
-			if !ok {
+			if !ok || len(str) != 0 {
 				return nil, []byte{}
-			}
-
-			if len(str) != 0 {
-				return &RespErrorString{
-					inner: []byte(FormatErr),
-				}, leftover
 			}
 
 			return &RespNil{}, leftover
@@ -180,9 +287,7 @@ func ConvertBytesToRespType(input []byte) (Resp, []byte) {
 			valInt64, err := strconv.ParseInt(string(str), 10, 32)
 
 			if err != nil {
-				return &RespErrorString{
-					inner: []byte(FormatErr),
-				}, leftover
+				return nil, []byte{}
 			}
 
 			return &RespInteger{
@@ -198,9 +303,7 @@ func ConvertBytesToRespType(input []byte) (Resp, []byte) {
 			valFloat64, err := strconv.ParseFloat(string(str), 64)
 
 			if err != nil {
-				return &RespErrorString{
-					inner: []byte(FormatErr),
-				}, leftover
+				return nil, []byte{}
 			}
 
 			return &RespFloat{
@@ -216,18 +319,14 @@ func ConvertBytesToRespType(input []byte) (Resp, []byte) {
 			lenInt64, err := strconv.ParseInt(string(lenStr), 10, 32)
 
 			if err != nil {
-				return &RespErrorString{
-					inner: []byte(FormatErr),
-				}, leftover
+				return nil, []byte{}
 			}
 
 			if lenInt64 < 0 {
 				return &RespNilBulk{}, leftover
 			} else {
 				if int(lenInt64)+2 > len(leftover) {
-					return &RespErrorString{
-						inner: []byte(FormatErr),
-					}, leftover
+					return nil, []byte{}
 				} else {
 					if leftover[lenInt64] == '\r' && leftover[lenInt64+1] == '\n' {
 						return &RespBulkString{
@@ -248,9 +347,7 @@ func ConvertBytesToRespType(input []byte) (Resp, []byte) {
 			lenInt64, err := strconv.ParseInt(string(lenStr), 10, 32)
 
 			if err != nil {
-				return &RespErrorString{
-					inner: []byte(FormatErr),
-				}, leftover
+				return nil, []byte{}
 			}
 
 			// We parsed the length of the array, now we march forward
@@ -294,9 +391,7 @@ func ConvertBytesToRespType(input []byte) (Resp, []byte) {
 			lenInt64, err := strconv.ParseInt(string(lenStr), 10, 64)
 
 			if err != nil {
-				return &RespErrorString{
-					inner: []byte(FormatErr),
-				}, leftover
+				return nil, []byte{}
 			}
 
 			// We parsed the length of the array, now we march forward

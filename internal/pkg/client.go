@@ -23,6 +23,10 @@ func (c *Client) Redis() *Redis {
 	return c.redis
 }
 
+func (c *Client) Close() error {
+	return c.conn.Close()
+}
+
 func (c *Client) Conn() *util.Conn {
 	return c.conn
 }

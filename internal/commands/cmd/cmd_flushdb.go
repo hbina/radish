@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	"github.com/hbina/radish/internal/pkg"
-	"github.com/hbina/radish/internal/util"
 )
 
 // https://redis.io/commands/flushdb/
@@ -15,6 +14,6 @@ func FlushDbCommand(c *pkg.Client, args [][]byte) {
 	} else if len(args) == 2 && strings.ToLower(string(args[1])) == "async" {
 		c.Conn().WriteError("FLUSHALL ASYNC is not implemented yet")
 	} else {
-		c.Conn().WriteError(util.ZeroArgumentErr)
+		c.Conn().WriteString("OK")
 	}
 }

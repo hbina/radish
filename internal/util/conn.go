@@ -16,6 +16,10 @@ func NewConn(conn net.Conn) *Conn {
 	}
 }
 
+func (c *Conn) Close() error {
+	return c.conn.Close()
+}
+
 func (c *Conn) Read(buffer []byte) (int, error) {
 	return c.conn.Read(buffer)
 }
