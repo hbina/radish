@@ -21,15 +21,13 @@ type Db struct {
 	id      uint64
 	Storage map[string]types.Item
 	Ttl     map[string]time.Time
-	redis   *Redis
 	mu      *sync.RWMutex // Lock to the database
 }
 
 // NewRedisDb creates a new db.
-func NewRedisDb(id uint64, r *Redis) *Db {
+func NewRedisDb(id uint64) *Db {
 	return &Db{
 		id:      id,
-		redis:   r,
 		Storage: make(map[string]types.Item, 0),
 		Ttl:     make(map[string]time.Time, 0),
 		mu:      new(sync.RWMutex),
@@ -39,11 +37,6 @@ func NewRedisDb(id uint64, r *Redis) *Db {
 // RedisDbs gets all redis databases.
 func (r *Redis) RedisDbs() map[uint64]*Db {
 	return r.dbs
-}
-
-// Redis gets the redis instance.
-func (db *Db) Redis() *Redis {
-	return db.redis
 }
 
 // Id gets the db id.

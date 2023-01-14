@@ -1,6 +1,7 @@
 package util
 
 const (
+	FormatErr             = "ERR format error"
 	SyntaxErr             = "ERR syntax error"
 	InvalidIntErr         = "ERR value is not an integer or out of range"
 	InvalidFloatErr       = "ERR value is not a valid float"

@@ -113,7 +113,7 @@ func main() {
 
 			response = append(response, buffer...)
 
-			responseDisplay, ok := util.StringifyRespBytes(response)
+			responseDisplay, ok, _ := util.StringifyRespBytes(response)
 
 			if ok {
 				fmt.Println(util.EscapeString(string(response)))

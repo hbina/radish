@@ -63,7 +63,7 @@ func (r *Redis) GetDb(dbId uint64) *Db {
 	// rely on it to fail to stop?
 
 	// now really create db of that id
-	r.dbs[dbId] = NewRedisDb(dbId, r)
+	r.dbs[dbId] = NewRedisDb(dbId)
 	return r.dbs[dbId]
 }
 
@@ -82,7 +82,7 @@ func (r *Redis) SetConfigValue(key string, value string) {
 // NewClient creates new client and adds it to the redis.
 func (r *Redis) NewClient(conn net.Conn) *Client {
 	c := &Client{
-		conn:  &Conn{conn: conn},
+		conn:  util.NewConn(conn),
 		redis: r,
 	}
 	return c
