@@ -64,3 +64,13 @@ func (s *String) AsString() string {
 func (s *String) SubString(start, end int) string {
 	return s.inner[start:end]
 }
+
+func (s *String) Reverse() String {
+	n := len(s.inner)
+	runes := make([]rune, n)
+	for _, rune := range s.inner {
+		n--
+		runes[n] = rune
+	}
+	return *NewString(string(runes[n:]))
+}

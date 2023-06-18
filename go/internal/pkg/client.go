@@ -13,6 +13,7 @@ type Client struct {
 	dbId  uint64
 	redis *Redis
 	R3    bool
+	Name  *string
 }
 
 func (c *Client) Read(buffer []byte) (int, error) {

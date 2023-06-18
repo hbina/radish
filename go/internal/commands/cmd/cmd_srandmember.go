@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"strconv"
 
@@ -23,10 +24,16 @@ func SrandmemberCommand(c *pkg.Client, args [][]byte) {
 	count := 0
 
 	if len(args) == 3 {
-		count64, err := strconv.ParseInt(string(args[2]), 10, 32)
+		count64, err := strconv.ParseInt(string(args[2]), 10, 64)
 
 		if err != nil {
 			c.Conn().WriteError(util.InvalidIntErr)
+			return
+		}
+
+		if count64 < (math.MinInt32) || count64 > (math.MaxInt32) {
+			c.Conn().WriteError("value is out of range")
+			return
 		}
 
 		useCount = true
@@ -41,7 +48,9 @@ func SrandmemberCommand(c *pkg.Client, args [][]byte) {
 	if maybeSet == nil {
 		c.Conn().WriteArray(0)
 		return
-	} else if maybeSet.Type() != types.ValueTypeSet {
+	}
+
+	if maybeSet.Type() != types.ValueTypeSet {
 		c.Conn().WriteError(util.WrongTypeErr)
 		return
 	}
@@ -66,7 +75,7 @@ func SrandmemberCommand(c *pkg.Client, args [][]byte) {
 				result = append(result, member)
 			}
 		} else {
-			set2 := make(map[string]struct{}, count)
+			set2 := make(map[string]struct{})
 
 			// Try to fairly choose members
 			for i := 0; i < (count)*10; i++ {
@@ -102,16 +111,20 @@ func SrandmemberCommand(c *pkg.Client, args [][]byte) {
 		for _, k := range result {
 			c.Conn().WriteBulkString(k)
 		}
+		return
 	} else {
 		member := set.GetRandomMember()
 
 		if member != nil {
 			c.Conn().WriteBulkString(*member)
+			return
 		} else {
 			if c.R3 {
 				c.Conn().WriteNull()
+				return
 			} else {
 				c.Conn().WriteNullBulk()
+				return
 			}
 		}
 	}
