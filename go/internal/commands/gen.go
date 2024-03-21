@@ -104,6 +104,7 @@ func GenerateCommands() map[string]*pkg.Command {
 		pkg.NewCommand("zpopmin", cmd.ZpopminCommand, pkg.CMD_WRITE),
 		pkg.NewCommand("zpopmax", cmd.ZpopmaxCommand, pkg.CMD_WRITE),
 		pkg.NewCommand("zmpop", cmd.ZmpopCommand, pkg.CMD_WRITE),
+		pkg.NewCommand("substr", cmd.SubstrCommand, pkg.CMD_READONLY),
 	}
 
 	res := make(map[string]*pkg.Command, len(arr))
